@@ -1,6 +1,8 @@
 package env
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -55,7 +57,8 @@ func init() {
 	}
 	errs := validator.Validator.Validate(Env)
 	if len(errs) > 0 {
-		println(errs)
+		errsJson, _ := json.Marshal(errs)
+		fmt.Printf("%s", errsJson)
 		panic(errs[0])
 	}
 }

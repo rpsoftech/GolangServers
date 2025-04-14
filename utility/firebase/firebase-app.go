@@ -20,6 +20,14 @@ var FirebaseFirestore *firestore.Client
 var FirebaseAuth *auth.Client
 var FirebaseFCM *messaging.Client
 
+func DeferFunction() {
+	println("Firebase Defer Function")
+	// FirebaseFirestore.Close()
+	FirebaseFirestore.Close()
+	// FirebaseAuth.Close()
+	// FirebaseFCM.Close()
+}
+
 func init() {
 	if env.Env.APP_ENV == env.APP_ENV_DEVELOPE {
 		return
@@ -57,7 +65,6 @@ func init() {
 		log.Fatalf("error initializing Firebase Database: %v\n", err)
 	}
 	FirebaseAuth = firestoreAuth
-
 	fcm, err := firebaseApp.Messaging(FirebaseCtx)
 	if err != nil {
 		log.Fatalf("error initializing Firebase Database: %v\n", err)
