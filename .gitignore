@@ -1,0 +1,8 @@
+.env
+build
+__debug_bin*
+
+bullion-server
+main
+
+*.exe

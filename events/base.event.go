@@ -1,0 +1,42 @@
+package events
+
+import (
+	"encoding/json"
+	"fmt"
+	"time"
+
+	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
+)
+
+type BaseEvent struct {
+	ObjId     string `bson:"_id" json:"_id"`
+	Id        string `bson:"id" json:"id"`
+	BullionId string `bson:"bullionId" json:"bullionId" validate:"required,uuid"`
+	KeyId     string `bson:"key" json:"key"`
+	EventName string `bson:"eventName" json:"eventName"`
+	// IsProcessed bool        `bson:"isProcessed" json:"isProcessed"`
+	ParentNames []string    `bson:"parentNames" json:"parentNames"`
+	Payload     interface{} `bson:"payload" json:"payload"`
+	AdminId     string      `bson:"adminId,omitempty" json:"adminId,omitempty"`
+	OccurredAt  time.Time   `bson:"occurredAt" json:"occurredAt"`
+	DataString  string      `bson:"-" json:"-"`
+}
+
+func (base *BaseEvent) CreateBaseEvent() *BaseEvent {
+	base.Id = utility_functions.GenerateNewUUID()
+	base.ObjId = base.Id
+	base.OccurredAt = time.Now()
+	// base.IsProcessed = false
+	return base
+}
+
+func (base *BaseEvent) GetPayloadString() string {
+	if base.DataString != "" {
+		return base.DataString
+	}
+	payload, _ := json.Marshal(base)
+	return string(payload)
+}
+func (base *BaseEvent) GetEventName() string {
+	return fmt.Sprintf("event/%s/%s", base.EventName, base.Id)
+}
