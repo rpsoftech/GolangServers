@@ -45,4 +45,6 @@ const (
 	ERROR_LIVE_RATE_NOT_FOUND                   = 239
 	ERROR_CONNECTION_NOT_INITIALIZED            = 240
 	ERROR_CONNECTION_LOGGED_OUT                 = 241
+	ERROR_CONNECTION_NOT_FOUND                  = 242
+	INVALID_NUMBER_FROM_TOKEN                   = 243
 )

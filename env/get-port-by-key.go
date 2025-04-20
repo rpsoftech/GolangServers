@@ -12,5 +12,5 @@ func GetServerPort(key string) string {
 		}
 		port = PORT
 	}
-	return port
+	return strconv.Itoa(port) //port
 }

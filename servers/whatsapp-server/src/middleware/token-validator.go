@@ -7,13 +7,6 @@ import (
 	whatsapp_config "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/config"
 )
 
-const (
-	REQ_LOCAL_KEY_ROLE           = "UserRole"
-	REQ_LOCAL_ERROR_KEY          = "Error"
-	REQ_LOCAL_NUMBER_KEY         = "Number"
-	REQ_LOCAL_KEY_TOKEN_RAW_DATA = "TokenRawData"
-)
-
 // fiber middleware for jwt
 func TokenDecrypter(c *fiber.Ctx) error {
 	reqHeaders := c.GetReqHeaders()
@@ -41,13 +34,13 @@ func TokenDecrypter(c *fiber.Ctx) error {
 			Name:       "ERROR_INVALID_TOKEN",
 		})
 	} else {
-		c.Locals(REQ_LOCAL_NUMBER_KEY, tokenString[0])
+		c.Locals(whatsapp_config.REQ_LOCAL_NUMBER_KEY, tokenString[0])
 	}
 	return c.Next()
 }
 
 func AllowOnlyValidTokenMiddleWare(c *fiber.Ctx) error {
-	jwtRawFromLocal := c.Locals(REQ_LOCAL_NUMBER_KEY)
+	jwtRawFromLocal := c.Locals(whatsapp_config.REQ_LOCAL_NUMBER_KEY)
 	localError := c.Locals(interfaces.REQ_LOCAL_ERROR_KEY)
 
 	if jwtRawFromLocal == nil {
@@ -74,7 +67,7 @@ func AllowOnlyValidTokenMiddleWare(c *fiber.Ctx) error {
 }
 
 func AllowOnlyValidLoggedInWhatsapp(c *fiber.Ctx) error {
-	jwtRawFromLocal := c.Locals(REQ_LOCAL_NUMBER_KEY)
+	jwtRawFromLocal := c.Locals(whatsapp_config.REQ_LOCAL_NUMBER_KEY)
 	token, ok := jwtRawFromLocal.(string)
 	if !ok {
 		return &interfaces.RequestError{

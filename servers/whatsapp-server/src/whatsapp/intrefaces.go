@@ -63,7 +63,7 @@ func (connection *WhatsappConnection) ConnectAndGetQRCode() {
 		// No ID stored, new login
 		if whatsapp_config.Env.OPEN_BROWSER_FOR_SCAN {
 			go func(token string) {
-				utility_functions.OpenBrowser(fmt.Sprintf("http://127.0.0.1:%d/scan/%s", env.GetServerPort(env.PORT_KEY), token))
+				utility_functions.OpenBrowser(fmt.Sprintf("http://127.0.0.1:%s/scan/%s", env.GetServerPort(env.PORT_KEY), token))
 			}(connection.Token)
 		}
 		qrChan, _ := connection.Client.GetQRChannel(context.Background())

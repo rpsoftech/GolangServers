@@ -9,9 +9,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rpsoftech/golang-servers/interfaces"
+	whatsapp_functions "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/functions"
 	"github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/middleware"
+	"github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/whatsapp"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
-	"github.com/rpsoftech/whatsapp-http-api/whatsapp"
 	"github.com/skip2/go-qrcode"
 )
 
@@ -42,7 +43,7 @@ func AddApis(app fiber.Router) {
 func SendMediaFile(c *fiber.Ctx) error {
 	body := new(apiSendMessage)
 	c.BodyParser(body)
-	number, err := interfaces.ExtractNumberFromCtx(c)
+	number, err := whatsapp_functions.ExtractNumberFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -94,7 +95,7 @@ func SendMediaFile(c *fiber.Ctx) error {
 			Extra:      err,
 		}
 	}
-	runHeadLess, err := strconv.ParseBool(interfaces.ExtractKeyFromHeader(c, "Headless"))
+	runHeadLess, err := strconv.ParseBool(whatsapp_functions.ExtractKeyFromHeader(c, "Headless"))
 	if err != nil {
 		runHeadLess = false
 	}
@@ -111,7 +112,7 @@ func SendMediaFileWithBase64(c *fiber.Ctx) error {
 	body := new(apiSendMediaMsgWithBase64)
 	c.BodyParser(body)
 
-	if err := utility.ValidateReqInput(body); err != nil {
+	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}
 
@@ -123,7 +124,7 @@ func SendMediaFileWithBase64(c *fiber.Ctx) error {
 			Name:       "ERROR_INVALID_INPUT",
 		}
 	}
-	number, err := interfaces.ExtractNumberFromCtx(c)
+	number, err := whatsapp_functions.ExtractNumberFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -141,7 +142,7 @@ func SendMediaFileWithBase64(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	runHeadLess, err := strconv.ParseBool(interfaces.ExtractKeyFromHeader(c, "Headless"))
+	runHeadLess, err := strconv.ParseBool(whatsapp_functions.ExtractKeyFromHeader(c, "Headless"))
 	if err != nil {
 		runHeadLess = false
 	}
@@ -158,7 +159,7 @@ func SendMessage(c *fiber.Ctx) error {
 	body := new(apiSendMessage)
 	c.BodyParser(body)
 
-	if err := utility.ValidateReqInput(body); err != nil {
+	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}
 	if len(body.To) == 0 || len(body.To[0]) < 7 {
@@ -169,7 +170,7 @@ func SendMessage(c *fiber.Ctx) error {
 			Name:       "ERROR_INVALID_INPUT",
 		}
 	}
-	token, err := interfaces.ExtractNumberFromCtx(c)
+	token, err := whatsapp_functions.ExtractNumberFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -194,7 +195,7 @@ func SendMessage(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	runHeadLess, err := strconv.ParseBool(interfaces.ExtractKeyFromHeader(c, "Headless"))
+	runHeadLess, err := strconv.ParseBool(whatsapp_functions.ExtractKeyFromHeader(c, "Headless"))
 	if err != nil {
 		runHeadLess = false
 	}
@@ -221,7 +222,7 @@ func SendMessage(c *fiber.Ctx) error {
 // @Failure 500 {object} interfaces.RequestError
 // @Router /connections/{number}/qrcode [get]
 func GetQrCode(c *fiber.Ctx) error {
-	number, err := interfaces.ExtractNumberFromCtx(c)
+	number, err := whatsapp_functions.ExtractNumberFromCtx(c)
 	if err != nil {
 		return err
 	}

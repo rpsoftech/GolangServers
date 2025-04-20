@@ -4,13 +4,13 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/rpsoftech/whatsapp-http-api/env"
-	"github.com/rpsoftech/whatsapp-http-api/interfaces"
-	"github.com/rpsoftech/whatsapp-http-api/whatsapp"
+	whatsapp_config "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/config"
+	whatsapp_functions "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/functions"
+	"github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/whatsapp"
 )
 
 func StartNumber(c *fiber.Ctx) error {
-	token, err := interfaces.ExtractNumberFromCtx(c)
+	token, err := whatsapp_functions.ExtractNumberFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -21,7 +21,7 @@ func StartNumber(c *fiber.Ctx) error {
 			"reason":  fmt.Sprintf("Number %s is already connected", token),
 		})
 	}
-	jidString := env.ServerConfig.JID[token]
+	jidString := whatsapp_config.WhatsappNumberConfigMap.JID[token]
 	whatsapp.ConnectToNumber(jidString, token)
 	return c.JSON(fiber.Map{
 		"success": true,
