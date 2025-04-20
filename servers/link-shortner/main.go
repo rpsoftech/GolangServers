@@ -6,7 +6,6 @@ import (
 	"github.com/rpsoftech/golang-servers/interfaces"
 	"github.com/rpsoftech/golang-servers/servers/link-shortner/apis"
 	"github.com/rpsoftech/golang-servers/utility/firebase"
-	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 )
 
 func deferMainFunc() {
@@ -44,7 +43,7 @@ func main() {
 		hostAndPort = "127.0.0.1"
 	}
 
-	hostAndPort = hostAndPort + ":" + utility_functions.GetServerPort()
+	hostAndPort = hostAndPort + ":" + env.GetServerPort(env.PORT_KEY)
 	app.Listen(hostAndPort)
 	// app.Use(logger.New())
 	// app.Use(middleware.TokenDecrypter)

@@ -10,6 +10,7 @@ const (
 	ERROR_INVALID_TOKEN_SIGNATURE               = 205
 	ERROR_TOKEN_EXPIRED                         = 206
 	ERROR_TOKEN_NOT_BEFORE                      = 207
+	ERROR_TOKEN_NOT_PASSED                      = 207
 	ERROR_ROLE_NOT_EXISTS                       = 208
 	ERROR_ROLE_NOT_AUTHORIZED                   = 209
 	ERROR_USER_NOT_FOUND                        = 210
@@ -42,4 +43,6 @@ const (
 	ERROR_TRADING_IS_DISABLED_FOR_PRODUCT       = 237
 	ERROR_GROUP_MAP_NOT_FOUND                   = 238
 	ERROR_LIVE_RATE_NOT_FOUND                   = 239
+	ERROR_CONNECTION_NOT_INITIALIZED            = 240
+	ERROR_CONNECTION_LOGGED_OUT                 = 241
 )
