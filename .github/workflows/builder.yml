@@ -17,5 +17,6 @@ jobs:
       - name: Build
         run: go build -v ./...
       - name: Build Servers
-        run: go build ./servers/whatsapp-server/main.go
-        run: go build ./servers/link-shortner/main.go
+        run: | 
+          go build ./servers/whatsapp-server/main.go
+          go build ./servers/link-shortner/main.go
