@@ -124,18 +124,19 @@ func (c *ConfigWithConnection) ReadAndStoreTgMaster() {
 		}
 		results = append(results, row)
 	}
-	var divided [][]*mysql_to_surreal_interfaces.TgMasterStruct
-	chunkSize := 50
+	// var divided [][]*mysql_to_surreal_interfaces.TgMasterStruct
+	// chunkSize := 50
 
-	for i := 0; i < len(results); i += chunkSize {
-		end := min(i+chunkSize, len(results))
-		divided = append(divided, results[i:end])
+	// for i := 0; i < len(results); i += chunkSize {
+	// 	end := min(i+chunkSize, len(results))
+	// 	divided = append(divided, results[i:end])
+	// }
+	// for k, v := range divided {
+	surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgMasterTableName))
+	_, err = surrealdb.Insert[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgMasterTableName), results)
+	if err != nil {
+		fmt.Printf("Issue In Round %d while inserting %s with a struct: %s\n", 0, TgMasterTableName, "TLDR;")
 	}
-	for k, v := range divided {
-		_, err := surrealdb.Insert[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgMasterTableName), v)
-		if err != nil {
-			fmt.Printf("Issue In Round %d while inserting %s with a struct: %s\n", k, TgMasterTableName, "TLDR;")
-		}
-	}
+	// }
 	fmt.Printf("Upserted %s with a struct: %+v\n", TgMasterTableName, "TLDR;")
 }
