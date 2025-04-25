@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
 
 	"github.com/joho/godotenv"
 	"github.com/rpsoftech/golang-servers/validator"
@@ -24,6 +25,8 @@ type DefaultEnvInterface struct {
 
 var Env *DefaultEnvInterface
 
+var IsDev = false
+
 func (e *DefaultEnvInterface) GetEnv(key string) string {
 	if val, ok := e.internalData[key]; ok {
 		return val
@@ -35,8 +38,13 @@ func (e *DefaultEnvInterface) GetEnv(key string) string {
 	return ""
 }
 
+func (e *DefaultEnvInterface) PrintEnv() {
+	fmt.Printf("%+v", e.internalData)
+}
+
 func init() {
 	godotenv.Load()
+	IsDev = slices.Contains(os.Args, "--dev")
 	appEnv, _ := parseAppEnv(os.Getenv(app_ENV_KEY))
 	Env = &DefaultEnvInterface{
 		APP_ENV: appEnv,
