@@ -39,9 +39,9 @@ func init() {
 	}
 	Env.ConfigFileName = filepath.Join(env.FindAndReturnCurrentDir(), Env.ConfigFileName)
 	if _, err := os.Stat(Env.ConfigFileName); err == nil {
-		fmt.Printf("Config file exists: %s", Env.ConfigFileName)
+		fmt.Printf("Config file exists: %s \n", Env.ConfigFileName)
 	} else if errors.Is(err, os.ErrNotExist) {
-		panic(fmt.Sprintf("Config file exists: %s", Env.ConfigFileName))
+		panic(fmt.Sprintf("Config file exists: %s \n", Env.ConfigFileName))
 	} else {
 		panic("Schrodinger: file may or may not exist. See err for details.")
 		// Therefore, do *NOT* use !os.IsNotExist(err) to test for file existence
@@ -49,7 +49,6 @@ func init() {
 	config := new(IConfig)
 	dat, err := os.ReadFile(Env.ConfigFileName)
 	env.Check(err)
-	println(string(dat))
 	err = json.Unmarshal(dat, config)
 	env.Check(err)
 	if errs := validator.Validator.Validate(config); len(errs) > 0 {

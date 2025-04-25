@@ -2,6 +2,7 @@ package mysql_to_surreal_functions
 
 import (
 	"fmt"
+	"time"
 
 	mysql_to_surreal_interfaces "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-to-surreal/interfaces"
 	"github.com/surrealdb/surrealdb.go"
@@ -20,9 +21,10 @@ func init() {
 }
 func (c *ConfigWithConnection) ReadAndStoreTgMaster() {
 	rows, err := c.DbConnections.MysqlDbConncetion.Db.Query("SELECT * FROM tg_master")
+	initalTime := time.Now()
+	startTime := initalTime
 	if err != nil {
 		fmt.Printf("Error in ReadAndStoreTgMaster For %s", c.ServerConfig.Name)
-		// log.Fatal(err)
 		fmt.Println(err.Error())
 		return
 	}
@@ -124,19 +126,21 @@ func (c *ConfigWithConnection) ReadAndStoreTgMaster() {
 		}
 		results = append(results, row)
 	}
-	// var divided [][]*mysql_to_surreal_interfaces.TgMasterStruct
-	// chunkSize := 50
-
-	// for i := 0; i < len(results); i += chunkSize {
-	// 	end := min(i+chunkSize, len(results))
-	// 	divided = append(divided, results[i:end])
-	// }
-	// for k, v := range divided {
+	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), TgMasterTableName, time.Since(startTime))
+	startTime = time.Now()
 	surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgMasterTableName))
+	fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", TgMasterTableName, time.Since(startTime))
+	startTime = time.Now()
 	_, err = surrealdb.Insert[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgMasterTableName), results)
 	if err != nil {
 		fmt.Printf("Issue In Round %d while inserting %s with a struct: %s\n", 0, TgMasterTableName, "TLDR;")
 	}
 	// }
-	fmt.Printf("Upserted %s with a struct: %+v\n", TgMasterTableName, "TLDR;")
+	fmt.Printf("Inserted Total %d rows to %s in SurrealDB in Duration of %s\n", len(results), TgMasterTableName, time.Since(startTime))
+	startTime = time.Now()
+	// surrealdb.Q
+	if dddd, err := surrealdb.Select[[]interface{}](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgMasterTableName)); err == nil {
+		fmt.Printf("Select All %s from SurrealDB in Duration of %s with total rows %d\n", TgMasterTableName, time.Since(startTime), len(*dddd))
+	}
+	fmt.Printf("%s Operation Completed in Duration of %s\n", TgMasterTableName, time.Since(initalTime))
 }
