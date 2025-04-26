@@ -19,11 +19,6 @@ type GeneralPurposeTokenGeneration struct {
 	*jwt.RegisteredClaims
 	ExtraClaim map[string]any `json:"claims,omitempty"`
 }
-
-// type ConvertClaimsFromJet interface {
-// 	ConvertClaimsFromJet(claims jwt.Claims, token any)
-// }
-
 type TokenService struct {
 	SigningKey []byte
 }

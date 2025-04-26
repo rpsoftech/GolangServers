@@ -1,4 +1,4 @@
-package middleware
+package whatsapp_server_middleware
 
 import (
 	"github.com/gofiber/fiber/v2"

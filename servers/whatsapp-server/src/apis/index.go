@@ -1,4 +1,4 @@
-package apis
+package whatsapp_server_apis
 
 import (
 	"encoding/base64"
@@ -10,7 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	whatsapp_functions "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/functions"
-	"github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/middleware"
+	whatsapp_server_middleware "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/middleware"
 	"github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/whatsapp"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 	"github.com/skip2/go-qrcode"
@@ -33,7 +33,7 @@ func AddApis(app fiber.Router) {
 	app.Post("/start", StartNumber)
 	// app.Get("/qr_scan", QrScan)
 	{
-		authenticated := app.Group("", middleware.AllowOnlyValidLoggedInWhatsapp)
+		authenticated := app.Group("", whatsapp_server_middleware.AllowOnlyValidLoggedInWhatsapp)
 		authenticated.Post("/send_message", SendMessage)
 		authenticated.Post("/send_media", SendMediaFile)
 		authenticated.Post("/send_media_64", SendMediaFileWithBase64)

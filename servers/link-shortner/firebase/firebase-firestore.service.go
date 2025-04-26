@@ -5,8 +5,6 @@ import (
 	"github.com/rpsoftech/golang-servers/utility/firebase"
 )
 
-// "github.com/rpsoftech/bullion-server/src/utility/firebase"
-
 type firebaseFirestoreService struct {
 	db *firestore.Client
 }
