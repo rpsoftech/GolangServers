@@ -1,6 +1,6 @@
 package bullion_main_server_interfaces
 
-import "github.com/rpsoftech/bullion-server/src/validator"
+import "github.com/rpsoftech/golang-servers/validator"
 
 type UserRoles string
 

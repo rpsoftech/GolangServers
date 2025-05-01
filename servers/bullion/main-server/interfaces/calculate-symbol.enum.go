@@ -1,7 +1,7 @@
 package bullion_main_server_interfaces
 
 import (
-	"github.com/rpsoftech/bullion-server/src/validator"
+	"github.com/rpsoftech/golang-servers/validator"
 )
 
 type BaseSymbolEnum string

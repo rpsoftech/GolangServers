@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"slices"
 	"time"
+
+	"github.com/rpsoftech/golang-servers/interfaces"
 )
 
 type (
@@ -67,7 +69,7 @@ func (e *OrderEntity) DeliverWeight(weight int) (*OrderEntity, error) {
 	if !slices.Contains(*AvailableForDelivery, e.OrderStatus) {
 		return nil, &RequestError{
 			StatusCode: http.StatusBadRequest,
-			Code:       ERROR_INVALID_ORDER_STATUS_FOR_DELIVERY,
+			Code:       interfaces.ERROR_INVALID_ORDER_STATUS_FOR_DELIVERY,
 			Message:    "Cannot deliver weight. Order status is not available for delivery",
 			Name:       "OrderStatusNotAvailableForDelivery",
 		}
@@ -84,7 +86,7 @@ func (e *OrderEntity) DeliverWeight(weight int) (*OrderEntity, error) {
 	if weight > pendingWeight {
 		return nil, &RequestError{
 			StatusCode: http.StatusBadRequest,
-			Code:       ERROR_INVALID_WEIGHT_FOR_DELIVERY,
+			Code:       interfaces.ERROR_INVALID_WEIGHT_FOR_DELIVERY,
 			Message:    "Cannot deliver weight. Weight is not available for delivery",
 			Name:       "InvalidWeightForDelivery",
 		}

@@ -5,7 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/rpsoftech/bullion-server/src/validator"
+	"github.com/rpsoftech/golang-servers/interfaces"
+	"github.com/rpsoftech/golang-servers/validator"
 )
 
 const (
@@ -44,7 +45,7 @@ func ValidateBullionIdMatchingInToken(c *fiber.Ctx, bullionId string) error {
 	if !ok || bullionId != id {
 		return &RequestError{
 			StatusCode: http.StatusForbidden,
-			Code:       ERROR_MISMATCH_BULLION_ID,
+			Code:       interfaces.ERROR_MISMATCH_BULLION_ID,
 			Message:    "Your can not access this resource due to different bullionId",
 			Name:       "ERROR_MISMATCH_BULLION_ID",
 			Extra:      fmt.Sprintf("Expected := %s Got := %s", id, bullionId),
@@ -57,7 +58,7 @@ func ExtractTokenUserIdFromCtx(c *fiber.Ctx) (string, error) {
 	if !ok {
 		return "", &RequestError{
 			StatusCode: http.StatusForbidden,
-			Code:       ERROR_INVALID_INPUT,
+			Code:       interfaces.ERROR_INVALID_INPUT,
 			Message:    "Your can not access this resource due to different UserId",
 			Name:       "ERROR_USER_ID_NOT_FOUND",
 		}
@@ -70,7 +71,7 @@ func ExtractBullionIdFromCtx(c *fiber.Ctx) (string, error) {
 	if !ok {
 		return "", &RequestError{
 			StatusCode: http.StatusForbidden,
-			Code:       ERROR_INVALID_INPUT,
+			Code:       interfaces.ERROR_INVALID_INPUT,
 			Message:    "Your can not access this resource due to different UserId",
 			Name:       "ERROR_BULLION_ID_NOT_FOUND",
 		}

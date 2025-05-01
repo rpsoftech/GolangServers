@@ -1,6 +1,10 @@
 package bullion_main_server_interfaces
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/rpsoftech/golang-servers/interfaces"
+)
 
 type (
 	TradeUserBase struct {
@@ -69,7 +73,7 @@ func (user *TradeUserEntity) UpdateMarginAfterOrder(weight int, symbol SourceSym
 	if availableMargin < 0 || availableMargin-weight < 0 {
 		return nil, &RequestError{
 			StatusCode: http.StatusBadRequest,
-			Code:       ERROR_INSUFFICIENT_MARGIN,
+			Code:       interfaces.ERROR_INSUFFICIENT_MARGIN,
 			Message:    "Insufficient Margin",
 			Name:       "INSUFFICIENT_MARGIN",
 			Extra:      map[string]interface{}{"margins": user.TradeUserMargins, "weight": weight},
