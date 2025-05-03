@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/rpsoftech/golang-servers/env"
-	"github.com/rpsoftech/golang-servers/validator"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -26,11 +25,7 @@ func init() {
 		DB_NAME: env.Env.GetEnv(env.MONGO_URL_KEY),
 		DB_URL:  env.Env.GetEnv(env.MONGO_DB_NAME_KEY),
 	}
-	errs := validator.Validator.Validate(config)
-	if len(errs) > 0 {
-		println(errs)
-		panic(errs[0])
-	}
+	env.ValidateEnv(config)
 	// env.Env.DB_URL
 	client, err := mongo.Connect(MongoCtx, options.Client().ApplyURI(config.DB_URL).SetMinPoolSize(2))
 	if err != nil {

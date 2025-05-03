@@ -15,7 +15,7 @@ func StructToMap(data interface{}) (map[string]interface{}, error) {
 	return mapData, nil
 }
 
-func StructToStringMap(data interface{}) (map[string]string, error) {
+func StructToStringMap(data any) (map[string]string, error) {
 	dataBytes, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
