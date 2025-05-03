@@ -38,8 +38,13 @@ func (e *DefaultEnvInterface) GetEnv(key string) string {
 	return ""
 }
 
-func (e *DefaultEnvInterface) PrintEnv() {
-	fmt.Printf("%+v", e.internalData)
+func ValidateEnv(env any) {
+	errs := validator.Validator.Validate(env)
+	if len(errs) > 0 {
+		errsJson, _ := json.Marshal(errs)
+		fmt.Printf("%s", errsJson)
+		panic(errs[0])
+	}
 }
 
 func init() {
@@ -63,10 +68,5 @@ func init() {
 		// FIREBASE_JSON_STRING:  os.Getenv(firebase_JSON_STRING_KEY),
 		// FIREBASE_DATABASE_URL: os.Getenv(firebase_DATABASE_URL_KEY),
 	}
-	errs := validator.Validator.Validate(Env)
-	if len(errs) > 0 {
-		errsJson, _ := json.Marshal(errs)
-		fmt.Printf("%s", errsJson)
-		panic(errs[0])
-	}
+	ValidateEnv(Env)
 }

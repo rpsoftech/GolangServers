@@ -9,7 +9,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/events"
-	"github.com/rpsoftech/golang-servers/validator"
 )
 
 type RedisClientConfig struct {
@@ -54,11 +53,7 @@ func InitRedisAndRedisClient() *RedisClientStruct {
 		REDIS_DB_PASSWORD: env.Env.GetEnv(env.REDIS_DB_PASSWORD_KEY),
 		REDIS_DB_DATABASE: redis_DB_DATABASE,
 	}
-	errs := validator.Validator.Validate(config)
-	if len(errs) > 0 {
-		println(errs)
-		panic(errs[0])
-	}
+	env.ValidateEnv(config)
 	client := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%v:%d", config.REDIS_DB_HOST, config.REDIS_DB_PORT),
 		Password: config.REDIS_DB_PASSWORD, // no password set
