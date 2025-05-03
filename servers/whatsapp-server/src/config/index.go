@@ -55,11 +55,7 @@ func init() {
 		AUTO_CONNECT_TO_WHATSAPP: auto_connect_to_whatsapp,
 		OPEN_BROWSER_FOR_SCAN:    open_browser_for_scan_KEY,
 	}
-	errs := validator.Validator.Validate(Env)
-	if len(errs) > 0 {
-		println(errs)
-		panic(errs[0])
-	}
+	env.ValidateEnv(Env)
 }
 
 func (sc *IServerConfig) Save() {

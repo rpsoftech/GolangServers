@@ -11,9 +11,9 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
-	"github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/apis"
+	whatsapp_server_apis "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/apis"
 	whatsapp_config "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/config"
-	"github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/middleware"
+	whatsapp_server_middleware "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/middleware"
 	"github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/whatsapp"
 )
 
@@ -84,9 +84,9 @@ func InitFiberServer() {
 	})
 	app.Use(logger.New())
 	app.Static("/swagger", "./swagger")
-	apis.AddApis(app.Group("/v1", middleware.TokenDecrypter, middleware.AllowOnlyValidTokenMiddleWare))
+	whatsapp_server_apis.AddApis(app.Group("/v1", whatsapp_server_middleware.TokenDecrypter, whatsapp_server_middleware.AllowOnlyValidTokenMiddleWare))
 
-	app.Get("/scan/:id", apis.OpenBrowserWithQr)
+	app.Get("/scan/:id", whatsapp_server_apis.OpenBrowserWithQr)
 	app.Use(func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).SendString("Sorry can't find that!")
 	})

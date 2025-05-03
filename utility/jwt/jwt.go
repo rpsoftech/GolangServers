@@ -19,19 +19,28 @@ type GeneralPurposeTokenGeneration struct {
 	*jwt.RegisteredClaims
 	ExtraClaim map[string]any `json:"claims,omitempty"`
 }
-
-// type ConvertClaimsFromJet interface {
-// 	ConvertClaimsFromJet(claims jwt.Claims, token any)
-// }
-
 type TokenService struct {
 	SigningKey []byte
+}
+
+func GenerateToken[IClaims jwt.Claims](t *TokenService, claims IClaims) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(t.SigningKey)
 }
 
 func (t *TokenService) GenerateToken(claims jwt.Claims) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(t.SigningKey)
 }
+
+//	func VerifyTokenWithClaims[TClaims GeneralPurposeTokenGeneration](t *TokenService, token string, claim *GeneralPurposeTokenGeneration) error {
+//		claimRaw, err := t.verifyTokenReturnRaw(&token)
+//		if err != nil {
+//			return err
+//		}
+//		*claim = claimRaw.Claims
+//		return nil
+//	}
 func (t *TokenService) VerifyTokenWithClaims(token string, claim *any) error {
 	claimRaw, err := t.verifyTokenReturnRaw(&token)
 	if err != nil {
@@ -93,6 +102,25 @@ func (t *TokenService) verifyTokenReturnRaw(token *string) (*jwt.Token, error) {
 		}
 	}
 	return claimRaw, nil
+}
+
+func VerifyToken[IClaims jwt.Claims](t *TokenService, token *string) (*IClaims, error) {
+	claimRaw, err := t.verifyTokenReturnRaw(token)
+	if err != nil {
+		return nil, err
+	}
+	claim, ok := claimRaw.Claims.(IClaims)
+	if !ok {
+		err = &interfaces.RequestError{
+			StatusCode: 401,
+			Code:       interfaces.ERROR_INVALID_TOKEN,
+			Message:    "Error InValid Token Body",
+			Name:       "ERROR_INVALID_TOKEN_BODY",
+			Extra:      err,
+		}
+	}
+
+	return &claim, err
 }
 
 func (t *TokenService) VerifyToken(token *string) (*GeneralPurposeTokenGeneration, error) {

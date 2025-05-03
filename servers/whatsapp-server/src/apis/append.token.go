@@ -1,4 +1,4 @@
-package apis
+package whatsapp_server_apis
 
 import (
 	"github.com/gofiber/fiber/v2"

@@ -1,0 +1,3 @@
+package bullion_main_server_interfaces
+
+type LiveRateData map[SymbolsEnum]map[PriceKeyEnum]float64
