@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/rpsoftech/golang-servers/env"
 	mysql_to_surreal_env "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-to-surreal/env"
@@ -38,5 +39,15 @@ func InitaliseAndPopulateTheConnection() {
 }
 
 func DoTheOperation(c *mysql_to_surreal_functions.ConfigWithConnection) {
-	c.ReadAndStoreTgMaster()
+	var waitGroup sync.WaitGroup
+	waitGroup.Add(2)
+	defer waitGroup.Wait()
+	go func() {
+		c.ReadAndStoreTgm1Table()
+		waitGroup.Done()
+	}()
+	go func() {
+		c.ReadAndStoreTgMaster()
+		waitGroup.Done()
+	}()
 }

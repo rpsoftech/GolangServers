@@ -60,7 +60,7 @@ func initaliseMysqlDb() {
 }
 
 func InitalizeMysqlDbWithConfig(config *MysqldbConfig) (*MysqlDBStruct, error) {
-	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?tls=false&autocommit=true", config.MYSQL_USERNAME, config.MYSQL_PASSWORD, config.MYSQL_HOST, config.MYSQL_PORT, config.MYSQL_DATABASE))
+	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?tls=false&autocommit=true&parseTime=true", config.MYSQL_USERNAME, config.MYSQL_PASSWORD, config.MYSQL_HOST, config.MYSQL_PORT, config.MYSQL_DATABASE))
 	if err != nil {
 		return nil, err
 	}

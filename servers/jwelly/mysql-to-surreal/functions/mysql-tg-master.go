@@ -5,6 +5,7 @@ import (
 	"time"
 
 	mysql_to_surreal_interfaces "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-to-surreal/interfaces"
+	localSurrealdb "github.com/rpsoftech/golang-servers/utility/surrealdb"
 	"github.com/surrealdb/surrealdb.go"
 	"github.com/surrealdb/surrealdb.go/pkg/models"
 )
@@ -128,15 +129,27 @@ func (c *ConfigWithConnection) ReadAndStoreTgMaster() {
 	}
 	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), TgMasterTableName, time.Since(startTime))
 	startTime = time.Now()
-	surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgMasterTableName))
-	fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", TgMasterTableName, time.Since(startTime))
+	// surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgMasterTableName))
+	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", TgMasterTableName, time.Since(startTime))
+	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TgMasterTableName), nil)
+	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(TgMasterTableName, mysql_to_surreal_interfaces.TgMasterStruct{}, true), nil)
+
 	startTime = time.Now()
-	_, err = surrealdb.Insert[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgMasterTableName), results)
-	if err != nil {
-		fmt.Printf("Issue In Round %d while inserting %s with a struct: %s\n", 0, TgMasterTableName, "TLDR;")
+	var divided [][]*mysql_to_surreal_interfaces.TgMasterStruct
+	chunkSize := 50
+	for i := 0; i < len(results); i += chunkSize {
+		end := min(i+chunkSize, len(results))
+		divided = append(divided, results[i:end])
 	}
-	// }
-	fmt.Printf("Inserted Total %d rows to %s in SurrealDB in Duration of %s\n", len(results), TgMasterTableName, time.Since(startTime))
+	for k, v := range divided {
+		_, err := surrealdb.Insert[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgMasterTableName), v)
+		if err != nil {
+			fmt.Printf("Issue In Round %d while inserting %s with a struct: %s\n", k, TgMasterTableName, "TLDR;")
+		}
+		fmt.Printf("Roiund %d Inserted %d rows to %s in SurrealDB in Duration of %s\n", k, len(v), TgMasterTableName, time.Since(startTime))
+		startTime = time.Now()
+	}
+	startTime = time.Now()
 	startTime = time.Now()
 	// surrealdb.Q
 	if dddd, err := surrealdb.Select[[]interface{}](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgMasterTableName)); err == nil {
