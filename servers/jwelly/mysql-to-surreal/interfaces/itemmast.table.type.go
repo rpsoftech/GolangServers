@@ -40,6 +40,7 @@ type ItemMastTableStruct struct {
 	CBEEDS          int             `json:"CBEEDS" fieldType:"int | NULL" defaultValue:"0"`
 	CGWT            int             `json:"CGWT" fieldType:"int | NULL" defaultValue:"0"`
 	GRADE           string          `json:"GRADE" fieldType:"string | NULL"`
+	SurrealCatID    models.RecordID `json:"SurrealCatID" fieldType:"record<category>"`
 	CATID           int             `json:"CATID" fieldType:"int | NULL" defaultValue:"0" Index:"I"`
 	RESTGWT         int             `json:"RESTGWT" fieldType:"int | NULL" defaultValue:"0"`
 	RESTTUNCH       int             `json:"RESTTUNCH" fieldType:"int | NULL" defaultValue:"0"`

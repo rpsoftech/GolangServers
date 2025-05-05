@@ -82,7 +82,6 @@ func (c *ConfigWithConnection) ReadAndStoreStampTable() {
 		results = append(results, row)
 	}
 	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), StampTableName, time.Since(startTime))
-	startTime = time.Now()
 	// surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(StampTableName))
 	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", StampTableName, time.Since(startTime))
 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", StampTableName), nil)
@@ -104,7 +103,7 @@ func (c *ConfigWithConnection) ReadAndStoreStampTable() {
 	}
 	startTime = time.Now()
 	// surrealdb.Q
-	if dddd, err := surrealdb.Select[[]interface{}](c.DbConnections.SurrealDbConncetion.Db, models.Table(StampTableName)); err == nil {
+	if dddd, err := surrealdb.Select[[]any](c.DbConnections.SurrealDbConncetion.Db, models.Table(StampTableName)); err == nil {
 		fmt.Printf("Select All %s from SurrealDB in Duration of %s with total rows %d\n", StampTableName, time.Since(startTime), len(*dddd))
 	}
 	fmt.Printf("%s Operation Completed in Duration of %s\n", StampTableName, time.Since(initalTime))

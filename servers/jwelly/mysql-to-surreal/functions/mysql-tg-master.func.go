@@ -128,7 +128,6 @@ func (c *ConfigWithConnection) ReadAndStoreTgMaster() {
 		results = append(results, row)
 	}
 	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), TgMasterTableName, time.Since(startTime))
-	startTime = time.Now()
 	// surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgMasterTableName))
 	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", TgMasterTableName, time.Since(startTime))
 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TgMasterTableName), nil)
@@ -152,7 +151,7 @@ func (c *ConfigWithConnection) ReadAndStoreTgMaster() {
 	startTime = time.Now()
 	startTime = time.Now()
 	// surrealdb.Q
-	if dddd, err := surrealdb.Select[[]interface{}](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgMasterTableName)); err == nil {
+	if dddd, err := surrealdb.Select[[]any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgMasterTableName)); err == nil {
 		fmt.Printf("Select All %s from SurrealDB in Duration of %s with total rows %d\n", TgMasterTableName, time.Since(startTime), len(*dddd))
 	}
 	fmt.Printf("%s Operation Completed in Duration of %s\n", TgMasterTableName, time.Since(initalTime))

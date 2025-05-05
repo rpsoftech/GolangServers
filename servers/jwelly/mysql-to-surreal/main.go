@@ -41,6 +41,7 @@ func InitaliseAndPopulateTheConnection() {
 func DoTheOperation(c *mysql_to_surreal_functions.ConfigWithConnection) {
 	functions := []func(){
 		// c.ReadAndStoreTgMaster,
+		c.ReadAndStoreCategory,
 		c.ReadAndStoreStampTable,
 		c.ReadAndStoreUnitTable,
 		c.ReadAndStoreItemGroupTable,

@@ -47,7 +47,7 @@ func (repo *EventRepoStruct) Save(entity *events.BaseEvent) error {
 	}
 	return err
 }
-func (repo *EventRepoStruct) SaveAll(entity *[]interface{}) error {
+func (repo *EventRepoStruct) SaveAll(entity *[]any) error {
 	_, err := repo.collection.InsertMany(mongodb.MongoCtx, *entity)
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
