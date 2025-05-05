@@ -38,6 +38,7 @@ func GenerateDefineQueryWithIndexAndByStruct[TAny any](tableName string, dataStr
 			if index == "U" {
 				indexType = "UNIQUE"
 			}
+			// DefineString += fmt.Sprintf("DEFINE INDEX %sIndexOf%s ON TABLE %s COLUMNS %s %s; \n", filedName, tableName, tableName, filedName, indexType)
 			DefineString += fmt.Sprintf("DEFINE INDEX %sIndex ON TABLE %s COLUMNS %s %s; \n", filedName, tableName, filedName, indexType)
 		}
 	}

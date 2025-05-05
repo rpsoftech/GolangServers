@@ -25,7 +25,7 @@ func (c *ConfigWithConnection) ReadAndStoreTgm1Table() {
 	initalTime := time.Now()
 	startTime := initalTime
 	if err != nil {
-		fmt.Printf("Error in ReadAndStoreTgMaster For %s", c.ServerConfig.Name)
+		fmt.Printf("Error in ReadAndStoreTgm1Table For %s", c.ServerConfig.Name)
 		fmt.Println(err.Error())
 		return
 	}
@@ -218,7 +218,7 @@ func (c *ConfigWithConnection) ReadAndStoreTgm1Table() {
 		row.SurrealSTAMPID = models.NewRecordID(StampTableName, row.STAMPID)
 		row.SurrealUNITID = models.NewRecordID(UnitTableName, row.UNITID)
 		if err != nil {
-			fmt.Printf("Error in ReadAndStoreTgMaster While Scanning %s", c.ServerConfig.Name)
+			fmt.Printf("Error in ReadAndStoreTgm1Table While Scanning %s", c.ServerConfig.Name)
 			fmt.Println(err.Error())
 			return
 		}
