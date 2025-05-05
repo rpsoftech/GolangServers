@@ -7,48 +7,50 @@ import (
 )
 
 type TGM1Struct struct {
-	TSNO       int             `json:"tsno" Index:"U"`
-	TGNO       string          `json:"TGNO" Index:"I"`
-	VTGNO      int             `json:"vtgno" Index:"I"`
-	INO        int             `json:"INO" Index:"I"`
-	TPRE       string          `json:"TPRE" Index:"I"`
-	REMARKS    string          `json:"REMARKS"`
-	TDATE      time.Time       `json:"TDATE" fieldType:"datetime | NULL" defaultValue:"0000-00-00"`
-	ITRNID     int             `json:"ITRNID" Index:"I"`
-	GWT        float64         `json:"GWT" fieldType:"float"`
-	LESSWT     float64         `json:"LESSWT" fieldType:"float"`
-	WT         float64         `json:"WT" fieldType:"float"`
-	DIAWT      float64         `json:"DIAWT" fieldType:"float"`
-	STNWT      float64         `json:"STNWT" fieldType:"float"`
-	GOLDWT     float64         `json:"GOLDWT" fieldType:"float"`
-	SILWT      float64         `json:"SILWT" fieldType:"float"`
-	PLATWT     float64         `json:"PLATWT" fieldType:"float"`
-	OTHWT      float64         `json:"OTHWT" fieldType:"float"`
-	LBR        float64         `json:"LBR" fieldType:"float"`
-	LBR2       float64         `json:"LBR2" fieldType:"float"`
-	LBR3       float64         `json:"LBR3" fieldType:"float"`
-	SLBR       float64         `json:"SLBR" fieldType:"float"`
-	Slbr2      float64         `json:"slbr2" fieldType:"float"`
-	SLBR3      float64         `json:"SLBR3" fieldType:"float"`
-	STATUS     string          `json:"STATUS" Index:"I"`
-	TUNCH      float64         `json:"TUNCH" fieldType:"float"`
-	WSTG       float64         `json:"WSTG" fieldType:"float"`
-	STUNCH     float64         `json:"STUNCH" fieldType:"float"`
-	SWSTG      float64         `json:"SWSTG" fieldType:"float"`
-	BEEDS      float64         `json:"BEEDS" fieldType:"float"`
-	SBEEDS     float64         `json:"SBEEDS" fieldType:"float"`
-	SOTHERS    float64         `json:"SOTHERS" fieldType:"float"`
-	Othrem     string          `json:"othrem"`
-	Design     string          `json:"design"`
-	DESINO     int             `json:"DESINO"`
-	KACNO      int             `json:"KACNO"`
-	Karigar    string          `json:"karigar"`
-	MRATE      float64         `json:"MRATE" fieldType:"float"`
-	COSTRATE   float64         `json:"COSTRATE" fieldType:"float"`
-	GWT1       float64         `json:"GWT1" fieldType:"float"`
-	GWT2       float64         `json:"GWT2" fieldType:"float"`
-	SLBR2PC1   float64         `json:"SLBR2PC1" fieldType:"float"`
-	SLBR2PC2   float64         `json:"SLBR2PC2" fieldType:"float"`
+	SurrealId string    `json:"id" Index:"U" fieldType:"string"`
+	TSNO      int       `json:"tsno" Index:"U"`
+	TGNO      string    `json:"TGNO" Index:"I"`
+	VTGNO     int       `json:"vtgno" Index:"I"`
+	INO       int       `json:"INO" Index:"I"`
+	TPRE      string    `json:"TPRE" Index:"I"`
+	REMARKS   string    `json:"REMARKS"`
+	TDATE     time.Time `json:"TDATE" fieldType:"datetime | NULL" defaultValue:"0000-00-00"`
+	ITRNID    int       `json:"ITRNID" Index:"I"`
+	GWT       float64   `json:"GWT" fieldType:"float"`
+	LESSWT    float64   `json:"LESSWT" fieldType:"float"`
+	WT        float64   `json:"WT" fieldType:"float"`
+	DIAWT     float64   `json:"DIAWT" fieldType:"float"`
+	STNWT     float64   `json:"STNWT" fieldType:"float"`
+	GOLDWT    float64   `json:"GOLDWT" fieldType:"float"`
+	SILWT     float64   `json:"SILWT" fieldType:"float"`
+	PLATWT    float64   `json:"PLATWT" fieldType:"float"`
+	OTHWT     float64   `json:"OTHWT" fieldType:"float"`
+	LBR       float64   `json:"LBR" fieldType:"float"`
+	LBR2      float64   `json:"LBR2" fieldType:"float"`
+	LBR3      float64   `json:"LBR3" fieldType:"float"`
+	SLBR      float64   `json:"SLBR" fieldType:"float"`
+	Slbr2     float64   `json:"slbr2" fieldType:"float"`
+	SLBR3     float64   `json:"SLBR3" fieldType:"float"`
+	STATUS    string    `json:"STATUS" Index:"I"`
+	TUNCH     float64   `json:"TUNCH" fieldType:"float"`
+	WSTG      float64   `json:"WSTG" fieldType:"float"`
+	STUNCH    float64   `json:"STUNCH" fieldType:"float"`
+	SWSTG     float64   `json:"SWSTG" fieldType:"float"`
+	BEEDS     float64   `json:"BEEDS" fieldType:"float"`
+	SBEEDS    float64   `json:"SBEEDS" fieldType:"float"`
+	SOTHERS   float64   `json:"SOTHERS" fieldType:"float"`
+	Othrem    string    `json:"othrem"`
+	Design    string    `json:"design"`
+	DESINO    int       `json:"DESINO"`
+	KACNO     int       `json:"KACNO"`
+	Karigar   string    `json:"karigar"`
+	MRATE     float64   `json:"MRATE" fieldType:"float"`
+	COSTRATE  float64   `json:"COSTRATE" fieldType:"float"`
+	GWT1      float64   `json:"GWT1" fieldType:"float"`
+	GWT2      float64   `json:"GWT2" fieldType:"float"`
+	SLBR2PC1  float64   `json:"SLBR2PC1" fieldType:"float"`
+	SLBR2PC2  float64   `json:"SLBR2PC2" fieldType:"float"`
+	// SurrealSTAMPID string          `json:"SurrealSTAMPID" Index:"I"`
 	STAMPID    int             `json:"STAMPID" Index:"I"`
 	Flag       mysqldb.BitBool `json:"flag" fieldType:"bool"`
 	PHOTOPATH  string          `json:"PHOTOPATH"`

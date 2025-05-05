@@ -41,8 +41,9 @@ func InitaliseAndPopulateTheConnection() {
 func DoTheOperation(c *mysql_to_surreal_functions.ConfigWithConnection) {
 	functions := []func(){
 		c.ReadAndStoreTgm1Table,
-		c.ReadAndStoreTgMaster,
+		// c.ReadAndStoreTgMaster,
 		c.ReadAndStoreStampTable,
+		c.ReadAndStoreItemGroupTable,
 	}
 	var waitGroup sync.WaitGroup
 	waitGroup.Add(len(functions))

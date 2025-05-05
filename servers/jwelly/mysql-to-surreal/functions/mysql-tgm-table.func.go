@@ -213,6 +213,8 @@ func (c *ConfigWithConnection) ReadAndStoreTgm1Table() {
 			&row.Xtfld,
 			&row.Cstdmamt,
 		)
+		row.SurrealId = fmt.Sprintf("%d", row.TSNO)
+		// row.SurrealSTAMPID = fmt.Sprintf("%s:%d", StampTableName, row.STAMPID)
 		if err != nil {
 			fmt.Printf("Error in ReadAndStoreTgMaster While Scanning %s", c.ServerConfig.Name)
 			fmt.Println(err.Error())

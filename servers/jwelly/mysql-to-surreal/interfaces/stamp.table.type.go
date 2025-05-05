@@ -1,6 +1,7 @@
 package mysql_to_surreal_interfaces
 
 type StampTableStruct struct {
+	SurrealId  string  `json:"id" Index:"U" fieldType:"string"`
 	STAMPID    int     `json:"STAMPID" Index:"U" fieldType:"int"`
 	STAMP      string  `json:"STAMP" Index:"I" fieldType:"string | NULL"`
 	STUNCH     float64 `json:"STUNCH" fieldType:"float | NULL" defaultValue:"0.00"`

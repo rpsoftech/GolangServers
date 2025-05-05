@@ -73,6 +73,7 @@ func (c *ConfigWithConnection) ReadAndStoreStampTable() {
 			&row.Bhavroff,
 			&row.Webstamp,
 		)
+		row.SurrealId = fmt.Sprintf("%d", row.STAMPID)
 		if err != nil {
 			fmt.Printf("Error in ReadAndStoreStampTable While Scanning %s", c.ServerConfig.Name)
 			fmt.Println(err.Error())
