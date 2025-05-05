@@ -1,7 +1,7 @@
 package mysql_to_surreal_interfaces
 
 type ItemGroupTableStruct struct {
-	SurrealId  string  `json:"id" Index:"U" fieldType:"string"`
+	SurrealId  int     `json:"id" Index:"U"`
 	Igroupid   int     `json:"igroupid" fieldType:"int" Index:"U"`
 	IGROUP     string  `json:"IGROUP" fieldType:"string | NULL" Index:"I"`
 	PNAME      string  `json:"PNAME" fieldType:"string | NULL"`

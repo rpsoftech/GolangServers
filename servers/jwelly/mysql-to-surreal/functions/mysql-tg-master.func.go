@@ -146,7 +146,7 @@ func (c *ConfigWithConnection) ReadAndStoreTgMaster() {
 		if err != nil {
 			fmt.Printf("Issue In Round %d while inserting %s with a struct: %s\n", k, TgMasterTableName, "TLDR;")
 		}
-		fmt.Printf("Roiund %d Inserted %d rows to %s in SurrealDB in Duration of %s\n", k, len(v), TgMasterTableName, time.Since(startTime))
+		fmt.Printf("Round %d Inserted %d rows to %s in SurrealDB in Duration of %s\n", k, len(v), TgMasterTableName, time.Since(startTime))
 		startTime = time.Now()
 	}
 	startTime = time.Now()

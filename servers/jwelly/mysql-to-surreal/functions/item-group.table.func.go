@@ -109,7 +109,7 @@ func (c *ConfigWithConnection) ReadAndStoreItemGroupTable() {
 			&row.GSTNAME,
 			&row.Defino,
 		)
-		row.SurrealId = fmt.Sprintf("%d", row.Igroupid)
+		row.SurrealId = row.Igroupid
 		if err != nil {
 			fmt.Printf("Error in ReadAndStoreItemGroupTable While Scanning %s", c.ServerConfig.Name)
 			fmt.Println(err.Error())
@@ -135,7 +135,7 @@ func (c *ConfigWithConnection) ReadAndStoreItemGroupTable() {
 		if err != nil {
 			fmt.Printf("Issue In Round %d while inserting %s with a struct: %s\n", k, ItemGroupTableName, "TLDR;")
 		}
-		fmt.Printf("Roiund %d Inserted %d rows to %s in SurrealDB in Duration of %s\n", k, len(v), ItemGroupTableName, time.Since(startTime))
+		fmt.Printf("Round %d Inserted %d rows to %s in SurrealDB in Duration of %s\n", k, len(v), ItemGroupTableName, time.Since(startTime))
 		startTime = time.Now()
 	}
 	startTime = time.Now()

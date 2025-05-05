@@ -73,7 +73,7 @@ func (c *ConfigWithConnection) ReadAndStoreStampTable() {
 			&row.Bhavroff,
 			&row.Webstamp,
 		)
-		row.SurrealId = fmt.Sprintf("%d", row.STAMPID)
+		row.SurrealId = row.STAMPID
 		if err != nil {
 			fmt.Printf("Error in ReadAndStoreStampTable While Scanning %s", c.ServerConfig.Name)
 			fmt.Println(err.Error())
@@ -99,7 +99,7 @@ func (c *ConfigWithConnection) ReadAndStoreStampTable() {
 		if err != nil {
 			fmt.Printf("Issue In Round %d while inserting %s with a struct: %s\n", k, StampTableName, "TLDR;")
 		}
-		fmt.Printf("Roiund %d Inserted %d rows to %s in SurrealDB in Duration of %s\n", k, len(v), StampTableName, time.Since(startTime))
+		fmt.Printf("Round %d Inserted %d rows to %s in SurrealDB in Duration of %s\n", k, len(v), StampTableName, time.Since(startTime))
 		startTime = time.Now()
 	}
 	startTime = time.Now()

@@ -213,8 +213,10 @@ func (c *ConfigWithConnection) ReadAndStoreTgm1Table() {
 			&row.Xtfld,
 			&row.Cstdmamt,
 		)
-		row.SurrealId = fmt.Sprintf("%d", row.TSNO)
-		// row.SurrealSTAMPID = fmt.Sprintf("%s:%d", StampTableName, row.STAMPID)
+		// row.SurrealId = fmt.Sprintf("%d", row.TSNO)
+		row.SurrealId = row.TSNO
+		row.SurrealSTAMPID = models.NewRecordID(StampTableName, row.STAMPID)
+		row.SurrealUNITID = models.NewRecordID(UnitTableName, row.UNITID)
 		if err != nil {
 			fmt.Printf("Error in ReadAndStoreTgMaster While Scanning %s", c.ServerConfig.Name)
 			fmt.Println(err.Error())
@@ -240,7 +242,7 @@ func (c *ConfigWithConnection) ReadAndStoreTgm1Table() {
 		if err != nil {
 			fmt.Printf("Issue In Round %d while inserting %s with a struct: %s\n", k, TgmTableName, "TLDR;")
 		}
-		fmt.Printf("Roiund %d Inserted %d rows to %s in SurrealDB in Duration of %s\n", k, len(v), TgmTableName, time.Since(startTime))
+		fmt.Printf("Round %d Inserted %d rows to %s in SurrealDB in Duration of %s\n", k, len(v), TgmTableName, time.Since(startTime))
 		startTime = time.Now()
 	}
 	startTime = time.Now()
