@@ -39,15 +39,24 @@ func InitaliseAndPopulateTheConnection() {
 }
 
 func DoTheOperation(c *mysql_to_surreal_functions.ConfigWithConnection) {
+	functions := []func(){
+		c.ReadAndStoreTgm1Table,
+		c.ReadAndStoreTgMaster,
+		c.ReadAndStoreStampTable,
+	}
 	var waitGroup sync.WaitGroup
-	waitGroup.Add(2)
+	waitGroup.Add(len(functions))
 	defer waitGroup.Wait()
-	go func() {
-		c.ReadAndStoreTgm1Table()
-		waitGroup.Done()
-	}()
-	go func() {
-		c.ReadAndStoreTgMaster()
-		waitGroup.Done()
-	}()
+	// go func() {
+	// waitGroup.Done()
+	// }()
+	// go func() {
+	// waitGroup.Done()
+	// }()
+	for _, f := range functions {
+		go func() {
+			f()
+			waitGroup.Done()
+		}()
+	}
 }
