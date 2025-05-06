@@ -10,22 +10,22 @@ import (
 	"github.com/surrealdb/surrealdb.go/pkg/models"
 )
 
-const ItmMastTableName = "itemmast"
+const ItemMastTableName = "itemmast"
 
 var (
-	GetItmMastTableCommand = ""
+	GetItemMastTableCommand = ""
 )
 
 func init() {
-	GetItmMastTableCommand = fmt.Sprintf("SELECT * FROM %s", ItmMastTableName)
+	GetItemMastTableCommand = fmt.Sprintf("SELECT * FROM %s", ItemMastTableName)
 
 }
-func (c *ConfigWithConnection) ReadAndStoreItmMast() {
-	rows, err := c.DbConnections.MysqlDbConncetion.Db.Query(GetItmMastTableCommand)
+func (c *ConfigWithConnection) ReadAndStoreItemMast() {
+	rows, err := c.DbConnections.MysqlDbConncetion.Db.Query(GetItemMastTableCommand)
 	initalTime := time.Now()
 	startTime := initalTime
 	if err != nil {
-		fmt.Printf("Error in ReadAndStoreItmMast For %s", c.ServerConfig.Name)
+		fmt.Printf("Error in ReadAndStoreItemMast For %s", c.ServerConfig.Name)
 		fmt.Println(err.Error())
 		return
 	}
@@ -163,18 +163,19 @@ func (c *ConfigWithConnection) ReadAndStoreItmMast() {
 		row.SurrealSTAMPID = models.NewRecordID(StampTableName, row.STAMPID)
 		row.SurrealUNITID = models.NewRecordID(UnitTableName, row.UNITID)
 		row.SurrealIGROUPID = models.NewRecordID(ItemGroupTableName, row.IGROUPID)
+		row.SurrealCatID = models.NewRecordID(CategoryTableName, row.CATID)
 		if err != nil {
-			fmt.Printf("Error in ReadAndStoreItmMast While Scanning %s", c.ServerConfig.Name)
+			fmt.Printf("Error in ReadAndStoreItemMast While Scanning %s", c.ServerConfig.Name)
 			fmt.Println(err.Error())
 			return
 		}
 		results = append(results, row)
 	}
-	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), ItmMastTableName, time.Since(startTime))
-	// surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItmMastTableName))
-	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", ItmMastTableName, time.Since(startTime))
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", ItmMastTableName), nil)
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(ItmMastTableName, mysql_to_surreal_interfaces.ItemMastTableStruct{}, true), nil)
+	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), ItemMastTableName, time.Since(startTime))
+	// surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemMastTableName))
+	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", ItemMastTableName, time.Since(startTime))
+	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", ItemMastTableName), nil)
+	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(ItemMastTableName, mysql_to_surreal_interfaces.ItemMastTableStruct{}, true), nil)
 	startTime = time.Now()
 	var divided [][]*mysql_to_surreal_interfaces.ItemMastTableStruct
 	chunkSize := 50
@@ -183,17 +184,17 @@ func (c *ConfigWithConnection) ReadAndStoreItmMast() {
 		divided = append(divided, results[i:end])
 	}
 	for k, v := range divided {
-		_, err := surrealdb.Insert[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItmMastTableName), v)
+		_, err := surrealdb.Insert[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemMastTableName), v)
 		if err != nil {
-			fmt.Printf("Issue In Round %d while inserting %s with a struct: %s\n", k, ItmMastTableName, "TLDR;")
+			fmt.Printf("Issue In Round %d while inserting %s with a struct: %s\n", k, ItemMastTableName, "TLDR;")
 		}
-		fmt.Printf("Round %d Inserted %d rows to %s in SurrealDB in Duration of %s\n", k, len(v), ItmMastTableName, time.Since(startTime))
+		fmt.Printf("Round %d Inserted %d rows to %s in SurrealDB in Duration of %s\n", k, len(v), ItemMastTableName, time.Since(startTime))
 		startTime = time.Now()
 	}
 	startTime = time.Now()
 	// surrealdb.Q
-	if dddd, err := surrealdb.Select[[]any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItmMastTableName)); err == nil {
-		fmt.Printf("Select All %s from SurrealDB in Duration of %s with total rows %d\n", ItmMastTableName, time.Since(startTime), len(*dddd))
+	if dddd, err := surrealdb.Select[[]any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemMastTableName)); err == nil {
+		fmt.Printf("Select All %s from SurrealDB in Duration of %s with total rows %d\n", ItemMastTableName, time.Since(startTime), len(*dddd))
 	}
-	fmt.Printf("%s Operation Completed in Duration of %s\n", ItmMastTableName, time.Since(initalTime))
+	fmt.Printf("%s Operation Completed in Duration of %s\n", ItemMastTableName, time.Since(initalTime))
 }
