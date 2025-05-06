@@ -47,6 +47,7 @@ func DoTheOperation(c *mysql_to_surreal_functions.ConfigWithConnection) {
 		c.ReadAndStoreItemGroupTable,
 		c.ReadAndStoreItemMast,
 		c.ReadAndStoreTgm1Table,
+		c.ReadAndStoreSiteTable,
 	}
 	var waitGroup sync.WaitGroup
 	waitGroup.Add(len(functions))

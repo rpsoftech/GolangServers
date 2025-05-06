@@ -33,11 +33,19 @@ func (c *ConfigWithConnection) ReadAndStoreSiteTable() {
 	for rows.Next() {
 		row := &mysql_to_surreal_interfaces.SiteTableStruct{}
 		err = rows.Scan(
-		// &row.CATID,
-		// &row.Category,
-		// &row.REMARKS,
-		// &row.Flag,
-		// &row.Mobile,
+			&row.SITEID,
+			&row.SITE,
+			&row.PATH,
+			&row.PSITE,
+			&row.PREFIX,
+			&row.STATEID,
+			&row.SPSTATUS,
+			&row.SFEEDING,
+			&row.SITEACNO,
+			&row.Stcode,
+			&row.Branchid,
+			&row.Emailid,
+			&row.Epswd,
 		)
 		row.SurrealId = row.SITEID
 		if err != nil {
