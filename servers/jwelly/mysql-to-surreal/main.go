@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"sync"
+	"time"
 
 	"github.com/rpsoftech/golang-servers/env"
 	mysql_to_surreal_env "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-to-surreal/env"
@@ -34,11 +36,13 @@ func InitaliseAndPopulateTheConnection() {
 		}
 		if env.IsDev {
 			DoTheOperation(cccc)
+			os.Exit(0)
 		}
 	}
 }
 
 func DoTheOperation(c *mysql_to_surreal_functions.ConfigWithConnection) {
+	startTime := time.Now()
 	functions := []func(){
 		// c.ReadAndStoreTgMaster,
 		c.ReadAndStoreCategory,
@@ -52,16 +56,11 @@ func DoTheOperation(c *mysql_to_surreal_functions.ConfigWithConnection) {
 	var waitGroup sync.WaitGroup
 	waitGroup.Add(len(functions))
 	defer waitGroup.Wait()
-	// go func() {
-	// waitGroup.Done()
-	// }()
-	// go func() {
-	// waitGroup.Done()
-	// }()
 	for _, f := range functions {
 		go func() {
 			f()
 			waitGroup.Done()
 		}()
 	}
+	fmt.Printf("Operation of %s Completed in Duration of %s\n", c.ServerConfig.Name, time.Since(startTime))
 }

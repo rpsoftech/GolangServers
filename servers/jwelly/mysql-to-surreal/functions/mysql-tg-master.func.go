@@ -2,6 +2,7 @@ package mysql_to_surreal_functions
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	mysql_to_surreal_interfaces "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-to-surreal/interfaces"
@@ -133,22 +134,18 @@ func (c *ConfigWithConnection) ReadAndStoreTgMaster() {
 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TgMasterTableName), nil)
 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(TgMasterTableName, mysql_to_surreal_interfaces.TgMasterStruct{}, true), nil)
 
-	startTime = time.Now()
 	var divided [][]*mysql_to_surreal_interfaces.TgMasterStruct
 	chunkSize := 50
 	for i := 0; i < len(results); i += chunkSize {
 		end := min(i+chunkSize, len(results))
 		divided = append(divided, results[i:end])
 	}
+	var waitGroup sync.WaitGroup
+	waitGroup.Add(len(divided))
 	for k, v := range divided {
-		_, err := surrealdb.Insert[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgMasterTableName), v)
-		if err != nil {
-			fmt.Printf("Issue In Round %d while inserting %s with a struct: %s\n", k, TgMasterTableName, "TLDR;")
-		}
-		fmt.Printf("Round %d Inserted %d rows to %s in SurrealDB in Duration of %s\n", k, len(v), TgMasterTableName, time.Since(startTime))
-		startTime = time.Now()
+		go insertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, TgMasterTableName, k, v, &waitGroup)
 	}
-	startTime = time.Now()
+	waitGroup.Wait()
 	startTime = time.Now()
 	// surrealdb.Q
 	if dddd, err := surrealdb.Select[[]any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgMasterTableName)); err == nil {

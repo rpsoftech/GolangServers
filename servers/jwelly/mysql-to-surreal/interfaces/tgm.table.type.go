@@ -70,7 +70,7 @@ type TGM1Struct struct {
 	SLESS          int             `json:"SLESS"`
 	LINKTGNO       string          `json:"LINKTGNO" Index:"I"`
 	LINKTSNO       int             `json:"LINKTSNO" Index:"I"`
-	ADDMRP         int             `json:"ADDMRP"`
+	ADDMRP         int             `json:"ADDMRP" fieldType:"int | NULL" defaultValue:"0"`
 	LAMT           float64         `json:"LAMT" fieldType:"float"`
 	DAMT           float64         `json:"DAMT" fieldType:"float"`
 	SAMT           float64         `json:"SAMT" fieldType:"float"`

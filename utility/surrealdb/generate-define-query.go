@@ -24,7 +24,7 @@ func GenerateDefineQueryWithIndexAndByStruct[TAny any](tableName string, dataStr
 		if fieldTypeFromTag := field.Tag.Get("fieldType"); fieldTypeFromTag != "" {
 			fieldType = fieldTypeFromTag
 		}
-		DefineString += fmt.Sprintf("DEFINE FIELD %s ON TABLE %s TYPE %s ", filedName, tableName, fieldType)
+		DefineString += fmt.Sprintf("DEFINE FIELD OVERWRITE %s ON TABLE %s TYPE %s ", filedName, tableName, fieldType)
 		if defaultValue := field.Tag.Get("defaultValue"); defaultValue != "" {
 			always := ""
 			if field.Tag.Get("defaultValueAlways") != "" {

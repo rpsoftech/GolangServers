@@ -2,6 +2,7 @@ package mysql_to_surreal_functions
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	mysql_to_surreal_interfaces "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-to-surreal/interfaces"
@@ -122,20 +123,22 @@ func (c *ConfigWithConnection) ReadAndStoreItemGroupTable() {
 	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", ItemGroupTableName, time.Since(startTime))
 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", ItemGroupTableName), nil)
 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(ItemGroupTableName, mysql_to_surreal_interfaces.ItemGroupTableStruct{}, true), nil)
-	startTime = time.Now()
-	var divided [][]*mysql_to_surreal_interfaces.ItemGroupTableStruct
-	chunkSize := 50
-	for i := 0; i < len(results); i += chunkSize {
-		end := min(i+chunkSize, len(results))
-		divided = append(divided, results[i:end])
-	}
-	for k, v := range divided {
-		_, err := surrealdb.Insert[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemGroupTableName), v)
-		if err != nil {
-			fmt.Printf("Issue In Round %d while inserting %s with a struct: %s\n", k, ItemGroupTableName, "TLDR;")
+
+	if len(results) > 50 {
+		var divided [][]*mysql_to_surreal_interfaces.ItemGroupTableStruct
+		chunkSize := 50
+		for i := 0; i < len(results); i += chunkSize {
+			end := min(i+chunkSize, len(results))
+			divided = append(divided, results[i:end])
 		}
-		fmt.Printf("Round %d Inserted %d rows to %s in SurrealDB in Duration of %s\n", k, len(v), ItemGroupTableName, time.Since(startTime))
-		startTime = time.Now()
+		var waitGroup sync.WaitGroup
+		waitGroup.Add(len(divided))
+		for k, v := range divided {
+			go insertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, ItemGroupTableName, k, v, &waitGroup)
+		}
+		waitGroup.Wait()
+	} else {
+		insertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, ItemGroupTableName, 1, results, nil)
 	}
 	startTime = time.Now()
 	// surrealdb.Q

@@ -2,6 +2,7 @@ package mysql_to_surreal_functions
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	mysql_to_surreal_interfaces "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-to-surreal/interfaces"
@@ -227,25 +228,32 @@ func (c *ConfigWithConnection) ReadAndStoreTgm1Table() {
 		results = append(results, row)
 	}
 	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), TgmTableName, time.Since(startTime))
-	// surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgmTableName))
 	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", TgmTableName, time.Since(startTime))
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TgmTableName), nil)
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(TgmTableName, mysql_to_surreal_interfaces.TGM1Struct{}, true), nil)
-	startTime = time.Now()
+	_, err = surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgmTableName))
+	if err != nil {
+		fmt.Printf("Issue In Deleting Table %s from SurrealDB: %s\n", TgmTableName, err.Error())
+	}
+	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TgmTableName), nil)
+	if err != nil {
+		fmt.Printf("Issue In Removing Table %s from SurrealDB: %s\n", TgmTableName, err.Error())
+	}
+	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(TgmTableName, mysql_to_surreal_interfaces.TGM1Struct{}, true), nil)
+	if err != nil {
+		fmt.Printf("Issue In Defining Table %s in SurrealDB: %s\n", TgmTableName, err.Error())
+	}
+
 	var divided [][]*mysql_to_surreal_interfaces.TGM1Struct
 	chunkSize := 50
 	for i := 0; i < len(results); i += chunkSize {
 		end := min(i+chunkSize, len(results))
 		divided = append(divided, results[i:end])
 	}
+	var waitGroup sync.WaitGroup
+	waitGroup.Add(len(divided))
 	for k, v := range divided {
-		_, err := surrealdb.Insert[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgmTableName), v)
-		if err != nil {
-			fmt.Printf("Issue In Round %d while inserting %s with a struct: %s\n", k, TgmTableName, "TLDR;")
-		}
-		fmt.Printf("Round %d Inserted %d rows to %s in SurrealDB in Duration of %s\n", k, len(v), TgmTableName, time.Since(startTime))
-		startTime = time.Now()
+		go insertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, TgmTableName, k, v, &waitGroup)
 	}
+	waitGroup.Wait()
 	startTime = time.Now()
 	// surrealdb.Q
 	if dddd, err := surrealdb.Select[[]any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgmTableName)); err == nil {
