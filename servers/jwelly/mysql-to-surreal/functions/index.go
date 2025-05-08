@@ -36,4 +36,23 @@ func insertDataToSurrealDb(c *surrealdb.SurrealDBStruct, table string, k int, v 
 }
 
 func (c *ConfigWithConnection) ClearSurrealDbAndInsert() {
+	array := []func(*ConfigWithConnection){
+		removeAndInsertCategory,
+		removeAndInsertItemGroupTable,
+		removeAndInsertItemTransTable,
+		removeAndInsertSiteTable,
+		removeAndInsertStampTable,
+		removeAndInsertTgMaster,
+		removeAndInsertTgm1Table,
+		removeAndInsertUnitTable,
+	}
+	var wg sync.WaitGroup
+	wg.Add(len(array))
+	for _, a := range array {
+		go func() {
+			a(c)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
 }

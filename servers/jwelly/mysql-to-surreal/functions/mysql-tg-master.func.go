@@ -21,6 +21,12 @@ func init() {
 	GetTgMasterSqlCommand = fmt.Sprintf("SELECT * FROM %s", TgMasterTableName)
 
 }
+
+func removeAndInsertTgMaster(c *ConfigWithConnection) {
+	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TgMasterTableName), nil)
+	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(TgMasterTableName, mysql_to_surreal_interfaces.TgMasterStruct{}, true), nil)
+}
+
 func (c *ConfigWithConnection) ReadAndStoreTgMaster() {
 	rows, err := c.DbConnections.MysqlDbConncetion.Db.Query("SELECT * FROM tg_master")
 	initalTime := time.Now()
@@ -131,8 +137,6 @@ func (c *ConfigWithConnection) ReadAndStoreTgMaster() {
 	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), TgMasterTableName, time.Since(startTime))
 	// surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgMasterTableName))
 	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", TgMasterTableName, time.Since(startTime))
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TgMasterTableName), nil)
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(TgMasterTableName, mysql_to_surreal_interfaces.TgMasterStruct{}, true), nil)
 
 	var divided [][]*mysql_to_surreal_interfaces.TgMasterStruct
 	chunkSize := 50

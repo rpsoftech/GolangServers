@@ -16,6 +16,11 @@ var (
 	GetSiteTableCommand = ""
 )
 
+func removeAndInsertSiteTable(c *ConfigWithConnection) {
+	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", SiteTableName), nil)
+	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(SiteTableName, mysql_to_surreal_interfaces.SiteTableStruct{}, true), nil)
+}
+
 func init() {
 	GetSiteTableCommand = fmt.Sprintf("SELECT * FROM %s", SiteTableName)
 
@@ -58,8 +63,6 @@ func (c *ConfigWithConnection) ReadAndStoreSiteTable() {
 	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), SiteTableName, time.Since(startTime))
 	// surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(SiteTableName))
 	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", SiteTableName, time.Since(startTime))
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", SiteTableName), nil)
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(SiteTableName, mysql_to_surreal_interfaces.SiteTableStruct{}, true), nil)
 	startTime = time.Now()
 	var divided [][]*mysql_to_surreal_interfaces.SiteTableStruct
 	chunkSize := 50

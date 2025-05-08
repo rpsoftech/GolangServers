@@ -20,6 +20,10 @@ func init() {
 	GetStampTableCommand = fmt.Sprintf("SELECT * FROM %s", StampTableName)
 
 }
+func removeAndInsertStampTable(c *ConfigWithConnection) {
+	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", StampTableName), nil)
+	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(StampTableName, mysql_to_surreal_interfaces.StampTableStruct{}, true), nil)
+}
 func (c *ConfigWithConnection) ReadAndStoreStampTable() {
 	rows, err := c.DbConnections.MysqlDbConncetion.Db.Query(GetStampTableCommand)
 	initalTime := time.Now()
@@ -84,8 +88,6 @@ func (c *ConfigWithConnection) ReadAndStoreStampTable() {
 	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), StampTableName, time.Since(startTime))
 	// surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(StampTableName))
 	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", StampTableName, time.Since(startTime))
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", StampTableName), nil)
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(StampTableName, mysql_to_surreal_interfaces.StampTableStruct{}, true), nil)
 	startTime = time.Now()
 	var divided [][]*mysql_to_surreal_interfaces.StampTableStruct
 	chunkSize := 50

@@ -20,7 +20,7 @@ func init() {
 	GetCategoryTableCommand = fmt.Sprintf("SELECT * FROM %s", CategoryTableName)
 
 }
-func RemoveAndInsertCategory(c *ConfigWithConnection) {
+func removeAndInsertCategory(c *ConfigWithConnection) {
 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", CategoryTableName), nil)
 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(CategoryTableName, mysql_to_surreal_interfaces.CategoryTableStruct{}, true), nil)
 

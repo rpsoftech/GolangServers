@@ -42,6 +42,7 @@ func InitaliseAndPopulateTheConnection() {
 }
 
 func DoTheOperation(c *mysql_to_surreal_functions.ConfigWithConnection) {
+	c.ClearSurrealDbAndInsert()
 	startTime := time.Now()
 	functions := []func(){
 		// c.ReadAndStoreTgMaster,

@@ -21,6 +21,21 @@ func init() {
 	GetItemTransTableCommand = fmt.Sprintf("SELECT * FROM %s", ItemTransTableName)
 
 }
+func removeAndInsertItemTransTable(c *ConfigWithConnection) {
+	_, err := surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemTransTableName))
+	if err != nil {
+		fmt.Printf("Issue In Deleting Table %s from SurrealDB: %s\n", ItemTransTableName, err.Error())
+	}
+	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", ItemTransTableName), nil)
+	if err != nil {
+		fmt.Printf("Issue In Removing Table %s from SurrealDB: %s\n", ItemTransTableName, err.Error())
+	}
+	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(ItemTransTableName, mysql_to_surreal_interfaces.ITransStruct{}, true), nil)
+	if err != nil {
+		fmt.Printf("Issue In Defining Table %s in SurrealDB: %s\n", ItemTransTableName, err.Error())
+	}
+
+}
 func (c *ConfigWithConnection) ReadAndStoreItemTransTable() {
 	rows, err := c.DbConnections.MysqlDbConncetion.Db.Query(GetItemTransTableCommand)
 	initalTime := time.Now()
@@ -291,19 +306,6 @@ func (c *ConfigWithConnection) ReadAndStoreItemTransTable() {
 	}
 	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), ItemTransTableName, time.Since(startTime))
 	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", ItemTransTableName, time.Since(startTime))
-	_, err = surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemTransTableName))
-	if err != nil {
-		fmt.Printf("Issue In Deleting Table %s from SurrealDB: %s\n", ItemTransTableName, err.Error())
-	}
-	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", ItemTransTableName), nil)
-	if err != nil {
-		fmt.Printf("Issue In Removing Table %s from SurrealDB: %s\n", ItemTransTableName, err.Error())
-	}
-	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(ItemTransTableName, mysql_to_surreal_interfaces.ITransStruct{}, true), nil)
-	if err != nil {
-		fmt.Printf("Issue In Defining Table %s in SurrealDB: %s\n", ItemTransTableName, err.Error())
-	}
-
 	var divided [][]*mysql_to_surreal_interfaces.ITransStruct
 	chunkSize := 50
 	for i := 0; i < len(results); i += chunkSize {

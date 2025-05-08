@@ -17,6 +17,21 @@ var (
 	GetTgm1TableCommand = ""
 )
 
+func removeAndInsertTgm1Table(c *ConfigWithConnection) {
+	_, err := surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgmTableName))
+	if err != nil {
+		fmt.Printf("Issue In Deleting Table %s from SurrealDB: %s\n", TgmTableName, err.Error())
+	}
+	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TgmTableName), nil)
+	if err != nil {
+		fmt.Printf("Issue In Removing Table %s from SurrealDB: %s\n", TgmTableName, err.Error())
+	}
+	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(TgmTableName, mysql_to_surreal_interfaces.TGM1Struct{}, true), nil)
+	if err != nil {
+		fmt.Printf("Issue In Defining Table %s in SurrealDB: %s\n", TgmTableName, err.Error())
+	}
+}
+
 func init() {
 	GetTgm1TableCommand = fmt.Sprintf("SELECT * FROM %s", TgmTableName)
 
@@ -229,18 +244,6 @@ func (c *ConfigWithConnection) ReadAndStoreTgm1Table() {
 	}
 	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), TgmTableName, time.Since(startTime))
 	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", TgmTableName, time.Since(startTime))
-	_, err = surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgmTableName))
-	if err != nil {
-		fmt.Printf("Issue In Deleting Table %s from SurrealDB: %s\n", TgmTableName, err.Error())
-	}
-	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TgmTableName), nil)
-	if err != nil {
-		fmt.Printf("Issue In Removing Table %s from SurrealDB: %s\n", TgmTableName, err.Error())
-	}
-	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(TgmTableName, mysql_to_surreal_interfaces.TGM1Struct{}, true), nil)
-	if err != nil {
-		fmt.Printf("Issue In Defining Table %s in SurrealDB: %s\n", TgmTableName, err.Error())
-	}
 
 	var divided [][]*mysql_to_surreal_interfaces.TGM1Struct
 	chunkSize := 50
