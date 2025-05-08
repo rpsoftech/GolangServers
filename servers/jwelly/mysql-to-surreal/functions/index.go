@@ -34,3 +34,6 @@ func insertDataToSurrealDb(c *surrealdb.SurrealDBStruct, table string, k int, v 
 		wg.Done()
 	}
 }
+
+func (c *ConfigWithConnection) ClearSurrealDbAndInsert() {
+}

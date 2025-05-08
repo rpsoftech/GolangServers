@@ -21,6 +21,12 @@ func init() {
 	GetItemGroupTableCommand = fmt.Sprintf("SELECT * FROM %s", ItemGroupTableName)
 
 }
+
+func RemoveAndInsertItemGroupTable(c *ConfigWithConnection) {
+	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", ItemGroupTableName), nil)
+	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(ItemGroupTableName, mysql_to_surreal_interfaces.ItemGroupTableStruct{}, true), nil)
+}
+
 func (c *ConfigWithConnection) ReadAndStoreItemGroupTable() {
 	rows, err := c.DbConnections.MysqlDbConncetion.Db.Query(GetItemGroupTableCommand)
 	initalTime := time.Now()
@@ -121,8 +127,6 @@ func (c *ConfigWithConnection) ReadAndStoreItemGroupTable() {
 	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), ItemGroupTableName, time.Since(startTime))
 	// surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemGroupTableName))
 	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", ItemGroupTableName, time.Since(startTime))
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", ItemGroupTableName), nil)
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(ItemGroupTableName, mysql_to_surreal_interfaces.ItemGroupTableStruct{}, true), nil)
 
 	if len(results) > 50 {
 		var divided [][]*mysql_to_surreal_interfaces.ItemGroupTableStruct

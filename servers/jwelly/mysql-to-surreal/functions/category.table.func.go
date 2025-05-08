@@ -20,6 +20,11 @@ func init() {
 	GetCategoryTableCommand = fmt.Sprintf("SELECT * FROM %s", CategoryTableName)
 
 }
+func RemoveAndInsertCategory(c *ConfigWithConnection) {
+	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", CategoryTableName), nil)
+	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(CategoryTableName, mysql_to_surreal_interfaces.CategoryTableStruct{}, true), nil)
+
+}
 func (c *ConfigWithConnection) ReadAndStoreCategory() {
 	rows, err := c.DbConnections.MysqlDbConncetion.Db.Query(GetCategoryTableCommand)
 	initalTime := time.Now()
@@ -50,8 +55,6 @@ func (c *ConfigWithConnection) ReadAndStoreCategory() {
 	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), CategoryTableName, time.Since(startTime))
 	// surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(CategoryTableName))
 	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", CategoryTableName, time.Since(startTime))
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", CategoryTableName), nil)
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(CategoryTableName, mysql_to_surreal_interfaces.CategoryTableStruct{}, true), nil)
 	startTime = time.Now()
 	var divided [][]*mysql_to_surreal_interfaces.CategoryTableStruct
 	chunkSize := 50
