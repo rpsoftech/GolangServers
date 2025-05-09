@@ -25,6 +25,7 @@ func init() {
 func removeAndInsertItemGroupTable(c *ConfigWithConnection) {
 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", ItemGroupTableName), nil)
 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(ItemGroupTableName, mysql_to_surreal_interfaces.ItemGroupTableStruct{}, true), nil)
+	fmt.Printf("Removed And Created %s\n", ItemGroupTableName)
 }
 
 func (c *ConfigWithConnection) ReadAndStoreItemGroupTable() {

@@ -16,6 +16,11 @@ var (
 	GetItemMastTableCommand = ""
 )
 
+func removeAndInsertItemMastTable(c *ConfigWithConnection) {
+	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", ItemMastTableName), nil)
+	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(ItemMastTableName, mysql_to_surreal_interfaces.ItemMastTableStruct{}, true), nil)
+	fmt.Printf("Removed And Created %s\n", ItemMastTableName)
+}
 func init() {
 	GetItemMastTableCommand = fmt.Sprintf("SELECT * FROM %s", ItemMastTableName)
 
@@ -174,8 +179,6 @@ func (c *ConfigWithConnection) ReadAndStoreItemMast() {
 	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), ItemMastTableName, time.Since(startTime))
 	// surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemMastTableName))
 	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", ItemMastTableName, time.Since(startTime))
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", ItemMastTableName), nil)
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(ItemMastTableName, mysql_to_surreal_interfaces.ItemMastTableStruct{}, true), nil)
 	startTime = time.Now()
 	var divided [][]*mysql_to_surreal_interfaces.ItemMastTableStruct
 	chunkSize := 50

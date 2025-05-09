@@ -25,6 +25,7 @@ func init() {
 func removeAndInsertTgMaster(c *ConfigWithConnection) {
 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TgMasterTableName), nil)
 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(TgMasterTableName, mysql_to_surreal_interfaces.TgMasterStruct{}, true), nil)
+	fmt.Printf("Removed And Created %s\n", TgMasterTableName)
 }
 
 func (c *ConfigWithConnection) ReadAndStoreTgMaster() {

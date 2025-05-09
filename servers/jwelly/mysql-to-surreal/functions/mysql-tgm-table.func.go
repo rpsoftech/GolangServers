@@ -30,6 +30,7 @@ func removeAndInsertTgm1Table(c *ConfigWithConnection) {
 	if err != nil {
 		fmt.Printf("Issue In Defining Table %s in SurrealDB: %s\n", TgmTableName, err.Error())
 	}
+	fmt.Printf("Removed And Created %s\n", TgmTableName)
 }
 
 func init() {

@@ -14,7 +14,7 @@ type ITransStruct struct {
 	TNO            int             `json:"TNO" fieldType:"int | NULL"  Index:"I" defaultValue:"0"`
 	ITSTDID        int             `json:"ITSTDID" fieldType:"int | NULL" defaultValue:"0"`
 	SNTRNID        int             `json:"SNTRNID" fieldType:"int | NULL"  Index:"I" defaultValue:"0"`
-	TDATE          time.Time       `json:"TDATE" fieldType:"date" defaultValue:"0000-00-00"  Index:"I"`
+	TDATE          time.Time       `json:"TDATE" fieldType:"datetime | NULL" defaultValue:"0000-00-00"  Index:"I"`
 	INO            int             `json:"INO" fieldType:"int | NULL"  Index:"I" defaultValue:"0"`
 	REMARKS        string          `json:"REMARKS" fieldType:"string | NULL"`
 	GWT            float64         `json:"GWT" fieldType:"float | NULL" defaultValue:"0.0"`
@@ -27,11 +27,11 @@ type ITransStruct struct {
 	MAMT           float64         `json:"MAMT" fieldType:"float | NULL" defaultValue:"0.0"`
 	TYPE           string          `json:"TYPE" fieldType:"string | NULL"  Index:"I"`
 	STOCK          string          `json:"STOCK" fieldType:"string | NULL"  Index:"I"`
-	SurrealUNITID  models.RecordID `json:"SurrealUNITID" fieldType:"int | NULL"  Index:"I" defaultValue:"0"`
+	SurrealUNITID  models.RecordID `json:"SurrealUNITID"  fieldType:"record<units>"`
 	UNITID         int             `json:"UNITID" fieldType:"int | NULL"  Index:"I" defaultValue:"0"`
-	SurrealSTAMPID models.RecordID `json:"SurrealSTAMPID" fieldType:"int | NULL"  Index:"I" defaultValue:"0"`
+	SurrealSTAMPID models.RecordID `json:"SurrealSTAMPID" fieldType:"record<stamp>"`
 	STAMPID        int             `json:"STAMPID" fieldType:"int | NULL"  Index:"I" defaultValue:"0"`
-	SurrealSITEID  models.RecordID `json:"SurrealSITEID" fieldType:"int | NULL"  Index:"I" defaultValue:"0"`
+	SurrealSITEID  models.RecordID `json:"SurrealSITEID" Index:"I" fieldType:"record<site>"`
 	SITEID         int             `json:"SITEID" fieldType:"int | NULL"  Index:"I" defaultValue:"0"`
 	TVALUE         float64         `json:"TVALUE" fieldType:"float | NULL" defaultValue:"0.0"`
 	STUDED         string          `json:"STUDED" fieldType:"string | NULL"  Index:"I"`
@@ -96,7 +96,7 @@ type ITransStruct struct {
 	BALPC          int             `json:"BALPC" fieldType:"int | NULL" defaultValue:"0"`
 	SPRICE         float64         `json:"SPRICE" fieldType:"float | NULL" defaultValue:"0.0"`
 	MRATE          float64         `json:"MRATE" fieldType:"float | NULL" defaultValue:"0.0"`
-	DTIME          time.Time       `json:"DTIME" fieldType:"date" defaultValue:"0000-00-00"`
+	DTIME          time.Time       `json:"DTIME" fieldType:"datetime | NULL" defaultValue:"0000-00-00"`
 	SETNO          int             `json:"SETNO" fieldType:"int | NULL"  Index:"I" defaultValue:"0"`
 	Pktwt          float64         `json:"pktwt" fieldType:"float | NULL" defaultValue:"0.0"`
 	Pktless        float64         `json:"pktless" fieldType:"float | NULL" defaultValue:"0.0"`
@@ -164,7 +164,7 @@ type ITransStruct struct {
 	OWNACNO        int             `json:"OWNACNO" fieldType:"int | NULL" defaultValue:"0"`
 	TRTNO          int             `json:"TRTNO" fieldType:"int | NULL" defaultValue:"0"`
 	LABID          int             `json:"LABID" fieldType:"int | NULL" defaultValue:"0"`
-	DELDATE        time.Time       `json:"DELDATE" fieldType:"date" defaultValue:"0000-00-00"`
+	DELDATE        time.Time       `json:"DELDATE" fieldType:"datetime | NULL" defaultValue:"0000-00-00"`
 	SALEMRP        float64         `json:"SALEMRP" fieldType:"float | NULL" defaultValue:"0.0"`
 	JOBID          int             `json:"JOBID" fieldType:"int | NULL"  Index:"I" defaultValue:"0"`
 	Stkfine1       float64         `json:"stkfine1" fieldType:"float | NULL" defaultValue:"0.0"`
@@ -185,9 +185,9 @@ type ITransStruct struct {
 	OJOBID         int             `json:"OJOBID" fieldType:"int | NULL" defaultValue:"0"`
 	OCANCEL        int             `json:"OCANCEL" fieldType:"int | NULL" defaultValue:"0"`
 	OCREMARKS      string          `json:"OCREMARKS" fieldType:"string | NULL"`
-	OCDATE         time.Time       `json:"OCDATE" fieldType:"date" defaultValue:"0000-00-00"`
+	OCDATE         time.Time       `json:"OCDATE" fieldType:"datetime | NULL" defaultValue:"0000-00-00"`
 	OCLOGINID      int             `json:"OCLOGINID" fieldType:"int | NULL" defaultValue:"0"`
-	OCTIME         time.Time       `json:"OCTIME" fieldType:"date" defaultValue:"0000-00-00"`
+	OCTIME         time.Time       `json:"OCTIME" fieldType:"datetime | NULL" defaultValue:"0000-00-00"`
 	DESIGNID       int             `json:"DESIGNID" fieldType:"int | NULL" defaultValue:"0"`
 	COSTVALUE      float64         `json:"COSTVALUE" fieldType:"float | NULL" defaultValue:"0.0"`
 	COSTMAMT       float64         `json:"COSTMAMT" fieldType:"float | NULL" defaultValue:"0.0"`

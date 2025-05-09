@@ -19,6 +19,7 @@ var (
 func removeAndInsertSiteTable(c *ConfigWithConnection) {
 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", SiteTableName), nil)
 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(SiteTableName, mysql_to_surreal_interfaces.SiteTableStruct{}, true), nil)
+	fmt.Printf("Removed And Created %s\n", SiteTableName)
 }
 
 func init() {

@@ -19,6 +19,7 @@ var (
 func removeAndInsertUnitTable(c *ConfigWithConnection) {
 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", UnitTableName), nil)
 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(UnitTableName, mysql_to_surreal_interfaces.UnitTableStruct{}, true), nil)
+	fmt.Printf("Removed And Created %s\n", UnitTableName)
 }
 
 func init() {

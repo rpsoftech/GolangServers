@@ -23,6 +23,7 @@ func init() {
 func removeAndInsertStampTable(c *ConfigWithConnection) {
 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", StampTableName), nil)
 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(StampTableName, mysql_to_surreal_interfaces.StampTableStruct{}, true), nil)
+	fmt.Printf("Removed And Created %s\n", StampTableName)
 }
 func (c *ConfigWithConnection) ReadAndStoreStampTable() {
 	rows, err := c.DbConnections.MysqlDbConncetion.Db.Query(GetStampTableCommand)

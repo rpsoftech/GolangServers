@@ -34,7 +34,7 @@ func removeAndInsertItemTransTable(c *ConfigWithConnection) {
 	if err != nil {
 		fmt.Printf("Issue In Defining Table %s in SurrealDB: %s\n", ItemTransTableName, err.Error())
 	}
-
+	fmt.Printf("Removed And Created %s\n", ItemTransTableName)
 }
 func (c *ConfigWithConnection) ReadAndStoreItemTransTable() {
 	rows, err := c.DbConnections.MysqlDbConncetion.Db.Query(GetItemTransTableCommand)
