@@ -22,11 +22,11 @@ func init() {
 
 }
 func removeAndInsertItemTransTable(c *ConfigWithConnection) {
-	_, err := surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemTransTableName))
-	if err != nil {
-		fmt.Printf("Issue In Deleting Table %s from SurrealDB: %s\n", ItemTransTableName, err.Error())
-	}
-	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", ItemTransTableName), nil)
+	// _, err := surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemTransTableName))
+	// if err != nil {
+	// 	fmt.Printf("Issue In Deleting Table %s from SurrealDB: %s\n", ItemTransTableName, err.Error())
+	// }
+	_, err := surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", ItemTransTableName), nil)
 	if err != nil {
 		fmt.Printf("Issue In Removing Table %s from SurrealDB: %s\n", ItemTransTableName, err.Error())
 	}

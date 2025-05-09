@@ -42,7 +42,9 @@ func InitaliseAndPopulateTheConnection() {
 }
 
 func DoTheOperation(c *mysql_to_surreal_functions.ConfigWithConnection) {
+	fmt.Printf("Operation of %s Started\n", c.ServerConfig.Name)
 	c.ClearSurrealDbAndInsert()
+	fmt.Printf("Tables Remvoed And Created For %s\n", c.ServerConfig.Name)
 	startTime := time.Now()
 	functions := []func(){
 		// c.ReadAndStoreTgMaster,
