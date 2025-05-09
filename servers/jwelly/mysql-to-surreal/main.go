@@ -34,8 +34,8 @@ func InitaliseAndPopulateTheConnection() {
 		} else {
 			DeferFunctionSlice = append(DeferFunctionSlice, cccc.DbConnections.MysqlDbConncetion.DeferFunction, cccc.DbConnections.SurrealDbConncetion.DeferFunction)
 		}
-		if env.IsDev {
-			DoTheOperation(cccc)
+		DoTheOperation(cccc)
+		if env.IsDev && env.Env.APP_ENV == env.APP_ENV_LOCAL {
 			os.Exit(0)
 		}
 	}
