@@ -37,6 +37,7 @@ func insertDataToSurrealDb(c *surrealdb.SurrealDBStruct, table string, k int, v 
 
 func (c *ConfigWithConnection) ClearSurrealDbAndInsert() {
 	array := []func(*ConfigWithConnection){
+		removeAndInsertAccMastTable,
 		removeAndInsertCategory,
 		removeAndInsertItemGroupTable,
 		removeAndInsertItemTransTable,
