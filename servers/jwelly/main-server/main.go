@@ -1,13 +1,10 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
+	apis "github.com/rpsoftech/golang-servers/servers/jwelly/main-server/api"
 	"github.com/rpsoftech/golang-servers/utility/mongodb"
-	"github.com/rpsoftech/golang-servers/utility/redis"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -16,7 +13,7 @@ import (
 func deferMainFunc() {
 	println("Closing...")
 	mongodb.DeferFunction()
-	redis.DeferFunction()
+	// redis.DeferFunction()
 }
 
 func main() {
@@ -68,6 +65,7 @@ func main() {
 	// return c.SendString("Hello, World!")
 	// })
 	// bullion_main_server_apis.AddApis(app.Group("/v1"))
+	apis.AddApis(app.Group("/v1"))
 	app.Use(func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).SendString("Sorry can't find that!")
 	})
@@ -76,8 +74,8 @@ func main() {
 		hostAndPort = "127.0.0.1"
 	}
 	// Print the router stack in JSON format
-	data, _ := json.MarshalIndent(app.Stack(), "", "  ")
-	fmt.Println(string(data))
+	// data, _ := json.MarshalIndent(app.Stack(), "", "  ")
+	// fmt.Println(string(data))
 
 	hostAndPort = hostAndPort + ":" + env.GetServerPort(env.PORT_KEY)
 	app.Listen(hostAndPort)

@@ -196,7 +196,7 @@ func (service *orderGeneralService) PlaceOrder(orderType bullion_main_server_int
 	}
 	println("Final Rate", finalRate)
 	order := &bullion_main_server_interfaces.OrderEntity{
-		BaseEntity: &bullion_main_server_interfaces.BaseEntity{},
+		BaseEntity: &interfaces.BaseEntity{},
 		OrderBase: &bullion_main_server_interfaces.OrderBase{
 			BullionId:   group.BullionId,
 			OrderType:   bullion_main_server_interfaces.OrderType(orderType),

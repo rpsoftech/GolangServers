@@ -38,7 +38,7 @@ func init() {
 		collection: coll,
 		redis:      redis.InitRedisAndRedisClient(),
 	}
-	addUniqueIndexesToCollection([]string{"id", "bullionId"}, BankRateCalcRepo.collection)
+	mongodb.AddUniqueIndexesToCollection([]string{"id", "bullionId"}, BankRateCalcRepo.collection)
 }
 
 func (repo *BankRateCalcRepoStruct) cacheDataToRedis(entity *bullion_main_server_interfaces.BankRateCalcEntity) {
@@ -53,7 +53,7 @@ func (repo *BankRateCalcRepoStruct) Save(entity *bullion_main_server_interfaces.
 	var result bullion_main_server_interfaces.BankRateCalcEntity
 	err := repo.collection.FindOneAndUpdate(mongodb.MongoCtx, bson.D{{
 		Key: "_id", Value: entity.ID,
-	}}, bson.D{{Key: "$set", Value: entity}}, findOneAndUpdateOptions).Decode(&result)
+	}}, bson.D{{Key: "$set", Value: entity}}, mongodb.FindOneAndUpdateOptions).Decode(&result)
 	entity.Updated()
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {

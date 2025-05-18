@@ -206,7 +206,7 @@ func (service *tradeUserServiceStruct) RegisterNewTradeUser(base *bullion_main_s
 		TradeUserBase:     base,
 		TradeUserAdvanced: advance,
 		TradeUserMargins:  margins,
-		BaseEntity:        &bullion_main_server_interfaces.BaseEntity{},
+		BaseEntity:        &interfaces.BaseEntity{},
 	}
 	entity.CreateNew().UpdateUser()
 	newUserNumber := 0

@@ -48,7 +48,7 @@ func getTradeUserGroupService() *tradeUserGroupServiceStruct {
 // Create New Trade User Group And Create Mapping
 func (t *tradeUserGroupServiceStruct) CreateNewTradeUserGroup(bullionId string, name string, adminId string) (*bullion_main_server_interfaces.TradeUserGroupEntity, error) {
 	entity := &bullion_main_server_interfaces.TradeUserGroupEntity{
-		BaseEntity: &bullion_main_server_interfaces.BaseEntity{},
+		BaseEntity: &interfaces.BaseEntity{},
 		TradeUserGroupBase: &bullion_main_server_interfaces.TradeUserGroupBase{
 			BullionId: bullionId,
 			Name:      name,
@@ -86,7 +86,7 @@ func (t *tradeUserGroupServiceStruct) createGroupMapFromNewGroup(groupId string,
 
 	for i, entity := range *entities {
 		groupMapEntities[i] = bullion_main_server_interfaces.TradeUserGroupMapEntity{
-			BaseEntity: &bullion_main_server_interfaces.BaseEntity{},
+			BaseEntity: &interfaces.BaseEntity{},
 			TradeUserGroupMapBase: &bullion_main_server_interfaces.TradeUserGroupMapBase{
 				BullionId: bullionId,
 				GroupId:   groupId,
@@ -169,7 +169,7 @@ func (t *tradeUserGroupServiceStruct) CreateGroupMapFromNewProduct(productId str
 	groupMapEntities := make([]bullion_main_server_interfaces.TradeUserGroupMapEntity, len(*entities))
 	for i, entity := range *entities {
 		groupMapEntities[i] = bullion_main_server_interfaces.TradeUserGroupMapEntity{
-			BaseEntity: &bullion_main_server_interfaces.BaseEntity{},
+			BaseEntity: &interfaces.BaseEntity{},
 			TradeUserGroupMapBase: &bullion_main_server_interfaces.TradeUserGroupMapBase{
 				BullionId: bullionId,
 				GroupId:   entity.ID,

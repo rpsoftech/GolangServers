@@ -29,14 +29,14 @@ func init() {
 	BullionSiteInfoRepo = &BullionSiteInfoRepoStruct{
 		collection: coll,
 	}
-	addUniqueIndexesToCollection([]string{"id", "domain", "shortName"}, BullionSiteInfoRepo.collection)
+	mongodb.AddUniqueIndexesToCollection([]string{"id", "domain", "shortName"}, BullionSiteInfoRepo.collection)
 }
 
 func (repo *BullionSiteInfoRepoStruct) Save(entity *bullion_main_server_interfaces.BullionSiteInfoEntity) (*bullion_main_server_interfaces.BullionSiteInfoEntity, error) {
 	var result bullion_main_server_interfaces.BullionSiteInfoEntity
 	err := repo.collection.FindOneAndUpdate(mongodb.MongoCtx, bson.D{{
 		Key: "_id", Value: entity.ID,
-	}}, bson.D{{Key: "$set", Value: entity}}, findOneAndUpdateOptions).Decode(&result)
+	}}, bson.D{{Key: "$set", Value: entity}}, mongodb.FindOneAndUpdateOptions).Decode(&result)
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
 			err = &interfaces.RequestError{

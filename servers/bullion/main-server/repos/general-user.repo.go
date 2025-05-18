@@ -29,14 +29,14 @@ func init() {
 	GeneralUserRepo = &GeneralUserRepoStruct{
 		collection: coll,
 	}
-	addUniqueIndexesToCollection([]string{"id"}, GeneralUserRepo.collection)
+	mongodb.AddUniqueIndexesToCollection([]string{"id"}, GeneralUserRepo.collection)
 }
 
 func (repo *GeneralUserRepoStruct) Save(entity *bullion_main_server_interfaces.GeneralUserEntity) (*bullion_main_server_interfaces.GeneralUserEntity, error) {
 	var result bullion_main_server_interfaces.GeneralUserEntity
 	err := repo.collection.FindOneAndUpdate(mongodb.MongoCtx, bson.D{{
 		Key: "_id", Value: entity.ID,
-	}}, bson.D{{Key: "$set", Value: entity}}, findOneAndUpdateOptions).Decode(&result)
+	}}, bson.D{{Key: "$set", Value: entity}}, mongodb.FindOneAndUpdateOptions).Decode(&result)
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
 			err = &interfaces.RequestError{

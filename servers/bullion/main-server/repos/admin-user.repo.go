@@ -29,15 +29,15 @@ func init() {
 	AdminUserRepo = &AdminUserRepoStruct{
 		collection: coll,
 	}
-	addUniqueIndexesToCollection([]string{"id"}, AdminUserRepo.collection)
-	addComboUniqueIndexesToCollection([]string{"userName", "bullionId"}, AdminUserRepo.collection)
+	mongodb.AddUniqueIndexesToCollection([]string{"id"}, AdminUserRepo.collection)
+	mongodb.AddComboUniqueIndexesToCollection([]string{"userName", "bullionId"}, AdminUserRepo.collection)
 }
 
 func (repo *AdminUserRepoStruct) Save(entity *bullion_main_server_interfaces.AdminUserEntity) (*bullion_main_server_interfaces.AdminUserEntity, error) {
 	var result bullion_main_server_interfaces.AdminUserEntity
 	err := repo.collection.FindOneAndUpdate(mongodb.MongoCtx, bson.D{{
 		Key: "_id", Value: entity.ID,
-	}}, bson.D{{Key: "$set", Value: entity}}, findOneAndUpdateOptions).Decode(&result)
+	}}, bson.D{{Key: "$set", Value: entity}}, mongodb.FindOneAndUpdateOptions).Decode(&result)
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
 			err = &interfaces.RequestError{

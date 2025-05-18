@@ -10,13 +10,13 @@ import (
 
 type (
 	OrderEntity struct {
-		*BaseEntity           `bson:"inline"`
-		*OrderBase            `bson:"inline"`
-		*LimitWatcherRequired `bson:"inline"`
-		*AfterSuccessOrder    `bson:"inline,omitempty"`
-		*Identity             `bson:"inline"`
-		FromAdmin             *FromAdmin      `bson:"inline,omitempty"`
-		DeliveryData          *[]DeliveryData `bson:"inline,omitempty"`
+		*interfaces.BaseEntity `bson:"inline"`
+		*OrderBase             `bson:"inline"`
+		*LimitWatcherRequired  `bson:"inline"`
+		*AfterSuccessOrder     `bson:"inline,omitempty"`
+		*Identity              `bson:"inline"`
+		FromAdmin              *FromAdmin      `bson:"inline,omitempty"`
+		DeliveryData           *[]DeliveryData `bson:"inline,omitempty"`
 	}
 	OrderBase struct {
 		BullionId   string      `bson:"bullionId" json:"bullionId" validate:"required,uuid"`
@@ -121,11 +121,11 @@ func (e *OrderEntity) LimitPassedOrOrderPlaced(mcxPrice float64, calcSnapShot *C
 
 func CreateNewOrderEntity(base *OrderBase, limitWatch *LimitWatcherRequired, identity *Identity) *OrderEntity {
 	b := &OrderEntity{
-		BaseEntity:           &BaseEntity{},
+		BaseEntity:           &interfaces.BaseEntity{},
 		OrderBase:            base,
 		LimitWatcherRequired: limitWatch,
 		Identity:             identity,
 	}
-	b.createNewId()
+	b.CreateNewId()
 	return b
 }
