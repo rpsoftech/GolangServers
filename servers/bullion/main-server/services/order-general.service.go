@@ -48,7 +48,7 @@ func getOrderGeneralService() *orderGeneralService {
 func (service *orderGeneralService) ValidateUserGroupForTrade(group *bullion_main_server_interfaces.TradeUserGroupEntity) (bool, error) {
 	// Check for Group Activation
 	if !group.IsActive {
-		return false, &bullion_main_server_interfaces.RequestError{
+		return false, &interfaces.RequestError{
 			StatusCode: http.StatusUnauthorized,
 			Code:       interfaces.ERROR_PERMISSION_NOT_ALLOWED,
 			Message:    "Group Is Not Active Please Contact Admin",
@@ -57,7 +57,7 @@ func (service *orderGeneralService) ValidateUserGroupForTrade(group *bullion_mai
 	}
 	// Check for Group User Can Trade
 	if !group.CanTrade {
-		return false, &bullion_main_server_interfaces.RequestError{
+		return false, &interfaces.RequestError{
 			StatusCode: 400,
 			Code:       interfaces.ERROR_TRADING_IS_DISABLED_FOR_GROUP,
 			Message:    "Trading is disabled for your group. Contact User",
@@ -70,7 +70,7 @@ func (service *orderGeneralService) ValidateUserGroupForTrade(group *bullion_mai
 func (service *orderGeneralService) ValidateUserAndGroupMapWithWeight(groupMap *bullion_main_server_interfaces.TradeUserGroupMapEntity, weight int) (bool, error) {
 	// Check for Group Map Activation
 	if !groupMap.IsActive {
-		return false, &bullion_main_server_interfaces.RequestError{
+		return false, &interfaces.RequestError{
 			StatusCode: http.StatusUnauthorized,
 			Code:       interfaces.ERROR_PERMISSION_NOT_ALLOWED,
 			Message:    "Group Map Is Not Active Please Contact Admin",
@@ -80,7 +80,7 @@ func (service *orderGeneralService) ValidateUserAndGroupMapWithWeight(groupMap *
 
 	// Check for Group Map Can Trade
 	if !groupMap.CanTrade {
-		return false, &bullion_main_server_interfaces.RequestError{
+		return false, &interfaces.RequestError{
 			StatusCode: 400,
 			Code:       interfaces.ERROR_TRADING_IS_DISABLED_FOR_PRODUCT,
 			Message:    "Trading is disabled for your group map. Contact Admin",
@@ -93,7 +93,7 @@ func (service *orderGeneralService) ValidateUserAndGroupMapWithWeight(groupMap *
 
 func (service *orderGeneralService) validateVolumeForGroupMap(groupMap *bullion_main_server_interfaces.TradeUserGroupMapEntity, weight int) (bool, error) {
 	if !groupMap.ValidateVolume(weight) {
-		return false, &bullion_main_server_interfaces.RequestError{
+		return false, &interfaces.RequestError{
 			StatusCode: 400,
 			Code:       interfaces.ERROR_INVALID_VOLUME,
 			Message:    "Invalid Volume",
@@ -111,7 +111,7 @@ func (service *orderGeneralService) findOrderDetailsAndValidate(userId string, g
 	}
 
 	if user.GroupId != groupId {
-		return nil, nil, nil, &bullion_main_server_interfaces.RequestError{
+		return nil, nil, nil, &interfaces.RequestError{
 			StatusCode: 400,
 			Code:       interfaces.ERROR_PERMISSION_NOT_ALLOWED,
 			Message:    "MissMatch Group Id",
@@ -121,7 +121,7 @@ func (service *orderGeneralService) findOrderDetailsAndValidate(userId string, g
 	}
 	// Check for User Activation
 	if !user.IsActive {
-		return nil, nil, nil, &bullion_main_server_interfaces.RequestError{
+		return nil, nil, nil, &interfaces.RequestError{
 			StatusCode: http.StatusUnauthorized,
 			Code:       interfaces.ERROR_PERMISSION_NOT_ALLOWED,
 			Message:    "Account Is Not Active Please Contact Admin",
@@ -133,7 +133,7 @@ func (service *orderGeneralService) findOrderDetailsAndValidate(userId string, g
 		return nil, nil, nil, err
 	} else if !flags.CanTrade {
 		// Check If Trading Is Disabled
-		return nil, nil, nil, &bullion_main_server_interfaces.RequestError{
+		return nil, nil, nil, &interfaces.RequestError{
 			StatusCode: 400,
 			Code:       interfaces.ERROR_TRADING_IS_DISABLED,
 			Message:    "Trading is disabled. Contact User",
@@ -162,7 +162,7 @@ func (service *orderGeneralService) findOrderDetailsAndValidate(userId string, g
 		}
 	}
 	if groupMap == nil {
-		return nil, nil, nil, &bullion_main_server_interfaces.RequestError{
+		return nil, nil, nil, &interfaces.RequestError{
 			StatusCode: 400,
 			Code:       interfaces.ERROR_GROUP_MAP_NOT_FOUND,
 			Message:    "Group Map Not Found",
@@ -259,7 +259,7 @@ func (service *orderGeneralService) calCulateAndReturnFinalRateForOrder(product 
 	rate := service.liveRateService.GetLiveRate(productSymbol, priceReadKey)
 
 	if rate == 0 {
-		return 0, &bullion_main_server_interfaces.RequestError{
+		return 0, &interfaces.RequestError{
 			StatusCode: 400,
 			Code:       interfaces.ERROR_LIVE_RATE_NOT_FOUND,
 			Message:    "Live Rate Not Found",

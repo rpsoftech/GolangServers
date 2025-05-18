@@ -38,7 +38,7 @@ func (service *feedsService) UpdateFeeds(baseEntity *bullion_main_server_interfa
 		return nil, err
 	}
 	if entity.BullionId != baseEntity.BullionId {
-		return nil, &bullion_main_server_interfaces.RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: 403,
 			Code:       interfaces.ERROR_MISMATCH_BULLION_ID,
 			Message:    "You do not have access to this Feed",
@@ -70,7 +70,7 @@ func (service *feedsService) DeleteById(id string, bullionId string, adminId str
 		return entity, err
 	}
 	if entity.BullionId != bullionId {
-		return nil, &bullion_main_server_interfaces.RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: 403,
 			Code:       interfaces.ERROR_MISMATCH_BULLION_ID,
 			Message:    "You do not have access to this Feed",

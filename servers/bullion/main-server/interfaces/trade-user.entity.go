@@ -71,7 +71,7 @@ func (user *TradeUserEntity) UpdateMarginAfterOrder(weight int, symbol SourceSym
 	}
 
 	if availableMargin < 0 || availableMargin-weight < 0 {
-		return nil, &RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_INSUFFICIENT_MARGIN,
 			Message:    "Insufficient Margin",

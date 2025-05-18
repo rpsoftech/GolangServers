@@ -57,7 +57,7 @@ func (repo *BankRateCalcRepoStruct) Save(entity *bullion_main_server_interfaces.
 	entity.Updated()
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
-			err = &bullion_main_server_interfaces.RequestError{
+			err = &interfaces.RequestError{
 				StatusCode: 500,
 				Code:       interfaces.ERROR_INTERNAL_SERVER,
 				Message:    fmt.Sprintf("Internal Server Error: %s", err.Error()),
@@ -86,14 +86,14 @@ func (repo *BankRateCalcRepoStruct) FindOneByBullionId(id string) (*bullion_main
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			// This error means your query did not match any documents.
-			err = &bullion_main_server_interfaces.RequestError{
+			err = &interfaces.RequestError{
 				StatusCode: http.StatusBadRequest,
 				Code:       interfaces.ERROR_ENTITY_NOT_FOUND,
 				Message:    fmt.Sprintf("Bullion Entity identified by id %s not found", id),
 				Name:       "ENTITY_NOT_FOUND",
 			}
 		} else {
-			err = &bullion_main_server_interfaces.RequestError{
+			err = &interfaces.RequestError{
 				StatusCode: 500,
 				Code:       interfaces.ERROR_INTERNAL_SERVER,
 				Message:    fmt.Sprintf("Internal Server Error: %s", err.Error()),

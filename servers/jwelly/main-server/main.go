@@ -3,16 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
-	j "github.com/golang-jwt/jwt/v5"
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
-	bullion_main_server_apis "github.com/rpsoftech/golang-servers/servers/bullion/main-server/apis"
-	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
-	bullion_main_server_middleware "github.com/rpsoftech/golang-servers/servers/bullion/main-server/middleware"
-	bullion_main_server_services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
-	"github.com/rpsoftech/golang-servers/utility/jwt"
 	"github.com/rpsoftech/golang-servers/utility/mongodb"
 	"github.com/rpsoftech/golang-servers/utility/redis"
 
@@ -49,21 +42,21 @@ func main() {
 	})
 	// TODO Add middleware to recover from panics https://docs.gofiber.io/api/middleware/recover
 	app.Use(logger.New())
-	app.Use(bullion_main_server_middleware.TokenDecrypter)
+	// app.Use(bullion_main_server_middleware.TokenDecrypter)
 
 	if env.Env.APP_ENV != env.APP_ENV_PRODUCTION {
 
-		app.Get("/token", func(c *fiber.Ctx) error {
-			a, _ := bullion_main_server_services.AccessTokenService.GenerateToken(bullion_main_server_interfaces.GeneralUserAccessRefreshToken{
-				Role: bullion_main_server_interfaces.ROLE_ADMIN,
-				GeneralPurposeTokenGeneration: &jwt.GeneralPurposeTokenGeneration{
-					RegisteredClaims: &j.RegisteredClaims{
-						IssuedAt: j.NewNumericDate(time.Now()),
-					},
-				},
-			})
-			return c.SendString(a)
-		}).Name("Temp Admin Access Token")
+		// app.Get("/token", func(c *fiber.Ctx) error {
+		// 	a, _ := bullion_main_server_services.AccessTokenService.GenerateToken(bullion_main_server_interfaces.GeneralUserAccessRefreshToken{
+		// 		Role: bullion_main_server_interfaces.ROLE_ADMIN,
+		// 		GeneralPurposeTokenGeneration: &jwt.GeneralPurposeTokenGeneration{
+		// 			RegisteredClaims: &j.RegisteredClaims{
+		// 				IssuedAt: j.NewNumericDate(time.Now()),
+		// 			},
+		// 		},
+		// 	})
+		// 	return c.SendString(a)
+		// }).Name("Temp Admin Access Token")
 	}
 	// bullion_main_server_repos.BullionSiteInfoRepo.Save(bullion_main_server_interfaces.CreateNewBullionSiteInfo("Akshat Bullion", "https://akshatbullion.com").AddGeneralUserInfo(true, true))
 	// app.Get("/", func(c *fiber.Ctx) error {
@@ -74,7 +67,7 @@ func main() {
 	// return c.JSON(bullion_main_server_repos.BullionSiteInfoRepo.FindOneByDomain("https://akshatbullion.com"))
 	// return c.SendString("Hello, World!")
 	// })
-	bullion_main_server_apis.AddApis(app.Group("/v1"))
+	// bullion_main_server_apis.AddApis(app.Group("/v1"))
 	app.Use(func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).SendString("Sorry can't find that!")
 	})
