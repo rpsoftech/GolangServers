@@ -65,12 +65,12 @@ func apiUpdateProductCalcSnapshot(c *fiber.Ctx) error {
 			Name:       "ERROR_INVALID_INPUT",
 		}
 	}
-	userId, err := interfaces.ExtractTokenUserIdFromCtx(c)
+	userId, err := bullion_main_server_interfaces.ExtractTokenUserIdFromCtx(c)
 	if err != nil {
 		return err
 	}
 
-	bullionId, err := interfaces.ExtractBullionIdFromCtx(c)
+	bullionId, err := bullion_main_server_interfaces.ExtractBullionIdFromCtx(c)
 	if err != nil {
 		return err
 	}

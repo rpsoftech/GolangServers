@@ -1,5 +1,7 @@
 package bullion_main_server_interfaces
 
+import "github.com/rpsoftech/golang-servers/interfaces"
+
 type (
 	CshPremiumBuySellSnapshot struct {
 		Tax     int     `bson:"tax" json:"tax" validate:"min=0,max=50"`
@@ -22,10 +24,10 @@ type (
 	}
 
 	ProductEntity struct {
-		*BaseEntity        `bson:"inline"`
-		*ProductBaseStruct `bson:"inline"`
-		Sequence           int                 `bson:"sequence" json:"sequence"`
-		CalcSnapshot       *CalcSnapshotStruct `bson:"calcSnapshot" json:"calcSnapshot" validate:"required"`
+		*interfaces.BaseEntity `bson:"inline"`
+		*ProductBaseStruct     `bson:"inline"`
+		Sequence               int                 `bson:"sequence" json:"sequence"`
+		CalcSnapshot           *CalcSnapshotStruct `bson:"calcSnapshot" json:"calcSnapshot" validate:"required"`
 	}
 
 	UpdateProductApiBody struct {
@@ -51,9 +53,9 @@ func CreateNewProduct(productBase *ProductBaseStruct, calcSnapShot *CalcSnapshot
 		ProductBaseStruct: productBase,
 		CalcSnapshot:      calcSnapShot,
 		Sequence:          sequence,
-		BaseEntity:        &BaseEntity{},
+		BaseEntity:        &interfaces.BaseEntity{},
 	}
-	b.createNewId()
+	b.CreateNewId()
 	return b
 }
 

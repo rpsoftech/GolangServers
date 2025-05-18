@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rpsoftech/golang-servers/interfaces"
+	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	bullion_main_server_services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
 )
 
@@ -19,7 +20,7 @@ func apiGetBullionFlags(c *fiber.Ctx) error {
 		}
 	}
 
-	if err := interfaces.ValidateBullionIdMatchingInToken(c, bullionId); err != nil {
+	if err := bullion_main_server_interfaces.ValidateBullionIdMatchingInToken(c, bullionId); err != nil {
 		return err
 	}
 

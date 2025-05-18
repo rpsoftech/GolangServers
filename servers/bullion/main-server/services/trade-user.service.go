@@ -55,7 +55,7 @@ func (service *tradeUserServiceStruct) VerifyAndSendOtpForNewUser(tradeUser *bul
 		return nil, err
 	}
 	if len(*users) > 0 {
-		return nil, &bullion_main_server_interfaces.RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_DUPLICATE_USER,
 			Message:    "User Exists With Matching With Wither Email,Number Or Username",
@@ -90,7 +90,7 @@ func (service *tradeUserServiceStruct) VerifyAndSendOtpForNewUser(tradeUser *bul
 func (service *tradeUserServiceStruct) verifyRegistrationToken(token string, returnTradeUser bool) (*bullion_main_server_interfaces.GeneralPurposeTokenGeneration, string, *bullion_main_server_interfaces.TradeUserBase, error) {
 	claims, err := localJwt.VerifyToken[bullion_main_server_interfaces.GeneralPurposeTokenGeneration](service.accessTokenService, &token)
 	if err != nil {
-		return nil, "", nil, &bullion_main_server_interfaces.RequestError{
+		return nil, "", nil, &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_INVALID_INPUT,
 			Message:    "OTP Req Token Expired",
@@ -100,7 +100,7 @@ func (service *tradeUserServiceStruct) verifyRegistrationToken(token string, ret
 	}
 	otpReqId, ok := claims.ExtraClaim["otpReqEntityId"].(string)
 	if !ok {
-		return nil, "", nil, &bullion_main_server_interfaces.RequestError{
+		return nil, "", nil, &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_INVALID_INPUT,
 			Message:    "OTP Req Id Not Found",
@@ -112,7 +112,7 @@ func (service *tradeUserServiceStruct) verifyRegistrationToken(token string, ret
 	}
 	tradeUserMap, ok := claims.ExtraClaim["tradeUser"]
 	if !ok {
-		return nil, "", nil, &bullion_main_server_interfaces.RequestError{
+		return nil, "", nil, &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_INVALID_INPUT,
 			Message:    "TradeUser Details Not Found",
@@ -122,7 +122,7 @@ func (service *tradeUserServiceStruct) verifyRegistrationToken(token string, ret
 	tradeUser := new(bullion_main_server_interfaces.TradeUserBase)
 	err = mapstructure.Decode(tradeUserMap, &tradeUser)
 	if err != nil {
-		return nil, "", nil, &bullion_main_server_interfaces.RequestError{
+		return nil, "", nil, &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_INVALID_INPUT,
 			Message:    "TradeUser Details Not Found",
@@ -206,7 +206,7 @@ func (service *tradeUserServiceStruct) RegisterNewTradeUser(base *bullion_main_s
 		TradeUserBase:     base,
 		TradeUserAdvanced: advance,
 		TradeUserMargins:  margins,
-		BaseEntity:        &bullion_main_server_interfaces.BaseEntity{},
+		BaseEntity:        &interfaces.BaseEntity{},
 	}
 	entity.CreateNew().UpdateUser()
 	newUserNumber := 0
@@ -252,7 +252,7 @@ func (service *tradeUserServiceStruct) afterSuccessFullRegistration(userId strin
 func (service *tradeUserServiceStruct) LoginWithEmailAndPassword(email string, password string, bullionId string) (*bullion_main_server_interfaces.TokenResponseBody, error) {
 	tradeUser, err := service.tradeUserRepo.FindOneByEmail(bullionId, email)
 	if err != nil || tradeUser == nil {
-		return nil, &bullion_main_server_interfaces.RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusUnauthorized,
 			Code:       interfaces.ERROR_ENTITY_NOT_FOUND,
 			Message:    "User Not Registered With Number",
@@ -264,7 +264,7 @@ func (service *tradeUserServiceStruct) LoginWithEmailAndPassword(email string, p
 func (service *tradeUserServiceStruct) LoginWithUNumberAndPassword(uNumber string, password string, bullionId string) (*bullion_main_server_interfaces.TokenResponseBody, error) {
 	tradeUser, err := service.tradeUserRepo.FindOneByUNumber(bullionId, uNumber)
 	if err != nil || tradeUser == nil {
-		return nil, &bullion_main_server_interfaces.RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusUnauthorized,
 			Code:       interfaces.ERROR_ENTITY_NOT_FOUND,
 			Message:    "User Not Registered With Number",
@@ -276,7 +276,7 @@ func (service *tradeUserServiceStruct) LoginWithUNumberAndPassword(uNumber strin
 func (service *tradeUserServiceStruct) LoginWithNumberAndPassword(number string, password string, bullionId string) (*bullion_main_server_interfaces.TokenResponseBody, error) {
 	tradeUser, err := service.tradeUserRepo.FindOneByNumber(bullionId, number)
 	if err != nil || tradeUser == nil {
-		return nil, &bullion_main_server_interfaces.RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusUnauthorized,
 			Code:       interfaces.ERROR_ENTITY_NOT_FOUND,
 			Message:    "User Not Registered With Number",
@@ -296,7 +296,7 @@ func (service *tradeUserServiceStruct) UpdateTradeUser(entity *bullion_main_serv
 		return err
 	}
 	if user.BullionId != entity.BullionId {
-		return &bullion_main_server_interfaces.RequestError{
+		return &interfaces.RequestError{
 			StatusCode: http.StatusUnauthorized,
 			Code:       interfaces.ERROR_PERMISSION_NOT_ALLOWED,
 			Message:    "Cannot Update Different Bullion Id User",
@@ -317,7 +317,7 @@ func (service *tradeUserServiceStruct) UpdateTradeUser(entity *bullion_main_serv
 
 func (service *tradeUserServiceStruct) generateTokensForTradeUserWithPasswordMatching(tradeUser *bullion_main_server_interfaces.TradeUserEntity, password string) (*bullion_main_server_interfaces.TokenResponseBody, error) {
 	if tradeUser.TradeUserBase.RawPassword != password {
-		return nil, &bullion_main_server_interfaces.RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusUnauthorized,
 			Code:       interfaces.ERROR_INVALID_PASSWORD,
 			Message:    "Incorrect Password",
@@ -325,7 +325,7 @@ func (service *tradeUserServiceStruct) generateTokensForTradeUserWithPasswordMat
 		}
 	}
 	if !tradeUser.IsActive {
-		return nil, &bullion_main_server_interfaces.RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusUnauthorized,
 			Code:       interfaces.ERROR_PERMISSION_NOT_ALLOWED,
 			Message:    "Account Is Not Active Please Contact Admin",
@@ -344,7 +344,7 @@ func (service *tradeUserServiceStruct) FindOneUserById(id string) (*bullion_main
 func (service *tradeUserServiceStruct) TradeUserChangeStatus(id string, bullionId string, isActive bool, adminId string) error {
 	entity, err := service.tradeUserRepo.FindOne(id)
 	if entity.BullionId != bullionId {
-		return &bullion_main_server_interfaces.RequestError{
+		return &interfaces.RequestError{
 			StatusCode: http.StatusUnauthorized,
 			Code:       interfaces.ERROR_MISMATCH_BULLION_ID,
 			Message:    "Bullion Id Mismatch For Trade User",
@@ -372,7 +372,7 @@ func (service *tradeUserServiceStruct) TradeUserChangeStatus(id string, bullionI
 // func (service *tradeUserServiceStruct) FindUserByNumberAndPassword(number string, password string, bullionId string) (*bullion_main_server_interfaces.TradeUserEntity, error) {
 // 	tradeUser, err := service.tradeUserRepo.FindOneByNumber(bullionId, number)
 // 	if err != nil || tradeUser == nil {
-// 		return nil, &bullion_main_server_interfaces.RequestError{
+// 		return nil, &interfaces.RequestError{
 // 			StatusCode: http.StatusUnauthorized,
 // 			Code:       interfaces.ERROR_ENTITY_NOT_FOUND,
 // 			Message:    "User Not Registered With Number",
@@ -380,7 +380,7 @@ func (service *tradeUserServiceStruct) TradeUserChangeStatus(id string, bullionI
 // 		}
 // 	}
 // 	if !tradeUser.MatchPassword(password) {
-// 		return nil, &bullion_main_server_interfaces.RequestError{
+// 		return nil, &interfaces.RequestError{
 // 			StatusCode: http.StatusUnauthorized,
 // 			Code:       interfaces.ERROR_INVALID_PASSWORD,
 // 			Message:    "Incorrect Password",

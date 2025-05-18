@@ -22,8 +22,8 @@ func init() {
 		return
 	}
 	config := &MongoDBConfig{
-		DB_NAME: env.Env.GetEnv(env.MONGO_URL_KEY),
-		DB_URL:  env.Env.GetEnv(env.MONGO_DB_NAME_KEY),
+		DB_URL:  env.Env.GetEnv(env.MONGO_URL_KEY),
+		DB_NAME: env.Env.GetEnv(env.MONGO_DB_NAME_KEY),
 	}
 	env.ValidateEnv(config)
 	// env.Env.DB_URL

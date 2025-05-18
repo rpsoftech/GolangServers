@@ -38,7 +38,7 @@ func init() {
 		collection: coll,
 		redis:      redis.InitRedisAndRedisClient(),
 	}
-	addUniqueIndexesToCollection([]string{"id", "bullionId"}, BankRateCalcRepo.collection)
+	mongodb.AddUniqueIndexesToCollection([]string{"id", "bullionId"}, BankRateCalcRepo.collection)
 }
 
 func (repo *BankRateCalcRepoStruct) cacheDataToRedis(entity *bullion_main_server_interfaces.BankRateCalcEntity) {
@@ -53,11 +53,11 @@ func (repo *BankRateCalcRepoStruct) Save(entity *bullion_main_server_interfaces.
 	var result bullion_main_server_interfaces.BankRateCalcEntity
 	err := repo.collection.FindOneAndUpdate(mongodb.MongoCtx, bson.D{{
 		Key: "_id", Value: entity.ID,
-	}}, bson.D{{Key: "$set", Value: entity}}, findOneAndUpdateOptions).Decode(&result)
+	}}, bson.D{{Key: "$set", Value: entity}}, mongodb.FindOneAndUpdateOptions).Decode(&result)
 	entity.Updated()
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
-			err = &bullion_main_server_interfaces.RequestError{
+			err = &interfaces.RequestError{
 				StatusCode: 500,
 				Code:       interfaces.ERROR_INTERNAL_SERVER,
 				Message:    fmt.Sprintf("Internal Server Error: %s", err.Error()),
@@ -86,14 +86,14 @@ func (repo *BankRateCalcRepoStruct) FindOneByBullionId(id string) (*bullion_main
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			// This error means your query did not match any documents.
-			err = &bullion_main_server_interfaces.RequestError{
+			err = &interfaces.RequestError{
 				StatusCode: http.StatusBadRequest,
 				Code:       interfaces.ERROR_ENTITY_NOT_FOUND,
 				Message:    fmt.Sprintf("Bullion Entity identified by id %s not found", id),
 				Name:       "ENTITY_NOT_FOUND",
 			}
 		} else {
-			err = &bullion_main_server_interfaces.RequestError{
+			err = &interfaces.RequestError{
 				StatusCode: 500,
 				Code:       interfaces.ERROR_INTERNAL_SERVER,
 				Message:    fmt.Sprintf("Internal Server Error: %s", err.Error()),

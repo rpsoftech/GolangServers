@@ -55,7 +55,7 @@ var (
 func (cc *roleCheckerMiddlewareWithRolesArray) Validate(c *fiber.Ctx) error {
 	roleFromLocal := c.Locals(bullion_main_server_interfaces.REQ_LOCAL_KEY_ROLE)
 	if roleFromLocal == nil {
-		return &bullion_main_server_interfaces.RequestError{
+		return &interfaces.RequestError{
 			StatusCode: 403,
 			Code:       interfaces.ERROR_TOKEN_ROLE_NOT_FOUND,
 			Message:    "Invalid Token Role Or Not Found",
@@ -64,7 +64,7 @@ func (cc *roleCheckerMiddlewareWithRolesArray) Validate(c *fiber.Ctx) error {
 	}
 	role, ok := roleFromLocal.(string)
 	if !ok {
-		return &bullion_main_server_interfaces.RequestError{
+		return &interfaces.RequestError{
 			StatusCode: 403,
 			Code:       interfaces.ERROR_ROLE_NOT_EXISTS,
 			Message:    "Token Role Should be string",
@@ -75,7 +75,7 @@ func (cc *roleCheckerMiddlewareWithRolesArray) Validate(c *fiber.Ctx) error {
 		return c.Next()
 	}
 	if !slices.Contains(cc.roles, role) {
-		return &bullion_main_server_interfaces.RequestError{
+		return &interfaces.RequestError{
 			StatusCode: 403,
 			Code:       interfaces.ERROR_ROLE_NOT_AUTHORIZED,
 			Message:    fmt.Sprintf("%s is not allowed for this route", role),

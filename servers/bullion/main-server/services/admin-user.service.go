@@ -27,7 +27,7 @@ func (service *adminUserService) ValidateUserAndGenerateToken(uname string, pass
 		return nil, err
 	}
 	if !admin.MatchPassword(password) {
-		return nil, &bullion_main_server_interfaces.RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusUnauthorized,
 			Code:       interfaces.ERROR_INVALID_PASSWORD,
 			Message:    "Invalid Password",

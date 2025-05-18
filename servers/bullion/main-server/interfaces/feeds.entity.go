@@ -1,5 +1,7 @@
 package bullion_main_server_interfaces
 
+import "github.com/rpsoftech/golang-servers/interfaces"
+
 type (
 	FeedsBase struct {
 		BullionId string `bson:"bullionId" json:"bullionId" validate:"required,uuid"`
@@ -8,8 +10,8 @@ type (
 		IsHtml    bool   `bson:"isHtml" json:"isHtml" validate:"boolean"`
 	}
 	FeedsEntity struct {
-		*BaseEntity `bson:"inline"`
-		*FeedsBase  `bson:"inline"`
+		*interfaces.BaseEntity `bson:"inline"`
+		*FeedsBase             `bson:"inline"`
 	}
 	FeedUpdateRequestBody struct {
 		FeedId     string `bson:"feedId" json:"feedId" validate:"required,uuid"`
@@ -23,8 +25,8 @@ type (
 
 func (b *FeedsEntity) CreateNewId() *FeedsEntity {
 	if b.BaseEntity == nil {
-		b.BaseEntity = &BaseEntity{}
+		b.BaseEntity = &interfaces.BaseEntity{}
 	}
-	b.createNewId()
+	b.CreateNewId()
 	return b
 }

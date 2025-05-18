@@ -34,8 +34,8 @@ func init() {
 	OrderRepo = &OrderRepoStruct{
 		collection: coll,
 	}
-	addUniqueIndexesToCollection([]string{"id"}, OrderRepo.collection)
-	addIndexesToCollection([]string{"userId", "productGroupMapId", "groupId", "productId", "orderStatus", "createdAt"}, OrderRepo.collection)
+	mongodb.AddUniqueIndexesToCollection([]string{"id"}, OrderRepo.collection)
+	mongodb.AddIndexesToCollection([]string{"userId", "productGroupMapId", "groupId", "productId", "orderStatus", "createdAt"}, OrderRepo.collection)
 }
 
 func (repo *OrderRepoStruct) Save(entity *bullion_main_server_interfaces.OrderEntity) (*bullion_main_server_interfaces.OrderEntity, error) {
@@ -50,7 +50,7 @@ func (repo *OrderRepoStruct) Save(entity *bullion_main_server_interfaces.OrderEn
 	entity.Updated()
 	err := repo.collection.FindOneAndUpdate(mongodb.MongoCtx, bson.D{{
 		Key: "_id", Value: entity.ID,
-	}}, bson.D{{Key: "$set", Value: entity}}, findOneAndUpdateOptions).Err()
+	}}, bson.D{{Key: "$set", Value: entity}}, mongodb.FindOneAndUpdateOptions).Err()
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
 			err = &interfaces.RequestError{
@@ -97,19 +97,19 @@ func (repo *OrderRepoStruct) BulkUpdate(entities *[]bullion_main_server_interfac
 	return entities, err
 }
 
-func (repo *OrderRepoStruct) findByFilter(filter *mongoDbFilter) (*[]bullion_main_server_interfaces.OrderEntity, error) {
+func (repo *OrderRepoStruct) findByFilter(filter *mongodb.MongoDbFilter) (*[]bullion_main_server_interfaces.OrderEntity, error) {
 	var result []bullion_main_server_interfaces.OrderEntity
 	opt := options.Find()
-	if filter.sort != nil {
-		opt.SetSort(filter.sort)
+	if filter.Sort != nil {
+		opt.SetSort(filter.Sort)
 	}
-	if filter.limit > 0 {
-		opt.SetLimit(filter.limit)
+	if filter.Limit > 0 {
+		opt.SetLimit(filter.Limit)
 	}
-	if filter.skip > 0 {
-		opt.SetSkip(filter.skip)
+	if filter.Skip > 0 {
+		opt.SetSkip(filter.Skip)
 	}
-	cursor, err := repo.collection.Find(mongodb.MongoCtx, filter.conditions, opt)
+	cursor, err := repo.collection.Find(mongodb.MongoCtx, filter.Conditions, opt)
 	if err == nil {
 		err = cursor.All(mongodb.MongoCtx, &result)
 	}
@@ -170,9 +170,9 @@ func (repo *OrderRepoStruct) DeleteOrderHistoryById(id string) error {
 }
 
 func (repo *OrderRepoStruct) GetOrdersByBullionIdWithDateRangeAndOrderStatus(bullionId string, startDate time.Time, endDate time.Time, orderStatusArray *[]bullion_main_server_interfaces.OrderStatus) (*[]bullion_main_server_interfaces.OrderEntity, error) {
-	return repo.findByFilter(&mongoDbFilter{
-		sort: &bson.D{{Key: "createdAt", Value: -1}},
-		conditions: &bson.D{
+	return repo.findByFilter(&mongodb.MongoDbFilter{
+		Sort: &bson.D{{Key: "createdAt", Value: -1}},
+		Conditions: &bson.D{
 			{Key: "bullionId", Value: bullionId},
 			{Key: "createdAt", Value: bson.D{{Key: "$gte", Value: startDate}, {Key: "$lte", Value: endDate}}},
 			{Key: "orderStatus", Value: bson.D{{Key: "$in", Value: *orderStatusArray}}},
@@ -181,24 +181,24 @@ func (repo *OrderRepoStruct) GetOrdersByBullionIdWithDateRangeAndOrderStatus(bul
 }
 
 func (repo *OrderRepoStruct) GetUsersOrderPaginated(userId string, page int64, limit int64) (*[]bullion_main_server_interfaces.OrderEntity, error) {
-	return repo.findByFilter(&mongoDbFilter{
-		sort: &bson.D{{Key: "createdAt", Value: -1}},
-		conditions: &bson.D{
+	return repo.findByFilter(&mongodb.MongoDbFilter{
+		Sort: &bson.D{{Key: "createdAt", Value: -1}},
+		Conditions: &bson.D{
 			{Key: "userId", Value: userId},
 		},
-		limit: limit,
-		skip:  page * limit,
+		Limit: limit,
+		Skip:  page * limit,
 	})
 }
 
 func (repo *OrderRepoStruct) GetUsersOrderPaginatedWithOrderStatusArray(userId string, orderStatusArray *[]bullion_main_server_interfaces.OrderStatus, page int64, limit int64) (*[]bullion_main_server_interfaces.OrderEntity, error) {
-	return repo.findByFilter(&mongoDbFilter{
-		sort: &bson.D{{Key: "createdAt", Value: -1}},
-		conditions: &bson.D{
+	return repo.findByFilter(&mongodb.MongoDbFilter{
+		Sort: &bson.D{{Key: "createdAt", Value: -1}},
+		Conditions: &bson.D{
 			{Key: "userId", Value: userId},
 			{Key: "orderStatus", Value: bson.D{{Key: "$in", Value: *orderStatusArray}}},
 		},
-		limit: limit,
-		skip:  page * limit,
+		Limit: limit,
+		Skip:  page * limit,
 	})
 }

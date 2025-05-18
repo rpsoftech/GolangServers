@@ -1,4 +1,4 @@
-package bullion_main_server_interfaces
+package interfaces
 
 import (
 	"time"
@@ -42,7 +42,7 @@ func (b *BaseEntity) RestoreTimeStamp() *BaseEntity {
 	b.ModifiedAt = b.ModifiedAtExported
 	return b
 }
-func (b *BaseEntity) createNewId() *BaseEntity {
+func (b *BaseEntity) CreateNewId() *BaseEntity {
 	b.ID = uuid.New().String()
 	b.CreatedAt = time.Now()
 	b.ModifiedAt = b.CreatedAt

@@ -34,10 +34,10 @@ func init() {
 		collection: coll,
 	}
 
-	addUniqueIndexesToCollection([]string{"id"}, ProductGroupMapRepo.collection)
-	addComboUniqueIndexesToCollection([]string{"groupId", "productId"}, ProductGroupMapRepo.collection)
-	addComboIndexesToCollection([]string{"bullionId", "groupId"}, ProductGroupMapRepo.collection)
-	addIndexesToCollection([]string{"bullionId", "createdAt", "groupId"}, ProductGroupMapRepo.collection)
+	mongodb.AddUniqueIndexesToCollection([]string{"id"}, ProductGroupMapRepo.collection)
+	mongodb.AddComboUniqueIndexesToCollection([]string{"groupId", "productId"}, ProductGroupMapRepo.collection)
+	mongodb.AddComboIndexesToCollection([]string{"bullionId", "groupId"}, ProductGroupMapRepo.collection)
+	mongodb.AddIndexesToCollection([]string{"bullionId", "createdAt", "groupId"}, ProductGroupMapRepo.collection)
 }
 
 func (repo *ProductGroupMapRepoStruct) Save(entity *bullion_main_server_interfaces.TradeUserGroupMapEntity) (*bullion_main_server_interfaces.TradeUserGroupMapEntity, error) {
@@ -52,7 +52,7 @@ func (repo *ProductGroupMapRepoStruct) Save(entity *bullion_main_server_interfac
 	entity.Updated()
 	err := repo.collection.FindOneAndUpdate(mongodb.MongoCtx, bson.D{{
 		Key: "_id", Value: entity.ID,
-	}}, bson.D{{Key: "$set", Value: entity}}, findOneAndUpdateOptions).Err()
+	}}, bson.D{{Key: "$set", Value: entity}}, mongodb.FindOneAndUpdateOptions).Err()
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
 			err = &interfaces.RequestError{
@@ -99,19 +99,19 @@ func (repo *ProductGroupMapRepoStruct) BulkUpdate(entities *[]bullion_main_serve
 	return entities, err
 }
 
-func (repo *ProductGroupMapRepoStruct) findByFilter(filter *mongoDbFilter) (*[]bullion_main_server_interfaces.TradeUserGroupMapEntity, error) {
+func (repo *ProductGroupMapRepoStruct) findByFilter(filter *mongodb.MongoDbFilter) (*[]bullion_main_server_interfaces.TradeUserGroupMapEntity, error) {
 	var result []bullion_main_server_interfaces.TradeUserGroupMapEntity
 	opt := options.Find()
-	if filter.sort != nil {
-		opt.SetSort(filter.sort)
+	if filter.Sort != nil {
+		opt.SetSort(filter.Sort)
 	}
-	if filter.limit > 0 {
-		opt.SetLimit(filter.limit)
+	if filter.Limit > 0 {
+		opt.SetLimit(filter.Limit)
 	}
-	if filter.skip > 0 {
-		opt.SetSkip(filter.skip)
+	if filter.Skip > 0 {
+		opt.SetSkip(filter.Skip)
 	}
-	cursor, err := repo.collection.Find(mongodb.MongoCtx, filter.conditions, opt)
+	cursor, err := repo.collection.Find(mongodb.MongoCtx, filter.Conditions, opt)
 	if err == nil {
 		err = cursor.All(mongodb.MongoCtx, &result)
 	}
@@ -137,13 +137,13 @@ func (repo *ProductGroupMapRepoStruct) findByFilter(filter *mongoDbFilter) (*[]b
 }
 
 func (repo *ProductGroupMapRepoStruct) GetAllByBullionId(bullionId string) (*[]bullion_main_server_interfaces.TradeUserGroupMapEntity, error) {
-	return repo.findByFilter(&mongoDbFilter{
-		conditions: &bson.D{{Key: "bullionId", Value: bullionId}},
+	return repo.findByFilter(&mongodb.MongoDbFilter{
+		Conditions: &bson.D{{Key: "bullionId", Value: bullionId}},
 	})
 }
 func (repo *ProductGroupMapRepoStruct) GetAllByGroupId(groupId string, bullionId string) (*[]bullion_main_server_interfaces.TradeUserGroupMapEntity, error) {
-	return repo.findByFilter(&mongoDbFilter{
-		conditions: &bson.D{
+	return repo.findByFilter(&mongodb.MongoDbFilter{
+		Conditions: &bson.D{
 			{Key: "groupId", Value: groupId},
 			{Key: "bullionId", Value: bullionId},
 		},

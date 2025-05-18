@@ -1,6 +1,10 @@
 package bullion_main_server_interfaces
 
-import "time"
+import (
+	"time"
+
+	"github.com/rpsoftech/golang-servers/interfaces"
+)
 
 type (
 	OTPReqBase struct {
@@ -11,9 +15,9 @@ type (
 		ExpiresAt time.Time `bson:"expiresAt" json:"expiresAt" validate:"required"`
 	}
 	OTPReqEntity struct {
-		*BaseEntity `bson:"inline"`
-		*OTPReqBase `bson:"inline"`
-		OTP         string `bson:"otp" json:"otp" validate:"required"`
+		*interfaces.BaseEntity `bson:"inline"`
+		*OTPReqBase            `bson:"inline"`
+		OTP                    string `bson:"otp" json:"otp" validate:"required"`
 	}
 )
 
@@ -24,10 +28,10 @@ func (otp *OTPReqEntity) NewAttempt() {
 
 func CreateOTPEntity(otpBase *OTPReqBase, OTP string) *OTPReqEntity {
 	entity := &OTPReqEntity{
-		BaseEntity: &BaseEntity{},
+		BaseEntity: &interfaces.BaseEntity{},
 		OTPReqBase: otpBase,
 		OTP:        OTP,
 	}
-	entity.createNewId()
+	entity.CreateNewId()
 	return entity
 }

@@ -17,7 +17,7 @@ func TokenDecrypter(c *fiber.Ctx) error {
 	reqHeaders := c.GetReqHeaders()
 	tokenString, foundToken := reqHeaders[env.RequestTokenHeaderKey]
 	if !foundToken || len(tokenString) != 1 || tokenString[0] == "" {
-		c.Locals(interfaces.REQ_LOCAL_ERROR_KEY, &interfaces.RequestError{
+		c.Locals(bullion_main_server_interfaces.REQ_LOCAL_ERROR_KEY, &interfaces.RequestError{
 			StatusCode: 403,
 			Code:       interfaces.ERROR_TOKEN_NOT_BEFORE,
 			Message:    "Please Pass Valid Token",
@@ -28,7 +28,7 @@ func TokenDecrypter(c *fiber.Ctx) error {
 	// userRolesCustomClaim, localErr := .VerifyToken(tokenString[0])
 	userRolesCustomClaim, localErr := jwt.VerifyToken[bullion_main_server_interfaces.GeneralUserAccessRefreshToken](bullion_main_server_services.AccessTokenService, &tokenString[0])
 	if localErr != nil {
-		c.Locals(interfaces.REQ_LOCAL_ERROR_KEY, localErr)
+		c.Locals(bullion_main_server_interfaces.REQ_LOCAL_ERROR_KEY, localErr)
 		return c.Next()
 	}
 	if e := utility_functions.ValidateStructAndReturnReqError(userRolesCustomClaim, &interfaces.RequestError{
@@ -37,13 +37,13 @@ func TokenDecrypter(c *fiber.Ctx) error {
 		Message:    "Invalid Token Structure",
 		Name:       "ERROR_INVALID_TOKEN_SIGNATURE",
 	}); e != nil {
-		c.Locals(interfaces.REQ_LOCAL_ERROR_KEY, e)
+		c.Locals(bullion_main_server_interfaces.REQ_LOCAL_ERROR_KEY, e)
 		return c.Next()
 	}
 	role := userRolesCustomClaim.Role.String()
 	if !bullion_main_server_interfaces.ValidateEnumUserRole(role) {
 
-		c.Locals(interfaces.REQ_LOCAL_ERROR_KEY, &interfaces.RequestError{
+		c.Locals(bullion_main_server_interfaces.REQ_LOCAL_ERROR_KEY, &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_TOKEN_ROLE_NOT_FOUND,
 			Message:    "Invalid Token Role Or Not Found",
@@ -52,14 +52,14 @@ func TokenDecrypter(c *fiber.Ctx) error {
 		return c.Next()
 	}
 
-	c.Locals(interfaces.REQ_LOCAL_KEY_ROLE, role)
-	c.Locals(interfaces.REQ_LOCAL_KEY_TOKEN_RAW_DATA, userRolesCustomClaim)
+	c.Locals(bullion_main_server_interfaces.REQ_LOCAL_KEY_ROLE, role)
+	c.Locals(bullion_main_server_interfaces.REQ_LOCAL_KEY_TOKEN_RAW_DATA, userRolesCustomClaim)
 	return c.Next()
 }
 
 func AllowOnlyValidTokenMiddleWare(c *fiber.Ctx) error {
-	jwtRawFromLocal := c.Locals(interfaces.REQ_LOCAL_KEY_TOKEN_RAW_DATA)
-	localError := c.Locals(interfaces.REQ_LOCAL_ERROR_KEY)
+	jwtRawFromLocal := c.Locals(bullion_main_server_interfaces.REQ_LOCAL_KEY_TOKEN_RAW_DATA)
+	localError := c.Locals(bullion_main_server_interfaces.REQ_LOCAL_ERROR_KEY)
 
 	if jwtRawFromLocal == nil {
 		if localError != nil {
@@ -100,7 +100,7 @@ func AllowOnlyValidTokenMiddleWare(c *fiber.Ctx) error {
 		}
 	}
 
-	c.Locals(interfaces.REQ_LOCAL_UserID, jwtRaw.UserId)
-	c.Locals(interfaces.REQ_LOCAL_BullionId_KEY, jwtRaw.BullionId)
+	c.Locals(bullion_main_server_interfaces.REQ_LOCAL_UserID, jwtRaw.UserId)
+	c.Locals(bullion_main_server_interfaces.REQ_LOCAL_BullionId_KEY, jwtRaw.BullionId)
 	return c.Next()
 }

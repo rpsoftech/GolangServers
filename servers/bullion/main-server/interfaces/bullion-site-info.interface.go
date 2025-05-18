@@ -1,5 +1,7 @@
 package bullion_main_server_interfaces
 
+import "github.com/rpsoftech/golang-servers/interfaces"
+
 type bullionGeneralUserConfig struct {
 	AutoApprove bool `bson:"autoApprove" json:"autoApprove" validate:"boolean"`
 	AutoLogin   bool `bson:"autoLogin" json:"autoLogin" validate:"boolean"`
@@ -21,8 +23,8 @@ type BullionSiteBasicInfo struct {
 	Domain    string `bson:"domain" json:"domain" validate:"required"`
 }
 type BullionPublicInfo struct {
-	*BaseEntity           `bson:"inline"`
-	*BullionSiteBasicInfo `bson:"inline"`
+	*interfaces.BaseEntity `bson:"inline"`
+	*BullionSiteBasicInfo  `bson:"inline"`
 }
 type BullionSiteInfoEntity struct {
 	*BullionPublicInfo `bson:"inline"`
@@ -42,7 +44,7 @@ func (b *BullionSiteInfoEntity) AddGeneralUserInfo(AutoApprove bool, AutoLogin b
 func CreateNewBullionSiteInfo(name string, shortName string, domain string) *BullionSiteInfoEntity {
 	b := BullionSiteInfoEntity{
 		BullionPublicInfo: &BullionPublicInfo{
-			BaseEntity: &BaseEntity{},
+			BaseEntity: &interfaces.BaseEntity{},
 			BullionSiteBasicInfo: &BullionSiteBasicInfo{
 				Name:      name,
 				ShortName: shortName,
@@ -63,6 +65,6 @@ func CreateNewBullionSiteInfo(name string, shortName string, domain string) *Bul
 			AutoLogin:   true,
 		},
 	}
-	b.createNewId()
+	b.CreateNewId()
 	return &b
 }
