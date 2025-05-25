@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
@@ -42,11 +41,7 @@ func init() {
 }
 
 func (repo *BankRateCalcRepoStruct) cacheDataToRedis(entity *bullion_main_server_interfaces.BankRateCalcEntity) {
-	entity.AddTimeStamps()
-	if entityStringBytes, err := json.Marshal(entity); err == nil {
-		entityString := string(entityStringBytes)
-		repo.redis.SetStringDataWithExpiry(fmt.Sprintf("%s/%s", bankRateRedisCollection, entity.BullionId), entityString, time.Duration(24)*time.Hour)
-	}
+	go redis.CacheDataToRedis(repo.redis, &entity, fmt.Sprintf("%s/%s", bankRateRedisCollection, entity.BullionId), redis.TimeToLive_OneDay)
 }
 
 func (repo *BankRateCalcRepoStruct) Save(entity *bullion_main_server_interfaces.BankRateCalcEntity) (*bullion_main_server_interfaces.BankRateCalcEntity, error) {
@@ -67,7 +62,7 @@ func (repo *BankRateCalcRepoStruct) Save(entity *bullion_main_server_interfaces.
 			err = nil
 		}
 	}
-	go repo.cacheDataToRedis(entity)
+	repo.cacheDataToRedis(entity)
 	return &result, err
 }
 
@@ -101,6 +96,6 @@ func (repo *BankRateCalcRepoStruct) FindOneByBullionId(id string) (*bullion_main
 			}
 		}
 	}
-	go repo.cacheDataToRedis(result)
+	repo.cacheDataToRedis(result)
 	return result, err
 }

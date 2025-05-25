@@ -1,6 +1,7 @@
 package jwelly_main_server_repos
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -10,12 +11,14 @@ import (
 	jwelly_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/jwelly/main-server/interfaces"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 	"github.com/rpsoftech/golang-servers/utility/mongodb"
+	"github.com/rpsoftech/golang-servers/utility/redis"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type KeyValueDataRepoStruct struct {
 	collection *mongo.Collection
+	redis      *redis.RedisClientStruct
 }
 
 const keyValueDataCollectionName = "KeyValue"
@@ -29,6 +32,7 @@ func init() {
 	coll := mongodb.MongoDatabase.Collection(keyValueDataCollectionName)
 	KeyValueDataRepo = &KeyValueDataRepoStruct{
 		collection: coll,
+		redis:      redis.InitRedisAndRedisClient(),
 	}
 	mongodb.AddUniqueIndexesToCollection([]string{"id", "key"}, KeyValueDataRepo.collection)
 }
@@ -58,9 +62,14 @@ func (repo *KeyValueDataRepoStruct) Save(entity *jwelly_main_server_interfaces.K
 			err = nil
 		}
 	}
+	repo.cacheDataToRedis(entity)
+	// go redis.RedisClient.SetStringData(entity.Key, entity.Value, entity.ExpiresIn)
 	return entity, err
 }
 
+func (repo *KeyValueDataRepoStruct) cacheDataToRedis(entity *jwelly_main_server_interfaces.KeyValueDataStruct) {
+	go redis.CacheDataToRedis(repo.redis, entity, fmt.Sprintf("keyvalue/%s", entity.Key), redis.TimeToLive_OneDay)
+}
 func (repo *KeyValueDataRepoStruct) BulkUpdate(entities *[]jwelly_main_server_interfaces.KeyValueDataStruct) (*[]jwelly_main_server_interfaces.KeyValueDataStruct, error) {
 	models := make([]mongo.WriteModel, len(*entities))
 	for i, entity := range *entities {
@@ -93,8 +102,13 @@ func (repo *KeyValueDataRepoStruct) BulkUpdate(entities *[]jwelly_main_server_in
 }
 
 func (repo *KeyValueDataRepoStruct) FindOneByKey(key string) (*jwelly_main_server_interfaces.KeyValueDataStruct, error) {
-	var result jwelly_main_server_interfaces.KeyValueDataStruct
-
+	result := new(jwelly_main_server_interfaces.KeyValueDataStruct)
+	if redisData := repo.redis.GetStringData(fmt.Sprintf("keyvalue/%s", key)); redisData != "" {
+		if err := json.Unmarshal([]byte(redisData), result); err == nil {
+			result.RestoreTimeStamp()
+			return result, err
+		}
+	}
 	err := repo.collection.FindOne(mongodb.MongoCtx, bson.D{{
 		Key: "key", Value: key,
 	}}).Decode(&result)
@@ -117,7 +131,8 @@ func (repo *KeyValueDataRepoStruct) FindOneByKey(key string) (*jwelly_main_serve
 			}
 		}
 	}
-	return &result, err
+	repo.cacheDataToRedis(result)
+	return result, err
 }
 
 func (repo *KeyValueDataRepoStruct) FindOne(id string) (*jwelly_main_server_interfaces.KeyValueDataStruct, error) {

@@ -14,6 +14,12 @@ type BaseEntity struct {
 	ModifiedAt         time.Time `bson:"modifiedAt" json:"-" validate:"required"`
 }
 
+type BaseEntityInterface interface {
+	AddTimeStamps() *BaseEntity
+	RestoreTimeStamp() *BaseEntity
+	CreateNewId() *BaseEntity
+}
+
 // type baseEntityAlias BaseEntity
 // type baseEntityWithTimes struct {
 // 	CreatedAt  time.Time `json:"createdAt"`

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	mysql_to_surreal_interfaces "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-to-surreal/interfaces"
-	localSurrealdb "github.com/rpsoftech/golang-servers/utility/surrealdb"
 	"github.com/surrealdb/surrealdb.go"
 	"github.com/surrealdb/surrealdb.go/pkg/models"
 )
@@ -22,11 +21,11 @@ func init() {
 
 }
 
-func removeAndInsertTgMaster(c *ConfigWithConnection) {
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TgMasterTableName), nil)
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(TgMasterTableName, mysql_to_surreal_interfaces.TgMasterStruct{}, true), nil)
-	fmt.Printf("Removed And Created %s\n", TgMasterTableName)
-}
+// func removeAndInsertTgMaster(c *ConfigWithConnection) {
+// 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TgMasterTableName), nil)
+// 	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(TgMasterTableName, mysql_to_surreal_interfaces.TgMasterStruct{}, true), nil)
+// 	fmt.Printf("Removed And Created %s\n", TgMasterTableName)
+// }
 
 func (c *ConfigWithConnection) ReadAndStoreTgMaster() {
 	rows, err := c.DbConnections.MysqlDbConncetion.Db.Query("SELECT * FROM tg_master")

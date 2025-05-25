@@ -45,6 +45,7 @@ func (c *ConfigWithConnection) ClearSurrealDbAndInsert() {
 		removeAndInsertItemMastTable,
 		removeAndInsertStampTable,
 		// removeAndInsertTgMaster,
+		removeAndInsertTrans1Table,
 		removeAndInsertTgm1Table,
 		removeAndInsertUnitTable,
 	}

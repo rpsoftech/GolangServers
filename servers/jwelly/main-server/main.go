@@ -5,21 +5,24 @@ import (
 	"github.com/rpsoftech/golang-servers/interfaces"
 	apis "github.com/rpsoftech/golang-servers/servers/jwelly/main-server/api"
 	"github.com/rpsoftech/golang-servers/utility/mongodb"
+	"github.com/rpsoftech/golang-servers/utility/redis"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
 
 func deferMainFunc() {
 	println("Closing...")
 	mongodb.DeferFunction()
-	// redis.DeferFunction()
+	redis.DeferFunction()
 }
 
 func main() {
 	defer deferMainFunc()
 
 	app := fiber.New(fiber.Config{
+		Network:      fiber.NetworkTCP,
 		ServerHeader: "Bullion Server V1.0.0",
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			mappedError, ok := err.(*interfaces.RequestError)
@@ -41,8 +44,11 @@ func main() {
 	app.Use(logger.New())
 	// app.Use(bullion_main_server_middleware.TokenDecrypter)
 
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     "*",
+		AllowCredentials: false,
+	}))
 	if env.Env.APP_ENV != env.APP_ENV_PRODUCTION {
-
 		// app.Get("/token", func(c *fiber.Ctx) error {
 		// 	a, _ := bullion_main_server_services.AccessTokenService.GenerateToken(bullion_main_server_interfaces.GeneralUserAccessRefreshToken{
 		// 		Role: bullion_main_server_interfaces.ROLE_ADMIN,
@@ -69,7 +75,7 @@ func main() {
 	app.Use(func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).SendString("Sorry can't find that!")
 	})
-	hostAndPort := ""
+	hostAndPort := "[::]"
 	if env.Env.APP_ENV == env.APP_ENV_LOCAL || env.Env.APP_ENV == env.APP_ENV_DEVELOPE {
 		hostAndPort = "127.0.0.1"
 	}
@@ -78,6 +84,7 @@ func main() {
 	// fmt.Println(string(data))
 
 	hostAndPort = hostAndPort + ":" + env.GetServerPort(env.PORT_KEY)
+	// app.Listen(":3000") // Listen on all interfaces, IPv6 and IPv4
 	app.Listen(hostAndPort)
 	// log.Fatal(app.Listen(":" + strconv.Itoa(env.Env.PORT)))
 }

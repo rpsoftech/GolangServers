@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
@@ -71,7 +70,7 @@ func (repo *TradeUserRepoStruct) Save(entity *bullion_main_server_interfaces.Tra
 			err = nil
 		}
 	}
-	go repo.cacheDataToRedis(entity)
+	repo.cacheDataToRedis(entity)
 	return entity, err
 }
 
@@ -178,17 +177,14 @@ func (repo *TradeUserRepoStruct) FindOne(id string) (*bullion_main_server_interf
 			}
 		}
 	}
-	go repo.cacheDataToRedis(result)
+	repo.cacheDataToRedis(result)
 	return result, err
 }
 
 func (repo *TradeUserRepoStruct) cacheDataToRedis(entity *bullion_main_server_interfaces.TradeUserEntity) {
-	entity.AddTimeStamps()
-	if entityStringBytes, err := json.Marshal(entity); err == nil {
-		entityString := string(entityStringBytes)
-		repo.redis.SetStringDataWithExpiry(fmt.Sprintf("tradeUser/%s", entity.ID), entityString, time.Duration(24)*time.Hour)
-	}
+	go redis.CacheDataToRedis(repo.redis, entity, fmt.Sprintf("tradeUser/%s", entity.ID), redis.TimeToLive_OneDay)
 }
+
 func (repo *TradeUserRepoStruct) findOneByCondition(bullionId string, condition *bson.E) (*bullion_main_server_interfaces.TradeUserEntity, error) {
 	var result bullion_main_server_interfaces.TradeUserEntity
 
