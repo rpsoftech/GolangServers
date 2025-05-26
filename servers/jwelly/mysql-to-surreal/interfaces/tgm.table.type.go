@@ -12,6 +12,7 @@ type TGM1Struct struct {
 	TSNO           int             `json:"tsno" Index:"U"`
 	TGNO           string          `json:"TGNO" Index:"I"`
 	VTGNO          int             `json:"vtgno" Index:"I"`
+	SurrealINO     models.RecordID `json:"SurrealINO" Index:"I" fieldType:"record<itemmast>"`
 	INO            int             `json:"INO" Index:"I"`
 	TPRE           string          `json:"TPRE" Index:"I"`
 	REMARKS        string          `json:"REMARKS"`

@@ -235,6 +235,7 @@ func (c *ConfigWithConnection) ReadAndStoreTgm1Table() {
 		row.SurrealSTAMPID = models.NewRecordID(StampTableName, row.STAMPID)
 		row.SurrealUNITID = models.NewRecordID(UnitTableName, row.UNITID)
 		row.SurrealSITEID = models.NewRecordID(SiteTableName, row.SITEID)
+		row.SurrealINO = models.NewRecordID(ItemMastTableName, row.INO)
 		// row.SurrealTRSITEID = models.NewRecordID(SiteTableName, row.TRSITEID)
 		if err != nil {
 			fmt.Printf("Error in ReadAndStoreTgm1Table While Scanning %s", c.ServerConfig.Name)
