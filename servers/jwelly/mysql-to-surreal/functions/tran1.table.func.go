@@ -22,11 +22,12 @@ func init() {
 
 }
 func removeAndInsertTrans1Table(c *ConfigWithConnection) {
-	// _, err := surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TransactionTableName))
-	// if err != nil {
-	// 	fmt.Printf("Issue In Deleting Table %s from SurrealDB: %s\n", TransactionTableName, err.Error())
-	// }
-	_, err := surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TransactionTableName), nil)
+	_, err := surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TransactionTableName))
+	if err != nil {
+		_, err := surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TransactionTableName))
+		fmt.Printf("Issue In Deleting Table %s from SurrealDB: %s\n", TransactionTableName, err.Error())
+	}
+	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TransactionTableName), nil)
 	if err != nil {
 		fmt.Printf("Issue In Removing Table %s from SurrealDB: %s\n", TransactionTableName, err.Error())
 	}
@@ -324,11 +325,15 @@ func (c *ConfigWithConnection) ReadAndStoreTrans1Table() {
 		divided = append(divided, results[i:end])
 	}
 	var waitGroup sync.WaitGroup
-	waitGroup.Add(len(divided))
 	for k, v := range divided {
-		go insertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, TransactionTableName, k, v, &waitGroup)
+		base := (k * chunkSize)
+		waitGroup.Add(len(v))
+		for k1, v1 := range v {
+			go upsertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, TransactionTableName, base+k1, v1, &waitGroup)
+		}
+		waitGroup.Wait()
+		// go insertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, TransactionTableName, k, v, &waitGroup)
 	}
-	waitGroup.Wait()
 	startTime = time.Now()
 	// surrealdb.Q
 	if dddd, err := surrealdb.Select[[]any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TransactionTableName)); err == nil {

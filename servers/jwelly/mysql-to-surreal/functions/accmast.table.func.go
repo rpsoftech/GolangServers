@@ -18,8 +18,10 @@ var (
 )
 
 func removeAndInsertAccMastTable(c *ConfigWithConnection) {
+	// surrealdb.Query(c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", AccMastTableName), nil)
 	_, err := surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(AccMastTableName))
 	if err != nil {
+		_, err := surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(AccMastTableName))
 		fmt.Printf("Issue In Deleting Table %s from SurrealDB: %s\n", AccMastTableName, err.Error())
 	}
 	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", AccMastTableName), nil)
@@ -255,9 +257,15 @@ func (c *ConfigWithConnection) ReadAndStoreAccMastTable() {
 		divided = append(divided, results[i:end])
 	}
 	var waitGroup sync.WaitGroup
-	waitGroup.Add(len(divided))
+
 	for k, v := range divided {
-		go insertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, AccMastTableName, k, v, &waitGroup)
+		base := (k * chunkSize)
+		waitGroup.Add(len(v))
+		for k1, v1 := range v {
+			go upsertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, AccMastTableName, base+k1, v1, &waitGroup)
+		}
+		waitGroup.Wait()
+		// go insertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, TransactionTableName, k, v, &waitGroup)
 	}
 	waitGroup.Wait()
 	startTime = time.Now()

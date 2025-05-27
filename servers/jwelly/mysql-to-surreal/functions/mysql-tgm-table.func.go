@@ -20,6 +20,7 @@ var (
 func removeAndInsertTgm1Table(c *ConfigWithConnection) {
 	_, err := surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgmTableName))
 	if err != nil {
+		_, err := surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgmTableName))
 		fmt.Printf("Issue In Deleting Table %s from SurrealDB: %s\n", TgmTableName, err.Error())
 	}
 	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TgmTableName), nil)
@@ -254,9 +255,14 @@ func (c *ConfigWithConnection) ReadAndStoreTgm1Table() {
 		divided = append(divided, results[i:end])
 	}
 	var waitGroup sync.WaitGroup
-	waitGroup.Add(len(divided))
 	for k, v := range divided {
-		go insertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, TgmTableName, k, v, &waitGroup)
+		base := (k * chunkSize)
+		waitGroup.Add(len(v))
+		for k1, v1 := range v {
+			go upsertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, TgmTableName, base+k1, v1, &waitGroup)
+		}
+		waitGroup.Wait()
+		// go insertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, TransactionTableName, k, v, &waitGroup)
 	}
 	waitGroup.Wait()
 	startTime = time.Now()

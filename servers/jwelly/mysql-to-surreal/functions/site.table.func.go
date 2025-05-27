@@ -2,6 +2,7 @@ package mysql_to_surreal_functions
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	mysql_to_surreal_interfaces "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-to-surreal/interfaces"
@@ -64,20 +65,21 @@ func (c *ConfigWithConnection) ReadAndStoreSiteTable() {
 	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), SiteTableName, time.Since(startTime))
 	// surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(SiteTableName))
 	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", SiteTableName, time.Since(startTime))
-	startTime = time.Now()
 	var divided [][]*mysql_to_surreal_interfaces.SiteTableStruct
 	chunkSize := 50
 	for i := 0; i < len(results); i += chunkSize {
 		end := min(i+chunkSize, len(results))
 		divided = append(divided, results[i:end])
 	}
+	var waitGroup sync.WaitGroup
 	for k, v := range divided {
-		_, err := surrealdb.Insert[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(SiteTableName), v)
-		if err != nil {
-			fmt.Printf("Issue In Round %d while inserting %s with a struct: %s\n", k, SiteTableName, "TLDR;")
+		base := (k * chunkSize)
+		waitGroup.Add(len(v))
+		for k1, v1 := range v {
+			go upsertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, SiteTableName, base+k1, v1, &waitGroup)
 		}
-		fmt.Printf("Round %d Inserted %d rows to %s in SurrealDB in Duration of %s\n", k, len(v), SiteTableName, time.Since(startTime))
-		startTime = time.Now()
+		waitGroup.Wait()
+		// go insertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, TransactionTableName, k, v, &waitGroup)
 	}
 	startTime = time.Now()
 	// surrealdb.Q

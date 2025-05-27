@@ -32,7 +32,7 @@ type StampTableStruct struct {
 	Pname      string  `json:"pname" fieldType:"string | NULL"`
 	SIZEID     int     `json:"SIZEID" fieldType:"int" defaultValue:"0"`
 	SRNO       int     `json:"SRNO" fieldType:"int" defaultValue:"0"`
-	DISPBHAV   string  `json:"DISPBHAV" fieldType:"string | NULL"`
+	DISPBHAV   string  `json:"DISPBHAV" fieldType:"string | NULL" defaultValue:""`
 	PBHAVTUNCH float64 `json:"PBHAVTUNCH" fieldType:"float | NULL" defaultValue:"0.00"`
 	TSTAMP     string  `json:"TSTAMP" fieldType:"string | NULL"`
 	ADVPER     float64 `json:"ADVPER" fieldType:"float | NULL" defaultValue:"0.00"`

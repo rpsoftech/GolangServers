@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rpsoftech/golang-servers/env"
-	mysql_to_surreal_env "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-to-surreal/env"
+	coreEnv "github.com/rpsoftech/golang-servers/env"
+	env "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-to-surreal/env"
 	mysql_to_surreal_functions "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-to-surreal/functions"
 )
 
@@ -26,7 +26,7 @@ func main() {
 
 func InitaliseAndPopulateTheConnection() {
 	// v := mysql_to_surreal_env.ConnectionConfig.ServerConfig
-	for _, v := range mysql_to_surreal_env.ConnectionConfig.ServerConfig {
+	for _, v := range env.ConnectionConfig.ServerConfig {
 		cccc := &mysql_to_surreal_functions.ConfigWithConnection{ServerConfig: &v, DbConnections: &mysql_to_surreal_functions.ConnectionsToDb{}}
 		if err := mysql_to_surreal_functions.ValidateAllConnectionsAndAssign(cccc); err != nil {
 			fmt.Printf("Error In Validating Connectino %s", v.Name)
@@ -35,7 +35,7 @@ func InitaliseAndPopulateTheConnection() {
 			DeferFunctionSlice = append(DeferFunctionSlice, cccc.DbConnections.MysqlDbConncetion.DeferFunction, cccc.DbConnections.SurrealDbConncetion.DeferFunction)
 		}
 		DoTheOperation(cccc)
-		if env.IsDev && env.Env.APP_ENV == env.APP_ENV_LOCAL {
+		if env.ServerEnv.IsDev && env.ServerEnv.Env.APP_ENV == coreEnv.APP_ENV_LOCAL {
 			os.Exit(0)
 		}
 	}
@@ -43,11 +43,12 @@ func InitaliseAndPopulateTheConnection() {
 
 func DoTheOperation(c *mysql_to_surreal_functions.ConfigWithConnection) {
 	fmt.Printf("Operation of %s Started\n", c.ServerConfig.Name)
-	c.ClearSurrealDbAndInsert()
+	if env.ServerEnv.RefreshDatabase {
+		c.ClearSurrealDbAndInsert()
+	}
 	fmt.Printf("Tables Remvoed And Created For %s\n", c.ServerConfig.Name)
 	startTime := time.Now()
 	functions := []func(){
-		// c.ReadAndStoreTgMaster,
 		c.ReadAndStoreCategory,
 		c.ReadAndStoreStampTable,
 		c.ReadAndStoreUnitTable,
@@ -61,12 +62,12 @@ func DoTheOperation(c *mysql_to_surreal_functions.ConfigWithConnection) {
 	}
 	var waitGroup sync.WaitGroup
 	waitGroup.Add(len(functions))
-	defer waitGroup.Wait()
 	for _, f := range functions {
 		go func() {
 			f()
 			waitGroup.Done()
 		}()
 	}
+	waitGroup.Wait()
 	fmt.Printf("Operation of %s Completed in Duration of %s\n", c.ServerConfig.Name, time.Since(startTime))
 }

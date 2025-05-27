@@ -129,22 +129,24 @@ func (c *ConfigWithConnection) ReadAndStoreItemGroupTable() {
 	// surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemGroupTableName))
 	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", ItemGroupTableName, time.Since(startTime))
 
-	if len(results) > 50 {
-		var divided [][]*mysql_to_surreal_interfaces.ItemGroupTableStruct
-		chunkSize := 50
-		for i := 0; i < len(results); i += chunkSize {
-			end := min(i+chunkSize, len(results))
-			divided = append(divided, results[i:end])
-		}
-		var waitGroup sync.WaitGroup
-		waitGroup.Add(len(divided))
-		for k, v := range divided {
-			go insertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, ItemGroupTableName, k, v, &waitGroup)
+	var divided [][]*mysql_to_surreal_interfaces.ItemGroupTableStruct
+	chunkSize := 50
+	for i := 0; i < len(results); i += chunkSize {
+		end := min(i+chunkSize, len(results))
+		divided = append(divided, results[i:end])
+	}
+	var waitGroup sync.WaitGroup
+
+	for k, v := range divided {
+		base := (k * chunkSize)
+		waitGroup.Add(len(v))
+		for k1, v1 := range v {
+			go upsertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, ItemGroupTableName, base+k1, v1, &waitGroup)
 		}
 		waitGroup.Wait()
-	} else {
-		insertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, ItemGroupTableName, 1, results, nil)
+		// go insertDataToSurrealDb(c.DbConnections.SurrealDbConncetion, TransactionTableName, k, v, &waitGroup)
 	}
+
 	startTime = time.Now()
 	// surrealdb.Q
 	if dddd, err := surrealdb.Select[[]any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemGroupTableName)); err == nil {
