@@ -23,26 +23,6 @@ var version string
 
 func main() {
 	println(version)
-
-	// if time.Now().Unix() > 1734512128 {
-	// 	println("Please Update The Binary From Keyur Shah")
-	// 	println("Press Any Key To Close")
-	// 	input := bufio.NewScanner(os.Stdin)
-	// 	input.Scan()
-	// 	return
-	// }
-	// args := os.Args
-	// if !slices.Contains(args, "--dev") && !slices.Contains(args, "--prod") {
-	// 	cmd := exec.Command(filepath.Join(FindAndReturnCurrentDir(), os.Args[0]), "--prod")
-	// 	cmd.Stdout = os.Stdout
-	// 	err := cmd.Start()
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// 	log.Printf("Just ran subprocess %d, exiting\n", cmd.Process.Pid)
-	// 	// time.Sleep(5 * time.Second)
-	// 	return
-	// }
 	go func() {
 		os.RemoveAll("./tmp")
 		os.Mkdir("./tmp", 0777)

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
 )
 
 var currentDirectory string = ""
@@ -14,7 +13,7 @@ func FindAndReturnCurrentDir() string {
 		return currentDirectory
 	}
 	fmt.Println(len(os.Args), os.Args)
-	if slices.Contains(os.Args, "--dev") {
+	if IsDev {
 		current, err := os.Getwd()
 		Check(err)
 		currentDirectory = current

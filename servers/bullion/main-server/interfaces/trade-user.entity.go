@@ -34,11 +34,11 @@ type (
 	}
 
 	TradeUserEntity struct {
-		*BaseEntity        `bson:"inline"`
-		*TradeUserBase     `bson:"inline"`
-		*passwordEntity    `bson:"inline"`
-		*TradeUserAdvanced `bson:"inline"`
-		*TradeUserMargins  `bson:"margins" json:"margins"`
+		*interfaces.BaseEntity `bson:"inline"`
+		*TradeUserBase         `bson:"inline"`
+		*passwordEntity        `bson:"inline"`
+		*TradeUserAdvanced     `bson:"inline"`
+		*TradeUserMargins      `bson:"margins" json:"margins"`
 	}
 
 	ApiTradeUserRegisterResponse struct {
@@ -48,7 +48,7 @@ type (
 )
 
 func (user *TradeUserEntity) CreateNew() *TradeUserEntity {
-	user.createNewId()
+	user.CreateNewId()
 	return user
 }
 
@@ -71,7 +71,7 @@ func (user *TradeUserEntity) UpdateMarginAfterOrder(weight int, symbol SourceSym
 	}
 
 	if availableMargin < 0 || availableMargin-weight < 0 {
-		return nil, &RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_INSUFFICIENT_MARGIN,
 			Message:    "Insufficient Margin",

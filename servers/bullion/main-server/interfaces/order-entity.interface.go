@@ -10,13 +10,13 @@ import (
 
 type (
 	OrderEntity struct {
-		*BaseEntity           `bson:"inline"`
-		*OrderBase            `bson:"inline"`
-		*LimitWatcherRequired `bson:"inline"`
-		*AfterSuccessOrder    `bson:"inline,omitempty"`
-		*Identity             `bson:"inline"`
-		FromAdmin             *FromAdmin      `bson:"inline,omitempty"`
-		DeliveryData          *[]DeliveryData `bson:"inline,omitempty"`
+		*interfaces.BaseEntity `bson:"inline"`
+		*OrderBase             `bson:"inline"`
+		*LimitWatcherRequired  `bson:"inline"`
+		*AfterSuccessOrder     `bson:"inline,omitempty"`
+		*Identity              `bson:"inline"`
+		FromAdmin              *FromAdmin      `bson:"inline,omitempty"`
+		DeliveryData           *[]DeliveryData `bson:"inline,omitempty"`
 	}
 	OrderBase struct {
 		BullionId   string      `bson:"bullionId" json:"bullionId" validate:"required,uuid"`
@@ -67,7 +67,7 @@ var AvailableForDelivery = &[]OrderStatus{OrderPlaced, LimitPassed, OrderPartial
 
 func (e *OrderEntity) DeliverWeight(weight int) (*OrderEntity, error) {
 	if !slices.Contains(*AvailableForDelivery, e.OrderStatus) {
-		return nil, &RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_INVALID_ORDER_STATUS_FOR_DELIVERY,
 			Message:    "Cannot deliver weight. Order status is not available for delivery",
@@ -84,7 +84,7 @@ func (e *OrderEntity) DeliverWeight(weight int) (*OrderEntity, error) {
 	}
 
 	if weight > pendingWeight {
-		return nil, &RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_INVALID_WEIGHT_FOR_DELIVERY,
 			Message:    "Cannot deliver weight. Weight is not available for delivery",
@@ -121,11 +121,11 @@ func (e *OrderEntity) LimitPassedOrOrderPlaced(mcxPrice float64, calcSnapShot *C
 
 func CreateNewOrderEntity(base *OrderBase, limitWatch *LimitWatcherRequired, identity *Identity) *OrderEntity {
 	b := &OrderEntity{
-		BaseEntity:           &BaseEntity{},
+		BaseEntity:           &interfaces.BaseEntity{},
 		OrderBase:            base,
 		LimitWatcherRequired: limitWatch,
 		Identity:             identity,
 	}
-	b.createNewId()
+	b.CreateNewId()
 	return b
 }

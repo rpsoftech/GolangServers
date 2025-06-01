@@ -25,7 +25,7 @@ func generateTokens(userId string, bullionId string, role bullion_main_server_in
 		},
 	})
 	if err != nil {
-		err = &bullion_main_server_interfaces.RequestError{
+		err = &interfaces.RequestError{
 			Code:    interfaces.ERROR_INTERNAL_SERVER,
 			Message: "JWT ACCESS TOKEN GENERATION ERROR",
 			Name:    "ERROR_INTERNAL_ERROR",
@@ -45,7 +45,7 @@ func generateTokens(userId string, bullionId string, role bullion_main_server_in
 		},
 	})
 	if err != nil {
-		err = &bullion_main_server_interfaces.RequestError{
+		err = &interfaces.RequestError{
 			Code:    interfaces.ERROR_INTERNAL_SERVER,
 			Message: "JWT ACCESS TOKEN GENERATION ERROR",
 			Name:    "ERROR_INTERNAL_ERROR",
