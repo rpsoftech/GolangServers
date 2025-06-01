@@ -1,4 +1,4 @@
-package bullion_main_server_interfaces
+package interfaces
 
 import (
 	"time"
@@ -12,6 +12,12 @@ type BaseEntity struct {
 	ModifiedAtExported time.Time `bson:"-" json:"modifiedAt,omitempty"`
 	CreatedAt          time.Time `bson:"createdAt" json:"-" validate:"required"`
 	ModifiedAt         time.Time `bson:"modifiedAt" json:"-" validate:"required"`
+}
+
+type BaseEntityInterface interface {
+	AddTimeStamps() *BaseEntity
+	RestoreTimeStamp() *BaseEntity
+	CreateNewId() *BaseEntity
 }
 
 // type baseEntityAlias BaseEntity
@@ -42,7 +48,7 @@ func (b *BaseEntity) RestoreTimeStamp() *BaseEntity {
 	b.ModifiedAt = b.ModifiedAtExported
 	return b
 }
-func (b *BaseEntity) createNewId() *BaseEntity {
+func (b *BaseEntity) CreateNewId() *BaseEntity {
 	b.ID = uuid.New().String()
 	b.CreatedAt = time.Now()
 	b.ModifiedAt = b.CreatedAt

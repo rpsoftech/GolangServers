@@ -29,17 +29,17 @@ func init() {
 	GeneralUserRepo = &GeneralUserRepoStruct{
 		collection: coll,
 	}
-	addUniqueIndexesToCollection([]string{"id"}, GeneralUserRepo.collection)
+	mongodb.AddUniqueIndexesToCollection([]string{"id"}, GeneralUserRepo.collection)
 }
 
 func (repo *GeneralUserRepoStruct) Save(entity *bullion_main_server_interfaces.GeneralUserEntity) (*bullion_main_server_interfaces.GeneralUserEntity, error) {
 	var result bullion_main_server_interfaces.GeneralUserEntity
 	err := repo.collection.FindOneAndUpdate(mongodb.MongoCtx, bson.D{{
 		Key: "_id", Value: entity.ID,
-	}}, bson.D{{Key: "$set", Value: entity}}, findOneAndUpdateOptions).Decode(&result)
+	}}, bson.D{{Key: "$set", Value: entity}}, mongodb.FindOneAndUpdateOptions).Decode(&result)
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
-			err = &bullion_main_server_interfaces.RequestError{
+			err = &interfaces.RequestError{
 				StatusCode: 500,
 				Code:       interfaces.ERROR_INTERNAL_SERVER,
 				Message:    fmt.Sprintf("Internal Server Error: %s", err.Error()),
@@ -60,14 +60,14 @@ func (repo *GeneralUserRepoStruct) FindOne(id string) (*bullion_main_server_inte
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			// This error means your query did not match any documents.
-			err = &bullion_main_server_interfaces.RequestError{
+			err = &interfaces.RequestError{
 				StatusCode: http.StatusBadRequest,
 				Code:       interfaces.ERROR_ENTITY_NOT_FOUND,
 				Message:    fmt.Sprintf("GeneralUser Entity identified by id %s not found", id),
 				Name:       "ENTITY_NOT_FOUND",
 			}
 		} else {
-			err = &bullion_main_server_interfaces.RequestError{
+			err = &interfaces.RequestError{
 				StatusCode: 500,
 				Code:       interfaces.ERROR_INTERNAL_SERVER,
 				Message:    fmt.Sprintf("Internal Server Error: %s", err.Error()),

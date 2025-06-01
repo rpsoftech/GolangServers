@@ -48,7 +48,7 @@ func getTradeUserGroupService() *tradeUserGroupServiceStruct {
 // Create New Trade User Group And Create Mapping
 func (t *tradeUserGroupServiceStruct) CreateNewTradeUserGroup(bullionId string, name string, adminId string) (*bullion_main_server_interfaces.TradeUserGroupEntity, error) {
 	entity := &bullion_main_server_interfaces.TradeUserGroupEntity{
-		BaseEntity: &bullion_main_server_interfaces.BaseEntity{},
+		BaseEntity: &interfaces.BaseEntity{},
 		TradeUserGroupBase: &bullion_main_server_interfaces.TradeUserGroupBase{
 			BullionId: bullionId,
 			Name:      name,
@@ -86,7 +86,7 @@ func (t *tradeUserGroupServiceStruct) createGroupMapFromNewGroup(groupId string,
 
 	for i, entity := range *entities {
 		groupMapEntities[i] = bullion_main_server_interfaces.TradeUserGroupMapEntity{
-			BaseEntity: &bullion_main_server_interfaces.BaseEntity{},
+			BaseEntity: &interfaces.BaseEntity{},
 			TradeUserGroupMapBase: &bullion_main_server_interfaces.TradeUserGroupMapBase{
 				BullionId: bullionId,
 				GroupId:   groupId,
@@ -136,7 +136,7 @@ func (t *tradeUserGroupServiceStruct) UpdateTradeGroupMap(base *[]bullion_main_s
 	}
 
 	if len(*entity) != len(*base) {
-		return nil, &bullion_main_server_interfaces.RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_INVALID_INPUT,
 			Message:    "Please Pass All Group Map Entities",
@@ -169,7 +169,7 @@ func (t *tradeUserGroupServiceStruct) CreateGroupMapFromNewProduct(productId str
 	groupMapEntities := make([]bullion_main_server_interfaces.TradeUserGroupMapEntity, len(*entities))
 	for i, entity := range *entities {
 		groupMapEntities[i] = bullion_main_server_interfaces.TradeUserGroupMapEntity{
-			BaseEntity: &bullion_main_server_interfaces.BaseEntity{},
+			BaseEntity: &interfaces.BaseEntity{},
 			TradeUserGroupMapBase: &bullion_main_server_interfaces.TradeUserGroupMapBase{
 				BullionId: bullionId,
 				GroupId:   entity.ID,
@@ -211,7 +211,7 @@ func (t *tradeUserGroupServiceStruct) GetAllGroupsByBullionId(bullionId string) 
 		}
 		return entity, nil
 	}
-	return nil, &bullion_main_server_interfaces.RequestError{
+	return nil, &interfaces.RequestError{
 		StatusCode: http.StatusBadRequest,
 		Code:       interfaces.ERROR_ENTITY_NOT_FOUND,
 		Message:    "Groups Not Found For This Bullion",
@@ -230,7 +230,7 @@ func (t *tradeUserGroupServiceStruct) GetGroupMapByGroupId(groupId string, bulli
 		return entity, nil
 	}
 
-	return nil, &bullion_main_server_interfaces.RequestError{
+	return nil, &interfaces.RequestError{
 		StatusCode: http.StatusBadRequest,
 		Code:       interfaces.ERROR_ENTITY_NOT_FOUND,
 		Message:    "Groups Map Not Found For This Bullion And Group Id",
@@ -247,7 +247,7 @@ func (t *tradeUserGroupServiceStruct) GetGroupByGroupId(groupId string, bullionI
 		go t.updateGroupInFirebase(bullionId, entity)
 		return entity, nil
 	}
-	return nil, &bullion_main_server_interfaces.RequestError{
+	return nil, &interfaces.RequestError{
 		StatusCode: http.StatusBadRequest,
 		Code:       interfaces.ERROR_ENTITY_NOT_FOUND,
 		Message:    "Groups Map Not Found For This Bullion And Group Id",

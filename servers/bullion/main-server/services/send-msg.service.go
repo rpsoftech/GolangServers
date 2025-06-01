@@ -44,7 +44,7 @@ func getSendMsgService() *sendMsgService {
 func (s *sendMsgService) SendOtp(otpReq *bullion_main_server_interfaces.OTPReqBase, variable *bullion_main_server_interfaces.MsgVariablesOTPReqStruct, otpLength int) (*bullion_main_server_interfaces.OTPReqEntity, error) {
 	data := s.redisRepo.GetStringData("otp/" + otpReq.BullionId + "/" + otpReq.Number)
 	if len(data) > 0 {
-		return nil, &bullion_main_server_interfaces.RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_OTP_ALREADY_SENT,
 			Message:    "Otp Already Sent",
@@ -64,7 +64,7 @@ func (s *sendMsgService) SendOtp(otpReq *bullion_main_server_interfaces.OTPReqBa
 func (s *sendMsgService) ResendOtp(otpReqId string) error {
 	data := s.redisRepo.GetStringData("otp/" + otpReqId)
 	if data == "" {
-		return &bullion_main_server_interfaces.RequestError{
+		return &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_OTP_EXPIRED,
 			Message:    "OTP Req Expired",
@@ -74,7 +74,7 @@ func (s *sendMsgService) ResendOtp(otpReqId string) error {
 	otpReqEntity := new(bullion_main_server_interfaces.OTPReqEntity)
 	err := json.Unmarshal([]byte(data), otpReqEntity)
 	if err != nil {
-		return &bullion_main_server_interfaces.RequestError{
+		return &interfaces.RequestError{
 			StatusCode: http.StatusInternalServerError,
 			Code:       interfaces.ERROR_INTERNAL_SERVER,
 			Message:    "Unable to parse OTP REQ JSON",
@@ -82,7 +82,7 @@ func (s *sendMsgService) ResendOtp(otpReqId string) error {
 	}
 	otpReqEntity.RestoreTimeStamp()
 	if time.Now().Before(otpReqEntity.ModifiedAt.Add(time.Second * 15)) {
-		return &bullion_main_server_interfaces.RequestError{
+		return &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_OTP_ALREADY_SENT,
 			Message:    "Please Wait For 15 Seconds Before Requesting",
@@ -91,7 +91,7 @@ func (s *sendMsgService) ResendOtp(otpReqId string) error {
 	}
 	if otpReqEntity.Attempt >= 5 {
 
-		return &bullion_main_server_interfaces.RequestError{
+		return &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_TOO_MANY_ATTEMPTS,
 			Message:    "OTP REQUESTED TOO MANY TIMES, Wait for 2 Minutes Before Requesting Again",
@@ -119,7 +119,7 @@ func (s *sendMsgService) ResendOtp(otpReqId string) error {
 func (s *sendMsgService) VerifyOtp(otpReqId string, otp string) error {
 	data := s.redisRepo.GetStringData("otp/" + otpReqId)
 	if data == "" {
-		return &bullion_main_server_interfaces.RequestError{
+		return &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_OTP_EXPIRED,
 			Message:    "OTP Req Expired",
@@ -129,7 +129,7 @@ func (s *sendMsgService) VerifyOtp(otpReqId string, otp string) error {
 	otpReqEntity := new(bullion_main_server_interfaces.OTPReqEntity)
 	err := json.Unmarshal([]byte(data), otpReqEntity)
 	if err != nil {
-		return &bullion_main_server_interfaces.RequestError{
+		return &interfaces.RequestError{
 			StatusCode: http.StatusInternalServerError,
 			Code:       interfaces.ERROR_INTERNAL_SERVER,
 			Message:    "Unable to parse OTP REQ JSON",
@@ -137,7 +137,7 @@ func (s *sendMsgService) VerifyOtp(otpReqId string, otp string) error {
 	}
 	otpReqEntity.RestoreTimeStamp()
 	if otpReqEntity.OTP != otp {
-		return &bullion_main_server_interfaces.RequestError{
+		return &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_OTP_INVALID,
 			Message:    "Invalid OTP",
@@ -154,7 +154,7 @@ func (s *sendMsgService) prepareAndSendOTP(otpReq *bullion_main_server_interface
 	if msgTemplate.WhatsappTemplate == "" && msgTemplate.MSG91Id == "" {
 		// TODO Throw Critical Error Which needs to be reported
 		println("Something Went Wrong While Fetching OTP Templates")
-		return &bullion_main_server_interfaces.RequestError{
+		return &interfaces.RequestError{
 			StatusCode: http.StatusInternalServerError,
 			Code:       interfaces.ERROR_WHILE_FETCHING_MESSAGE_TEMPLATE,
 			Message:    "OTP Template Error",
@@ -163,7 +163,7 @@ func (s *sendMsgService) prepareAndSendOTP(otpReq *bullion_main_server_interface
 		}
 	}
 	if err != nil {
-		return &bullion_main_server_interfaces.RequestError{
+		return &interfaces.RequestError{
 			StatusCode: http.StatusInternalServerError,
 			Code:       interfaces.ERROR_WHILE_FETCHING_MESSAGE_TEMPLATE,
 			Message:    "OTP Template NOT Found",
@@ -191,7 +191,7 @@ func (s *sendMsgService) saveAndUpdateOTPService(otpEntity *bullion_main_server_
 	otpEntity.AddTimeStamps()
 	otpEntityStringBytes, err := json.Marshal(otpEntity)
 	if err != nil {
-		return &bullion_main_server_interfaces.RequestError{
+		return &interfaces.RequestError{
 			StatusCode: http.StatusInternalServerError,
 			Code:       interfaces.ERROR_INTERNAL_SERVER,
 			Message:    "Unable convert OTP REQ to string",
@@ -209,7 +209,7 @@ func (s *sendMsgService) SendMessage(bullionId string, templateName string, numb
 	msgTemplate := new(bullion_main_server_interfaces.MsgTemplateBase)
 	err := s.firebaseDb.GetData("msgTemplates", []string{bullionId, templateName}, msgTemplate)
 	if err != nil {
-		return &bullion_main_server_interfaces.RequestError{
+		return &interfaces.RequestError{
 			StatusCode: http.StatusInternalServerError,
 			Code:       interfaces.ERROR_WHILE_FETCHING_MESSAGE_TEMPLATE,
 			Message:    "Message Template NOT Found",
@@ -231,7 +231,7 @@ func (s *sendMsgService) SendMessage(bullionId string, templateName string, numb
 func (s *sendMsgService) sendWhatsappMessage(template string, templateName string, variables interface{}, msgEntity *bullion_main_server_interfaces.MsgEntity) error {
 	jsonMap, err := utility_functions.StructToStringMap(variables)
 	if err != nil {
-		return &bullion_main_server_interfaces.RequestError{
+		return &interfaces.RequestError{
 			StatusCode: http.StatusInternalServerError,
 			Code:       interfaces.ERROR_INTERNAL_SERVER,
 			Message:    "Error While converting Struct To JSON",
@@ -253,7 +253,7 @@ func (s *sendMsgService) sendWhatsappMessage(template string, templateName strin
 		"number":  msgEntity.Number,
 	})
 	if err != nil {
-		return &bullion_main_server_interfaces.RequestError{
+		return &interfaces.RequestError{
 			StatusCode: http.StatusInternalServerError,
 			Code:       interfaces.ERROR_INTERNAL_SERVER,
 			Message:    "Error Posting Whatsapp Message to Firebase",

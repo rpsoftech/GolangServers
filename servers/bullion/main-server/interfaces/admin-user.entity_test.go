@@ -6,7 +6,7 @@ import (
 
 func TestAdminUserEntity(t *testing.T) {
 	e := &AdminUserEntity{}
-	// // c.createNewId()
+	// // c.CreateNewId()
 	// Admin()
 	t.Run("Create New Admin Entity", func(t *testing.T) {
 		if e.BaseEntity != nil {

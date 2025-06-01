@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rpsoftech/golang-servers/interfaces"
+	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	bullion_main_server_services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
 )
 
@@ -19,7 +20,7 @@ func apiGetProducts(c *fiber.Ctx) (err error) {
 			Name:       "INVALID_INPUT",
 		}
 	}
-	if err := interfaces.ValidateBullionIdMatchingInToken(c, id); err != nil {
+	if err := bullion_main_server_interfaces.ValidateBullionIdMatchingInToken(c, id); err != nil {
 		return err
 	}
 	productId := c.Query("productId")

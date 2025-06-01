@@ -3,7 +3,6 @@ package bullion_main_server_services
 import (
 	"firebase.google.com/go/v4/auth"
 	"github.com/rpsoftech/golang-servers/interfaces"
-	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	"github.com/rpsoftech/golang-servers/utility/firebase"
 )
 
@@ -23,7 +22,7 @@ func init() {
 func (s *firebaseAuthService) GenerateCustomToken(uid string, claims map[string]interface{}) (string, error) {
 	token, err := s.auth.CustomTokenWithClaims(firebase.FirebaseCtx, uid, claims)
 	if err != nil {
-		err = &bullion_main_server_interfaces.RequestError{
+		err = &interfaces.RequestError{
 			StatusCode: 500,
 			Code:       interfaces.ERROR_INTERNAL_SERVER, Message: "Issue In Generating Firebase Token",
 			Name: "INTERNAL_SERVER_ERROR", Extra: err,

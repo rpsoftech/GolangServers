@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/events"
+	"github.com/rpsoftech/golang-servers/interfaces"
 )
 
 type RedisClientConfig struct {
@@ -21,6 +23,11 @@ type RedisClientConfig struct {
 type RedisClientStruct struct {
 	redisClient *redis.Client
 }
+
+const (
+	TimeToLive_OneHour time.Duration = time.Hour
+	TimeToLive_OneDay  time.Duration = time.Hour * 24
+)
 
 var RedisClient *RedisClientStruct
 
@@ -77,6 +84,16 @@ func DeferFunction() {
 	if err := RedisClient.redisClient.Close(); err != nil {
 		panic(err)
 	}
+}
+
+func CacheDataToRedis[TData interfaces.BaseEntityInterface](client *RedisClientStruct, entity *TData, key string, expiresIn time.Duration) error {
+	entityStringBytes, err := json.Marshal(entity)
+	if err != nil {
+		return err
+	}
+	entityString := string(entityStringBytes)
+	client.SetStringDataWithExpiry(key, entityString, expiresIn)
+	return nil
 }
 
 func (r *RedisClientStruct) SubscribeToChannels(channels ...string) *redis.PubSub {

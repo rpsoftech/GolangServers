@@ -2,7 +2,7 @@ package bullion_main_server_auth_apis
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/rpsoftech/golang-servers/interfaces"
+	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	bullion_main_server_services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 )
@@ -26,7 +26,7 @@ func apiTradeUserLoginNumber(c *fiber.Ctx) error {
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}
-	bullionId, err := interfaces.ExtractBullionIdFromCtx(c)
+	bullionId, err := bullion_main_server_interfaces.ExtractBullionIdFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func apiTradeUserLoginUNumber(c *fiber.Ctx) error {
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}
-	bullionId, err := interfaces.ExtractBullionIdFromCtx(c)
+	bullionId, err := bullion_main_server_interfaces.ExtractBullionIdFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func apiTradeUserLoginEmail(c *fiber.Ctx) error {
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}
-	bullionId, err := interfaces.ExtractBullionIdFromCtx(c)
+	bullionId, err := bullion_main_server_interfaces.ExtractBullionIdFromCtx(c)
 	if err != nil {
 		return err
 	}

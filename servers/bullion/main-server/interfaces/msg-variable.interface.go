@@ -1,10 +1,12 @@
 package bullion_main_server_interfaces
 
+import "github.com/rpsoftech/golang-servers/interfaces"
+
 type (
 	MsgEntity struct {
-		*BaseEntity `bson:"inline"`
-		BullionId   string `bson:"bullionId" json:"bullionId" validate:"required,uuid"`
-		Number      string `bson:"number" json:"number" validate:"required,min=10,max=12"`
+		*interfaces.BaseEntity `bson:"inline"`
+		BullionId              string `bson:"bullionId" json:"bullionId" validate:"required,uuid"`
+		Number                 string `bson:"number" json:"number" validate:"required,min=10,max=12"`
 	}
 	MsgVariablesOTPReqStruct struct {
 		OTP         string `bson:"otp" json:"otp" validate:"required"`
@@ -22,7 +24,7 @@ type (
 )
 
 func (e *MsgEntity) Create() *MsgEntity {
-	e.BaseEntity = &BaseEntity{}
-	e.createNewId()
+	e.BaseEntity = &interfaces.BaseEntity{}
+	e.CreateNewId()
 	return e
 }

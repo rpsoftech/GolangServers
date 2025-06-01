@@ -33,8 +33,8 @@ func init() {
 	FeedsRepo = &FeedsRepoStruct{
 		collection: coll,
 	}
-	addUniqueIndexesToCollection([]string{"id"}, FeedsRepo.collection)
-	addIndexesToCollection([]string{"bullionId", "createdAt"}, FeedsRepo.collection)
+	mongodb.AddUniqueIndexesToCollection([]string{"id"}, FeedsRepo.collection)
+	mongodb.AddIndexesToCollection([]string{"bullionId", "createdAt"}, FeedsRepo.collection)
 }
 
 func (repo *FeedsRepoStruct) Save(entity *bullion_main_server_interfaces.FeedsEntity) (*bullion_main_server_interfaces.FeedsEntity, error) {
@@ -49,7 +49,7 @@ func (repo *FeedsRepoStruct) Save(entity *bullion_main_server_interfaces.FeedsEn
 	entity.Updated()
 	err := repo.collection.FindOneAndUpdate(mongodb.MongoCtx, bson.D{{
 		Key: "_id", Value: entity.ID,
-	}}, bson.D{{Key: "$set", Value: entity}}, findOneAndUpdateOptions).Err()
+	}}, bson.D{{Key: "$set", Value: entity}}, mongodb.FindOneAndUpdateOptions).Err()
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
 			err = &interfaces.RequestError{
@@ -65,19 +65,19 @@ func (repo *FeedsRepoStruct) Save(entity *bullion_main_server_interfaces.FeedsEn
 	return entity, err
 }
 
-func (repo *FeedsRepoStruct) findByFilter(filter *mongoDbFilter) (*[]bullion_main_server_interfaces.FeedsEntity, error) {
+func (repo *FeedsRepoStruct) findByFilter(filter *mongodb.MongoDbFilter) (*[]bullion_main_server_interfaces.FeedsEntity, error) {
 	var result []bullion_main_server_interfaces.FeedsEntity
 	opt := options.Find()
-	if filter.sort != nil {
-		opt.SetSort(filter.sort)
+	if filter.Sort != nil {
+		opt.SetSort(filter.Sort)
 	}
-	if filter.limit > 0 {
-		opt.SetLimit(filter.limit)
+	if filter.Limit > 0 {
+		opt.SetLimit(filter.Limit)
 	}
-	if filter.skip > 0 {
-		opt.SetSkip(filter.skip)
+	if filter.Skip > 0 {
+		opt.SetSkip(filter.Skip)
 	}
-	cursor, err := repo.collection.Find(mongodb.MongoCtx, filter.conditions, opt)
+	cursor, err := repo.collection.Find(mongodb.MongoCtx, filter.Conditions, opt)
 	if err == nil {
 		err = cursor.All(mongodb.MongoCtx, &result)
 	}
@@ -103,8 +103,8 @@ func (repo *FeedsRepoStruct) findByFilter(filter *mongoDbFilter) (*[]bullion_mai
 }
 
 func (repo *FeedsRepoStruct) GetAllByBullionId(bullionId string) (*[]bullion_main_server_interfaces.FeedsEntity, error) {
-	return repo.findByFilter(&mongoDbFilter{
-		conditions: &bson.D{{Key: "bullionId", Value: bullionId}},
+	return repo.findByFilter(&mongodb.MongoDbFilter{
+		Conditions: &bson.D{{Key: "bullionId", Value: bullionId}},
 	})
 }
 
@@ -136,11 +136,11 @@ func (repo *FeedsRepoStruct) DeleteById(id string) error {
 
 func (repo *FeedsRepoStruct) GetPaginatedFeedInDescendingOrder(bullionId string, page int64, limit int64) (*[]bullion_main_server_interfaces.FeedsEntity, error) {
 	println(limit)
-	return repo.findByFilter(&mongoDbFilter{
-		conditions: &bson.D{{Key: "bullionId", Value: bullionId}},
-		sort:       &bson.D{{Key: "createdAt", Value: -1}},
-		limit:      limit,
-		skip:       page * limit,
+	return repo.findByFilter(&mongodb.MongoDbFilter{
+		Conditions: &bson.D{{Key: "bullionId", Value: bullionId}},
+		Sort:       &bson.D{{Key: "createdAt", Value: -1}},
+		Limit:      limit,
+		Skip:       page * limit,
 	})
 }
 

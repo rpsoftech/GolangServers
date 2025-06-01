@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
@@ -38,12 +37,12 @@ func init() {
 		collection: coll,
 		redis:      redis.InitRedisAndRedisClient(),
 	}
-	addUniqueIndexesToCollection([]string{"id"}, TradeUserRepo.collection)
-	addIndexesToCollection([]string{"bullionId", "isActive"}, TradeUserRepo.collection)
-	addComboUniqueIndexesToCollection([]string{"email", "bullionId"}, TradeUserRepo.collection)
-	addComboUniqueIndexesToCollection([]string{"number", "bullionId"}, TradeUserRepo.collection)
-	addComboUniqueIndexesToCollection([]string{"uNumber", "bullionId"}, TradeUserRepo.collection)
-	addComboUniqueIndexesToCollection([]string{"userName", "bullionId"}, TradeUserRepo.collection)
+	mongodb.AddUniqueIndexesToCollection([]string{"id"}, TradeUserRepo.collection)
+	mongodb.AddIndexesToCollection([]string{"bullionId", "isActive"}, TradeUserRepo.collection)
+	mongodb.AddComboUniqueIndexesToCollection([]string{"email", "bullionId"}, TradeUserRepo.collection)
+	mongodb.AddComboUniqueIndexesToCollection([]string{"number", "bullionId"}, TradeUserRepo.collection)
+	mongodb.AddComboUniqueIndexesToCollection([]string{"uNumber", "bullionId"}, TradeUserRepo.collection)
+	mongodb.AddComboUniqueIndexesToCollection([]string{"userName", "bullionId"}, TradeUserRepo.collection)
 }
 
 func (repo *TradeUserRepoStruct) Save(entity *bullion_main_server_interfaces.TradeUserEntity) (*bullion_main_server_interfaces.TradeUserEntity, error) {
@@ -58,7 +57,7 @@ func (repo *TradeUserRepoStruct) Save(entity *bullion_main_server_interfaces.Tra
 	entity.Updated()
 	err := repo.collection.FindOneAndUpdate(mongodb.MongoCtx, bson.D{{
 		Key: "_id", Value: entity.ID,
-	}}, bson.D{{Key: "$set", Value: entity}}, findOneAndUpdateOptions).Err()
+	}}, bson.D{{Key: "$set", Value: entity}}, mongodb.FindOneAndUpdateOptions).Err()
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
 			err = &interfaces.RequestError{
@@ -71,7 +70,7 @@ func (repo *TradeUserRepoStruct) Save(entity *bullion_main_server_interfaces.Tra
 			err = nil
 		}
 	}
-	go repo.cacheDataToRedis(entity)
+	repo.cacheDataToRedis(entity)
 	return entity, err
 }
 
@@ -92,24 +91,24 @@ func (repo *TradeUserRepoStruct) FindDuplicateUser(email string, number string, 
 			},
 		},
 	}
-	return repo.findByFilter(&mongoDbFilter{
-		conditions: &condition,
+	return repo.findByFilter(&mongodb.MongoDbFilter{
+		Conditions: &condition,
 	})
 }
 
-func (repo *TradeUserRepoStruct) findByFilter(filter *mongoDbFilter) (*[]bullion_main_server_interfaces.TradeUserEntity, error) {
+func (repo *TradeUserRepoStruct) findByFilter(filter *mongodb.MongoDbFilter) (*[]bullion_main_server_interfaces.TradeUserEntity, error) {
 	var result []bullion_main_server_interfaces.TradeUserEntity
 	opt := options.Find()
-	if filter.sort != nil {
-		opt.SetSort(filter.sort)
+	if filter.Sort != nil {
+		opt.SetSort(filter.Sort)
 	}
-	if filter.limit > 0 {
-		opt.SetLimit(filter.limit)
+	if filter.Limit > 0 {
+		opt.SetLimit(filter.Limit)
 	}
-	if filter.skip > 0 {
-		opt.SetSkip(filter.skip)
+	if filter.Skip > 0 {
+		opt.SetSkip(filter.Skip)
 	}
-	cursor, err := repo.collection.Find(mongodb.MongoCtx, filter.conditions, opt)
+	cursor, err := repo.collection.Find(mongodb.MongoCtx, filter.Conditions, opt)
 	if err == nil {
 		err = cursor.All(mongodb.MongoCtx, &result)
 	}
@@ -135,8 +134,8 @@ func (repo *TradeUserRepoStruct) findByFilter(filter *mongoDbFilter) (*[]bullion
 }
 
 func (repo *TradeUserRepoStruct) FindAllInActiveUser(bullionId string) (*[]bullion_main_server_interfaces.TradeUserEntity, error) {
-	return repo.findByFilter(&mongoDbFilter{
-		conditions: &bson.D{
+	return repo.findByFilter(&mongodb.MongoDbFilter{
+		Conditions: &bson.D{
 			{
 				Key: "$and",
 				Value: bson.A{
@@ -178,17 +177,14 @@ func (repo *TradeUserRepoStruct) FindOne(id string) (*bullion_main_server_interf
 			}
 		}
 	}
-	go repo.cacheDataToRedis(result)
+	repo.cacheDataToRedis(result)
 	return result, err
 }
 
 func (repo *TradeUserRepoStruct) cacheDataToRedis(entity *bullion_main_server_interfaces.TradeUserEntity) {
-	entity.AddTimeStamps()
-	if entityStringBytes, err := json.Marshal(entity); err == nil {
-		entityString := string(entityStringBytes)
-		repo.redis.SetStringDataWithExpiry(fmt.Sprintf("tradeUser/%s", entity.ID), entityString, time.Duration(24)*time.Hour)
-	}
+	go redis.CacheDataToRedis(repo.redis, entity, fmt.Sprintf("tradeUser/%s", entity.ID), redis.TimeToLive_OneDay)
 }
+
 func (repo *TradeUserRepoStruct) findOneByCondition(bullionId string, condition *bson.E) (*bullion_main_server_interfaces.TradeUserEntity, error) {
 	var result bullion_main_server_interfaces.TradeUserEntity
 

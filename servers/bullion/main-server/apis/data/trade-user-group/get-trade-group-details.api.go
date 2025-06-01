@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	oriInterfaces "github.com/rpsoftech/golang-servers/interfaces"
-	interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
+	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
 )
 
@@ -20,7 +20,7 @@ func apiGetTradeGroupDetailsByBullionId(c *fiber.Ctx) error {
 			Name:       "INVALID_INPUT",
 		}
 	}
-	if err := interfaces.ValidateBullionIdMatchingInToken(c, id); err != nil {
+	if err := bullion_main_server_interfaces.ValidateBullionIdMatchingInToken(c, id); err != nil {
 		return err
 	}
 	entity, err := services.TradeUserGroupService.GetAllGroupsByBullionId(id)
@@ -44,7 +44,7 @@ func apiGetTradeGroupDetailsById(c *fiber.Ctx) error {
 			Name:       "PLEASE_PASS_VALID_GROUP_ID",
 		}
 	}
-	bullionId, err := interfaces.ExtractBullionIdFromCtx(c)
+	bullionId, err := bullion_main_server_interfaces.ExtractBullionIdFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func apiGetTradeGroupMapDetailsByGroupId(c *fiber.Ctx) error {
 			Name:       "PLEASE_PASS_VALID_GROUP_ID",
 		}
 	}
-	bullionId, err := interfaces.ExtractBullionIdFromCtx(c)
+	bullionId, err := bullion_main_server_interfaces.ExtractBullionIdFromCtx(c)
 	if err != nil {
 		return err
 	}

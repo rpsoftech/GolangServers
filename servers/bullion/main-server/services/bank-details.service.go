@@ -40,7 +40,7 @@ func (s *bankDetailsService) UpdateBankDetails(entity *bullion_main_server_inter
 		return nil, err
 	}
 	if entityFromDb.BullionId != entity.BullionId {
-		return nil, &bullion_main_server_interfaces.RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: 403,
 			Code:       interfaces.ERROR_MISMATCH_BULLION_ID,
 			Message:    "You do not have access to this Bank Details",
@@ -72,7 +72,7 @@ func (s *bankDetailsService) DeleteBankDetails(entity *bullion_main_server_inter
 		return nil, err
 	}
 	if entityFromDb.BullionId != entity.BullionId {
-		return nil, &bullion_main_server_interfaces.RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: 403,
 			Code:       interfaces.ERROR_MISMATCH_BULLION_ID,
 			Message:    "You do not have access to this Bank Details",

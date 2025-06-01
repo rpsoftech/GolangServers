@@ -1,5 +1,7 @@
 package bullion_main_server_interfaces
 
+import "github.com/rpsoftech/golang-servers/interfaces"
+
 type (
 	BankDetailsBase struct {
 		BullionId     string `bson:"bullionId" json:"bullionId" validate:"required,uuid"`
@@ -12,8 +14,8 @@ type (
 	}
 
 	BankDetailsEntity struct {
-		*BaseEntity      `bson:"inline"`
-		*BankDetailsBase `bson:"inline"`
+		*interfaces.BaseEntity `bson:"inline"`
+		*BankDetailsBase       `bson:"inline"`
 	}
 	UpdateBankDetailsRequestBody struct {
 		Id string `json:"id"`
@@ -23,9 +25,9 @@ type (
 
 func CreateNewBankDetails(base *BankDetailsBase) *BankDetailsEntity {
 	entity := &BankDetailsEntity{
-		BaseEntity:      &BaseEntity{},
+		BaseEntity:      &interfaces.BaseEntity{},
 		BankDetailsBase: base,
 	}
-	entity.createNewId()
+	entity.CreateNewId()
 	return entity
 }
