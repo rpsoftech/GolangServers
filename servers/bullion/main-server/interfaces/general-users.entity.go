@@ -1,5 +1,7 @@
 package bullion_main_server_interfaces
 
+import "github.com/rpsoftech/golang-servers/interfaces"
+
 type GeneralUser struct {
 	FirstName     string     `bson:"firstName" json:"firstName" validate:"required"`
 	LastName      string     `bson:"lastName" json:"lastName" validate:"required"`
@@ -13,9 +15,9 @@ type GeneralUser struct {
 	DeviceType    DeviceType `bson:"deviceType" json:"deviceType" binding:"required,enum" validate:"required"`
 }
 type GeneralUserEntity struct {
-	*BaseEntity        `bson:"inline"`
-	UserRolesInterface `bson:"inline"`
-	GeneralUser        `bson:"inline"`
+	*interfaces.BaseEntity `bson:"inline"`
+	UserRolesInterface     `bson:"inline"`
+	GeneralUser            `bson:"inline"`
 }
 
 func CreateNewGeneralUser(user GeneralUser) *GeneralUserEntity {
@@ -24,8 +26,8 @@ func CreateNewGeneralUser(user GeneralUser) *GeneralUserEntity {
 			Role: ROLE_GENERAL_USER,
 		},
 		GeneralUser: user,
-		BaseEntity:  &BaseEntity{},
+		BaseEntity:  &interfaces.BaseEntity{},
 	}
-	b.createNewId()
+	b.CreateNewId()
 	return b
 }

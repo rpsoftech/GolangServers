@@ -1,5 +1,7 @@
 package bullion_main_server_interfaces
 
+import "github.com/rpsoftech/golang-servers/interfaces"
+
 type (
 	TradeUserGroupBase struct {
 		BullionId string `bson:"bullionId" json:"bullionId" validate:"required,uuid"`
@@ -9,14 +11,14 @@ type (
 		CanLogin  bool   `bson:"canLogin" json:"canLogin" validate:"boolean"`
 	}
 	TradeUserGroupEntity struct {
-		*BaseEntity         `bson:"inline"`
-		*TradeUserGroupBase `bson:"inline"`
-		Gold                *GroupPremiumBase `bson:"gold" json:"gold" validate:"required"`
-		Silver              *GroupPremiumBase `bson:"silver" json:"silver" validate:"required"`
+		*interfaces.BaseEntity `bson:"inline"`
+		*TradeUserGroupBase    `bson:"inline"`
+		Gold                   *GroupPremiumBase `bson:"gold" json:"gold" validate:"required"`
+		Silver                 *GroupPremiumBase `bson:"silver" json:"silver" validate:"required"`
 	}
 
 	TradeUserGroupMapEntity struct {
-		*BaseEntity            `bson:"inline"`
+		*interfaces.BaseEntity `bson:"inline"`
 		*TradeUserGroupMapBase `bson:"inline"`
 	}
 
@@ -43,14 +45,14 @@ type (
 )
 
 func (r *TradeUserGroupEntity) CreateNew() *TradeUserGroupEntity {
-	r.BaseEntity = &BaseEntity{}
-	r.createNewId()
+	r.BaseEntity = &interfaces.BaseEntity{}
+	r.CreateNewId()
 	return r
 }
 
 func (r *TradeUserGroupMapEntity) CreateNew() *TradeUserGroupMapEntity {
-	r.BaseEntity = &BaseEntity{}
-	r.createNewId()
+	r.BaseEntity = &interfaces.BaseEntity{}
+	r.CreateNewId()
 	return r
 }
 

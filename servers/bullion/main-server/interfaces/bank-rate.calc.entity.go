@@ -1,11 +1,13 @@
 package bullion_main_server_interfaces
 
+import "github.com/rpsoftech/golang-servers/interfaces"
+
 type (
 	BankRateCalcEntity struct {
-		*BaseEntity `bson:"inline"`
-		BullionId   string            `bson:"bullionId" json:"bullionId" validate:"required,uuid"`
-		GOLD_SPOT   *BankRateCalcBase `bson:"goldSpot" json:"goldSpot" validate:"required"`
-		SILVER_SPOT *BankRateCalcBase `bson:"silverSpot" json:"silverSpot" validate:"required"`
+		*interfaces.BaseEntity `bson:"inline"`
+		BullionId              string            `bson:"bullionId" json:"bullionId" validate:"required,uuid"`
+		GOLD_SPOT              *BankRateCalcBase `bson:"goldSpot" json:"goldSpot" validate:"required"`
+		SILVER_SPOT            *BankRateCalcBase `bson:"silverSpot" json:"silverSpot" validate:"required"`
 	}
 
 	BankRateCalcBase struct {
@@ -29,7 +31,7 @@ func (b *BankRateCalcBase) CalculatePrice(symbolPrice, inrPrice float64) float64
 }
 
 func (b *BankRateCalcEntity) CreateNewBankRateCalc() *BankRateCalcEntity {
-	b.BaseEntity = &BaseEntity{}
-	b.createNewId()
+	b.BaseEntity = &interfaces.BaseEntity{}
+	b.CreateNewId()
 	return b
 }

@@ -30,8 +30,8 @@ func init() {
 	ProductRepo = &ProductRepoStruct{
 		collection: coll,
 	}
-	addUniqueIndexesToCollection([]string{"id"}, ProductRepo.collection)
-	addIndexesToCollection([]string{"bullionId"}, ProductRepo.collection)
+	mongodb.AddUniqueIndexesToCollection([]string{"id"}, ProductRepo.collection)
+	mongodb.AddIndexesToCollection([]string{"bullionId"}, ProductRepo.collection)
 }
 
 func (repo *ProductRepoStruct) Save(entity *bullion_main_server_interfaces.ProductEntity) (*bullion_main_server_interfaces.ProductEntity, error) {
@@ -46,7 +46,7 @@ func (repo *ProductRepoStruct) Save(entity *bullion_main_server_interfaces.Produ
 	entity.Updated()
 	err := repo.collection.FindOneAndUpdate(mongodb.MongoCtx, bson.D{{
 		Key: "_id", Value: entity.ID,
-	}}, bson.D{{Key: "$set", Value: entity}}, findOneAndUpdateOptions).Err()
+	}}, bson.D{{Key: "$set", Value: entity}}, mongodb.FindOneAndUpdateOptions).Err()
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
 			err = &interfaces.RequestError{
@@ -133,7 +133,7 @@ func (repo *ProductRepoStruct) FindOne(id string) (*bullion_main_server_interfac
 			err = &interfaces.RequestError{
 				StatusCode: http.StatusBadRequest,
 				Code:       interfaces.ERROR_ENTITY_NOT_FOUND,
-				Message:    fmt.Sprintf("GeneralUserReq Entity identified by id %s not found", id),
+				Message:    fmt.Sprintf("Product Entity identified by id %s not found", id),
 				Name:       "ENTITY_NOT_FOUND",
 			}
 		} else {

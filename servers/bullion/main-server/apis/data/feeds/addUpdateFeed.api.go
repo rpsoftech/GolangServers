@@ -3,6 +3,7 @@ package bullion_main_server_data_feeds_apis
 import (
 	"github.com/gofiber/fiber/v2"
 
+	"github.com/rpsoftech/golang-servers/interfaces"
 	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	bullion_main_server_services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
@@ -22,7 +23,7 @@ func apiAddNewFeed(c *fiber.Ctx) error {
 		return err
 	}
 	entity := &bullion_main_server_interfaces.FeedsEntity{
-		BaseEntity: &bullion_main_server_interfaces.BaseEntity{},
+		BaseEntity: &interfaces.BaseEntity{},
 		FeedsBase:  body,
 	}
 	entity.CreateNewId()

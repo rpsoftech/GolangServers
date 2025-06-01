@@ -32,10 +32,10 @@ func main() {
 	app := fiber.New(fiber.Config{
 		ServerHeader: "Bullion Server V1.0.0",
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			mappedError, ok := err.(*bullion_main_server_interfaces.RequestError)
+			mappedError, ok := err.(*interfaces.RequestError)
 			if !ok {
 				println(err.Error())
-				return c.Status(500).JSON(bullion_main_server_interfaces.RequestError{
+				return c.Status(500).JSON(interfaces.RequestError{
 					Code:    interfaces.ERROR_INTERNAL_SERVER,
 					Message: "Some Internal Error",
 					Name:    "Global Error Handler Function",

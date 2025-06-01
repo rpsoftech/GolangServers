@@ -101,14 +101,14 @@ func (service *generalUserService) sendApprovalRequest(user *bullion_main_server
 	existingReq, err := service.generalUserReqRepo.FindOneByGeneralUserIdAndBullionId(user.ID, bullion.ID)
 	if err == nil {
 		if existingReq != nil {
-			return nil, &bullion_main_server_interfaces.RequestError{
+			return nil, &interfaces.RequestError{
 				StatusCode: http.StatusBadRequest,
 				Code:       interfaces.ERROR_GENERAL_USER_REQ_EXISTS,
 				Message:    "REQUEST ALREADY EXISTS",
 				Name:       "ERROR_GENERAL_USER_REQ_EXISTS",
 			}
 		} else {
-			return nil, &bullion_main_server_interfaces.RequestError{
+			return nil, &interfaces.RequestError{
 				StatusCode: 500,
 				Code:       interfaces.ERROR_INTERNAL_SERVER,
 				Message:    "REQUEST CHECK ERROR",
@@ -130,7 +130,7 @@ func (service *generalUserService) GetGeneralUserDetailsByIdPassword(id string, 
 		return entity, err
 	}
 	if entity.RandomPass != password {
-		err = &bullion_main_server_interfaces.RequestError{
+		err = &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_GENERAL_USER_INVALID_PASSWORD,
 			Message:    fmt.Sprintf("GeneralUser Entity invalid password %s ", password),
@@ -151,7 +151,7 @@ func (service *generalUserService) ValidateApprovalAndGenerateToken(userId strin
 func (service *generalUserService) validateApprovalAndGenerateTokenStage2(user *bullion_main_server_interfaces.GeneralUserEntity, bullionId string) (*bullion_main_server_interfaces.TokenResponseBody, error) {
 	reqEntity, err := service.generalUserReqRepo.FindOneByGeneralUserIdAndBullionId(user.ID, bullionId)
 	if err != nil || reqEntity == nil {
-		return nil, &bullion_main_server_interfaces.RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_GENERAL_USER_REQ_NOT_FOUND,
 			Message:    "REQUEST DOES NOT EXISTS",
@@ -161,14 +161,14 @@ func (service *generalUserService) validateApprovalAndGenerateTokenStage2(user *
 
 	switch reqEntity.Status {
 	case bullion_main_server_interfaces.GENERAL_USER_AUTH_STATUS_REQUESTED:
-		return nil, &bullion_main_server_interfaces.RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_GENERAL_USER_REQ_PENDING,
 			Message:    "REQUEST PENDING",
 			Name:       "ERROR_GENERAL_USER_REQ_PENDING",
 		}
 	case bullion_main_server_interfaces.GENERAL_USER_AUTH_STATUS_REJECTED:
-		return nil, &bullion_main_server_interfaces.RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_GENERAL_USER_REQ_REJECTED,
 			Message:    "REQUEST REJECTED",
@@ -177,7 +177,7 @@ func (service *generalUserService) validateApprovalAndGenerateTokenStage2(user *
 	case bullion_main_server_interfaces.GENERAL_USER_AUTH_STATUS_AUTHORIZED:
 		return service.generateTokens(user.ID, bullionId)
 	default:
-		return nil, &bullion_main_server_interfaces.RequestError{
+		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
 			Code:       interfaces.ERROR_GENERAL_USER_INVALID_STATUS,
 			Message:    "Invalid Request Status",

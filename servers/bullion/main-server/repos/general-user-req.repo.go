@@ -30,8 +30,8 @@ func init() {
 	GeneralUserReqRepo = &GeneralUserReqRepoStruct{
 		collection: coll,
 	}
-	addComboUniqueIndexesToCollection([]string{"generalUserId", "bullionId"}, GeneralUserReqRepo.collection)
-	addUniqueIndexesToCollection([]string{"id"}, GeneralUserReqRepo.collection)
+	mongodb.AddComboUniqueIndexesToCollection([]string{"generalUserId", "bullionId"}, GeneralUserReqRepo.collection)
+	mongodb.AddUniqueIndexesToCollection([]string{"id"}, GeneralUserReqRepo.collection)
 }
 
 func (repo *GeneralUserReqRepoStruct) Save(entity *bullion_main_server_interfaces.GeneralUserReqEntity) (*bullion_main_server_interfaces.GeneralUserReqEntity, error) {
@@ -46,7 +46,7 @@ func (repo *GeneralUserReqRepoStruct) Save(entity *bullion_main_server_interface
 	}
 	err := repo.collection.FindOneAndUpdate(mongodb.MongoCtx, bson.D{{
 		Key: "_id", Value: entity.ID,
-	}}, bson.D{{Key: "$set", Value: entity}}, findOneAndUpdateOptions).Err()
+	}}, bson.D{{Key: "$set", Value: entity}}, mongodb.FindOneAndUpdateOptions).Err()
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
 			err = &interfaces.RequestError{

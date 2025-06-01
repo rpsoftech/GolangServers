@@ -3,7 +3,7 @@ package bullion_main_server_tradeusergroup_apis
 import (
 	"github.com/gofiber/fiber/v2"
 
-	interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
+	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
 	utility "github.com/rpsoftech/golang-servers/utility/functions"
 )
@@ -19,10 +19,10 @@ func apiCreateNewTradeGroup(c *fiber.Ctx) error {
 	if err := utility.ValidateReqInput(body); err != nil {
 		return err
 	}
-	if err := interfaces.ValidateBullionIdMatchingInToken(c, body.BullionId); err != nil {
+	if err := bullion_main_server_interfaces.ValidateBullionIdMatchingInToken(c, body.BullionId); err != nil {
 		return err
 	}
-	userID, err := interfaces.ExtractTokenUserIdFromCtx(c)
+	userID, err := bullion_main_server_interfaces.ExtractTokenUserIdFromCtx(c)
 	if err != nil {
 		return err
 	}

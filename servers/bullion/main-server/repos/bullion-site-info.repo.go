@@ -29,17 +29,17 @@ func init() {
 	BullionSiteInfoRepo = &BullionSiteInfoRepoStruct{
 		collection: coll,
 	}
-	addUniqueIndexesToCollection([]string{"id", "domain", "shortName"}, BullionSiteInfoRepo.collection)
+	mongodb.AddUniqueIndexesToCollection([]string{"id", "domain", "shortName"}, BullionSiteInfoRepo.collection)
 }
 
 func (repo *BullionSiteInfoRepoStruct) Save(entity *bullion_main_server_interfaces.BullionSiteInfoEntity) (*bullion_main_server_interfaces.BullionSiteInfoEntity, error) {
 	var result bullion_main_server_interfaces.BullionSiteInfoEntity
 	err := repo.collection.FindOneAndUpdate(mongodb.MongoCtx, bson.D{{
 		Key: "_id", Value: entity.ID,
-	}}, bson.D{{Key: "$set", Value: entity}}, findOneAndUpdateOptions).Decode(&result)
+	}}, bson.D{{Key: "$set", Value: entity}}, mongodb.FindOneAndUpdateOptions).Decode(&result)
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
-			err = &bullion_main_server_interfaces.RequestError{
+			err = &interfaces.RequestError{
 				StatusCode: 500,
 				Code:       interfaces.ERROR_INTERNAL_SERVER,
 				Message:    fmt.Sprintf("Internal Server Error: %s", err.Error()),
@@ -61,14 +61,14 @@ func (repo *BullionSiteInfoRepoStruct) FindOne(id string) (*bullion_main_server_
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			// This error means your query did not match any documents.
-			err = &bullion_main_server_interfaces.RequestError{
+			err = &interfaces.RequestError{
 				StatusCode: http.StatusBadRequest,
 				Code:       interfaces.ERROR_ENTITY_NOT_FOUND,
 				Message:    fmt.Sprintf("Bullion Entity identified by id %s not found", id),
 				Name:       "ENTITY_NOT_FOUND",
 			}
 		} else {
-			err = &bullion_main_server_interfaces.RequestError{
+			err = &interfaces.RequestError{
 				StatusCode: 500,
 				Code:       interfaces.ERROR_INTERNAL_SERVER,
 				Message:    fmt.Sprintf("Internal Server Error: %s", err.Error()),
@@ -88,14 +88,14 @@ func (repo *BullionSiteInfoRepoStruct) FindOneByDomain(domain string) (*bullion_
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			// This error means your query did not match any documents.
-			err = &bullion_main_server_interfaces.RequestError{
+			err = &interfaces.RequestError{
 				StatusCode: http.StatusBadRequest,
 				Code:       interfaces.ERROR_ENTITY_NOT_FOUND,
 				Message:    fmt.Sprintf("Bullion Entity identified by domain %s not found", domain),
 				Name:       "ENTITY_NOT_FOUND",
 			}
 		} else {
-			err = &bullion_main_server_interfaces.RequestError{
+			err = &interfaces.RequestError{
 				StatusCode: 500,
 				Code:       interfaces.ERROR_INTERNAL_SERVER,
 				Message:    fmt.Sprintf("Internal Server Error: %s", err.Error()),
@@ -115,14 +115,14 @@ func (repo *BullionSiteInfoRepoStruct) FindByShortName(name string) (*bullion_ma
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			// This error means your query did not match any documents.
-			err = &bullion_main_server_interfaces.RequestError{
+			err = &interfaces.RequestError{
 				StatusCode: http.StatusBadRequest,
 				Code:       interfaces.ERROR_ENTITY_NOT_FOUND,
 				Message:    fmt.Sprintf("Bullion Entity identified by shortname %s not found", name),
 				Name:       "ENTITY_NOT_FOUND",
 			}
 		} else {
-			err = &bullion_main_server_interfaces.RequestError{
+			err = &interfaces.RequestError{
 				StatusCode: 500,
 				Code:       interfaces.ERROR_INTERNAL_SERVER,
 				Message:    fmt.Sprintf("Internal Server Error: %s", err.Error()),

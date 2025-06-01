@@ -212,7 +212,7 @@ func (service *productService) GetProductsById(bullionId string, productId strin
 			return &product, nil
 		}
 	}
-	return nil, &bullion_main_server_interfaces.RequestError{
+	return nil, &interfaces.RequestError{
 		StatusCode: http.StatusBadRequest,
 		Code:       interfaces.ERROR_ENTITY_NOT_FOUND,
 		Message:    fmt.Sprintf("Product Entities identified by bullionId %s and productId %s not found", bullionId, productId),
