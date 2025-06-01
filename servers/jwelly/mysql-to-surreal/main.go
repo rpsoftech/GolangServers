@@ -6,12 +6,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/robfig/cron/v3"
 	coreEnv "github.com/rpsoftech/golang-servers/env"
 	env "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-to-surreal/env"
 	mysql_to_surreal_functions "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-to-surreal/functions"
 )
 
 var DeferFunctionSlice []func() = []func(){}
+var CRON *cron.Cron
 
 func deferFunc() {
 	for _, v := range DeferFunctionSlice {
@@ -21,6 +23,8 @@ func deferFunc() {
 
 func main() {
 	// defer deferFunc()
+	CRON = cron.New()
+
 	InitaliseAndPopulateTheConnection()
 }
 
@@ -34,7 +38,9 @@ func InitaliseAndPopulateTheConnection() {
 		} else {
 			DeferFunctionSlice = append(DeferFunctionSlice, cccc.DbConnections.MysqlDbConncetion.DeferFunction, cccc.DbConnections.SurrealDbConncetion.DeferFunction)
 		}
-		DoTheOperation(cccc)
+		CRON.AddFunc(v.Cron, func() {
+			DoTheOperation(cccc)
+		})
 		if env.ServerEnv.IsDev && env.ServerEnv.Env.APP_ENV == coreEnv.APP_ENV_LOCAL {
 			os.Exit(0)
 		}

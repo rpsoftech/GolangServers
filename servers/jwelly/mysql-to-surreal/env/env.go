@@ -27,8 +27,8 @@ type IConfig struct {
 type ServerConfig struct {
 	MysqlConfig   mysqldb.MysqldbConfig     `json:"mysqlConfig" validate:"required"`
 	SurrealConfig surrealdb.SurrealdbConfig `json:"surrealConfig" validate:"required"`
-	// Cron          string                    `json:"cron" validate:"required"`
-	Name string `json:"name" validate:"required"`
+	Cron          string                    `json:"cron" validate:"required"`
+	Name          string                    `json:"name" validate:"required"`
 }
 
 var ServerEnv *MysqlToSurrealEnv
