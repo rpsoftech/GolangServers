@@ -1,4 +1,4 @@
-package mysql_to_surreal_env
+package mysql_backup_env
 
 import (
 	"encoding/json"
@@ -10,48 +10,41 @@ import (
 	"github.com/rpsoftech/golang-servers/env"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 	mysqldb "github.com/rpsoftech/golang-servers/utility/mysql"
-	"github.com/rpsoftech/golang-servers/utility/surrealdb"
 	"github.com/rpsoftech/golang-servers/validator"
 )
 
-type MysqlToSurrealEnv struct {
-	Env             *env.DefaultEnvInterface `json:"env" validate:"required"`
-	ConfigFileName  string                   `json:"configFileName" validate:"required"`
-	RefreshDatabase bool                     `json:"refreshDatabase"`
-	IsDev           bool
+type SMysqlToSurrealEnv struct {
+	Env            *env.DefaultEnvInterface `json:"env" validate:"required"`
+	ConfigFileName string                   `json:"configFileName" validate:"required"`
+	IsDev          bool
 }
 
-type IConfig struct {
+type SConfig struct {
 	ServerConfig []ServerConfig `json:"serverConfig" validate:"required"`
 }
 
 type ServerConfig struct {
-	MysqlConfig   mysqldb.MysqldbConfig     `json:"mysqlConfig" validate:"required"`
-	SurrealConfig surrealdb.SurrealdbConfig `json:"surrealConfig" validate:"required"`
-	Cron          string                    `json:"cron" validate:"required"`
-	Name          string                    `json:"name" validate:"required"`
+	MysqlConfig      mysqldb.MysqldbConfig `json:"mysqlConfig" validate:"required"`
+	FileServerType   string                `json:"fileServerType" validate:"required"`
+	FileServerConfig map[string]string     `json:"fileServerConfig" validate:"required"`
+	Cron             string                `json:"cron" validate:"required"`
+	Name             string                `json:"name" validate:"required"`
 }
 
-var ServerEnv *MysqlToSurrealEnv
-var ConnectionConfig *IConfig
+var ServerEnv *SMysqlToSurrealEnv
+var ConnectionConfig *SConfig
 
 func init() {
-	refreshDatabaseString := env.Env.GetEnv(RefreshDatabase)
-	refreshDatabase := false
-	if refreshDatabaseString == "true" {
-		refreshDatabase = true
-	}
-	ServerEnv = &MysqlToSurrealEnv{
-		Env:             env.Env,
-		ConfigFileName:  env.Env.GetEnv(ConfigFileName),
-		RefreshDatabase: refreshDatabase,
-		IsDev:           env.IsDev,
+	ServerEnv = &SMysqlToSurrealEnv{
+		Env:            env.Env,
+		ConfigFileName: env.Env.GetEnv(ConfigFileName),
+		IsDev:          env.IsDev,
 	}
 	if ServerEnv.ConfigFileName == "" {
 		ServerEnv.ConfigFileName = "config.json"
 	}
 	ServerEnv.ConfigFileName = filepath.Join(env.FindAndReturnCurrentDir(), ServerEnv.ConfigFileName)
-	if exist, err := utility_functions.Exist(ServerEnv.ConfigFileName); err == nil && exist {
+	if _, err := utility_functions.Exist(ServerEnv.ConfigFileName); err == nil {
 		fmt.Printf("Config file exists: %s \n", ServerEnv.ConfigFileName)
 	} else if errors.Is(err, os.ErrNotExist) {
 		panic(fmt.Sprintf("Config file exists: %s \n", ServerEnv.ConfigFileName))
@@ -59,7 +52,7 @@ func init() {
 		panic("Schrodinger: file may or may not exist. See err for details.")
 		// Therefore, do *NOT* use !os.IsNotExist(err) to test for file existence
 	}
-	config := new(IConfig)
+	config := new(SConfig)
 	dat, err := os.ReadFile(ServerEnv.ConfigFileName)
 	env.Check(err)
 	err = json.Unmarshal(dat, config)

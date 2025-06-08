@@ -15,6 +15,7 @@ import (
 	whatsapp_config "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/config"
 	whatsapp_server_middleware "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/middleware"
 	"github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/whatsapp"
+	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 )
 
 var version string
@@ -29,7 +30,7 @@ func main() {
 	}()
 	outputLogFolderDir := filepath.Join(env.FindAndReturnCurrentDir(), "whatsapp_server_logs")
 
-	if _, err := os.Stat(outputLogFolderDir); errors.Is(err, os.ErrNotExist) {
+	if _, err := utility_functions.Exist(outputLogFolderDir); errors.Is(err, os.ErrNotExist) {
 		os.MkdirAll(outputLogFolderDir, 0777)
 	}
 	whatsapp.OutPutFilePath = ReturnOutPutFilePath(env.FindAndReturnCurrentDir())
