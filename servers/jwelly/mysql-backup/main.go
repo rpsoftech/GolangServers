@@ -1,17 +1,20 @@
 package main
 
 import (
+	"compress/gzip"
 	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/robfig/cron/v3"
 	coreEnv "github.com/rpsoftech/golang-servers/env"
 	env "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-backup/env"
 	interfaces "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-backup/interfaces"
+	"github.com/rpsoftech/mysqldump"
 )
 
 var DeferFunctionSlice []func() = []func(){}
@@ -51,22 +54,22 @@ func main() {
 }
 
 func DoBackupAndUpload(c *interfaces.ConfigWithConnection) {
-	// f, _ := os.Create(filepath.Join(c.BaseDir, fmt.Sprintf("%d.sql.gz", time.Now().Unix())))
-	f, _ := os.Open(filepath.Join(c.BaseDir, "1749412432.sql.gz"))
+	f, _ := os.Create(filepath.Join(c.BaseDir, fmt.Sprintf("%d.sql.gz", time.Now().Unix())))
+	// f, _ := os.Open(filepath.Join(c.BaseDir, "1749412432.sql.gz"))
 	// b := &bytes.Buffer{}
-	// defer f.Close()
-	// gzipWriter := gzip.NewWriter(f)
-	// defer gzipWriter.Close()
-	// err := mysqldump.Dump(
-	// 	c.MysqlDbConncetion.Db,
-	// 	c.ServerConfig.MysqlConfig.MYSQL_DATABASE,
-	// 	mysqldump.WithDropTable(),        // Option: Delete table before create (Default: Not delete table)
-	// 	mysqldump.WithData(),             // Option: Dump Data (Default: Only dump table schema)
-	// 	mysqldump.WithTables(),           // Option: Dump Tables (Default: All tables)
-	// 	mysqldump.WithWriter(gzipWriter), // Option: Writer (Default: os.Stdout)
-	// )
+	defer f.Close()
+	gzipWriter := gzip.NewWriter(f)
+	defer gzipWriter.Close()
+	err := mysqldump.Dump(
+		c.MysqlDbConncetion.Db,
+		c.ServerConfig.MysqlConfig.MYSQL_DATABASE,
+		mysqldump.WithDropTable(),        // Option: Delete table before create (Default: Not delete table)
+		mysqldump.WithData(),             // Option: Dump Data (Default: Only dump table schema)
+		mysqldump.WithTables(),           // Option: Dump Tables (Default: All tables)
+		mysqldump.WithWriter(gzipWriter), // Option: Writer (Default: os.Stdout)
+	)
 	c.SFileServerConfig.Upload(f, c, c.ServerConfig.Name)
-	// if err != nil {
-	// 	println(err.Error())
-	// }
+	if err != nil {
+		println(err.Error())
+	}
 }
