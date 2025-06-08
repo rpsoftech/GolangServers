@@ -21,6 +21,7 @@ type SFileServerConfig struct {
 
 type SFileServerType1 struct {
 	*SFileServerConfig
+	FolderPath string `json:"folderPath" validate:"required"`
 }
 
 type IFileServerConfigInterface interface {
@@ -35,8 +36,15 @@ func (s *SFileServerConfig) Validate() (bool, error) {
 	}
 	return true, nil
 }
+func (s *SFileServerType1) Validate() (bool, error) {
+	if errs := validator.Validator.Validate(s); len(errs) > 0 {
+		// panic(fmt.Errorf("CONFIG_ERROR %#v", errs))
+		return false, fmt.Errorf("CONFIG_ERROR %#v", errs)
+	}
+	return true, nil
+}
 
-func (s *SFileServerType1) Upload(f *os.File, cb *ConfigWithConnection, folderName string) {
+func (s *SFileServerType1) Upload(f *os.File, cb *ConfigWithConnection, _ string) {
 	payload := &bytes.Buffer{}
 	writer := multipart.NewWriter(payload)
 	fileName := filepath.Base(f.Name())
@@ -50,7 +58,7 @@ func (s *SFileServerType1) Upload(f *os.File, cb *ConfigWithConnection, folderNa
 		fmt.Println(errFile1)
 		return
 	}
-	_ = writer.WriteField("path", folderName)
+	_ = writer.WriteField("path", s.FolderPath)
 	err := writer.Close()
 	if err != nil {
 		fmt.Println(err)

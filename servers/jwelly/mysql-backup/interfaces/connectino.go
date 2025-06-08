@@ -37,10 +37,14 @@ func ValidateAllConnectionsAndAssign(c *ConfigWithConnection) error {
 		c.MysqlDbConncetion = mysqlDb
 		if c.ServerConfig.FileServerType == "TYPE1" {
 			c.SFileServerConfig = &SFileServerType1{
-				&SFileServerConfig{
+				FolderPath: c.ServerConfig.FileServerConfig["folderPath"],
+				SFileServerConfig: &SFileServerConfig{
 					URL:   c.ServerConfig.FileServerConfig["url"],
 					TOKEN: c.ServerConfig.FileServerConfig["token"],
 				},
+			}
+			if _, err := c.SFileServerConfig.Validate(); err != nil {
+				panic(err)
 			}
 		}
 	}
