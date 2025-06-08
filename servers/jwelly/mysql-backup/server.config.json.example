@@ -8,13 +8,12 @@
         "MYSQL_PASSWORD": "",
         "MYSQL_DATABASE": ""
       },
-      "surrealConfig": {
-        "SURREAL_URL": "",
-        "SURREAL_NAMESPACE": "",
-        "SURREAL_DB_NAME": "",
-        "SURREAL_DB_USERNAME": "",
-        "SURREAL_DB_PASSWORD": ""
+      "fileServerType":"TYPE1",
+      "fileServerConfig":{
+        "url":"",
+        "token":"",
       },
+      "name":"",
       "cron": "* * * * *"
     }
   ]

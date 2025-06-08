@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/rpsoftech/golang-servers/env"
+	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 	"github.com/rpsoftech/golang-servers/validator"
 )
 
@@ -80,7 +81,7 @@ func (sc *IServerConfig) Save() {
 func ReadConfigFileAndReturnIt(currentDir string) *IServerConfig {
 	config := new(IServerConfig)
 	configFilePAth := filepath.Join(currentDir, ServerConfigFileName)
-	if _, err := os.Stat(configFilePAth); errors.Is(err, os.ErrNotExist) {
+	if _, err := utility_functions.Exist(configFilePAth); errors.Is(err, os.ErrNotExist) {
 		panic(fmt.Errorf("CONFIG_NOT_EXIST_ON_PATH %s", configFilePAth))
 	}
 	dat, err := os.ReadFile(configFilePAth)
