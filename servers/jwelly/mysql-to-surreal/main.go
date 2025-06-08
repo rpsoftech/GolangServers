@@ -22,9 +22,8 @@ func deferFunc() {
 }
 
 func main() {
-	// defer deferFunc()
+	defer deferFunc()
 	CRON = cron.New()
-
 	InitaliseAndPopulateTheConnection()
 }
 

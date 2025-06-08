@@ -21,5 +21,6 @@ jobs:
           go build ./servers/bullion/main-server/main.go
           go build ./servers/jwelly/mysql-to-surreal/main.go
           go build ./servers/jwelly/main-server/main.go
+          go build ./servers/jwelly/mysql-backup/main.go
           go build ./servers/link-shortner/main.go
           go build ./servers/whatsapp-server/main.go
