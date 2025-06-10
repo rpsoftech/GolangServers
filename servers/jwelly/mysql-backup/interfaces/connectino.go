@@ -27,7 +27,7 @@ func ValidateAllConnectionsAndAssign(c *ConfigWithConnection) error {
 		return err
 	} else {
 		// mysqlDb.Db.Close()
-		c.BaseDir = filepath.Join(coreEnv.FindAndReturnCurrentDir(), c.ServerConfig.Name)
+		c.BaseDir = filepath.Join(coreEnv.FindAndReturnCurrentDir(), "backup", c.ServerConfig.Name)
 		if exists, err := utility_functions.Exist(c.BaseDir); !exists && err == nil {
 			os.MkdirAll(c.BaseDir, 0777)
 		} else if err != nil {
