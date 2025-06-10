@@ -58,7 +58,6 @@ func DoBackupAndUpload(c *interfaces.ConfigWithConnection) {
 	f, _ := os.Create(filepath.Join(c.BaseDir, fmt.Sprintf("%d.sql.gz", timeStamoForFileName)))
 	// f, _ := os.Open(filepath.Join(c.BaseDir, "1749412432.sql.gz"))
 	// b := &bytes.Buffer{}
-	defer f.Close()
 	gzipWriter := gzip.NewWriter(f)
 	err := mysqldump.Dump(
 		c.MysqlDbConncetion.Db,
