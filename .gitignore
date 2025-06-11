@@ -6,3 +6,5 @@ bullion-server
 main
 
 *.exe
+
+.DS_St*
