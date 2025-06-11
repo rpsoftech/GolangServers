@@ -18,10 +18,10 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/redis/go-redis/v9 v9.10.0
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/rpsoftech/mysqldump v0.0.0-20250608201041-263a57b3e150
+	github.com/rpsoftech/mysqldump v0.0.0-20250611190005-213bcf343081
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/surrealdb/surrealdb.go v0.3.2
-	go.mau.fi/whatsmeow v0.0.0-20250606170101-3afe34f8ab8f
+	go.mau.fi/whatsmeow v0.0.0-20250611144432-af1a723d11ee
 	go.mongodb.org/mongo-driver v1.17.4
 	golang.org/x/crypto v0.39.0
 	google.golang.org/api v0.236.0

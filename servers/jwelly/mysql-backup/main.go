@@ -62,13 +62,20 @@ func DoBackupAndUpload(c *interfaces.ConfigWithConnection) {
 	err := mysqldump.Dump(
 		c.MysqlDbConncetion.Db,
 		c.ServerConfig.MysqlConfig.MYSQL_DATABASE,
-		mysqldump.WithDropTable(),        // Option: Delete table before create (Default: Not delete table)
+		mysqldump.WithUseDatabase(),
+		mysqldump.WithTransaction(),
+		mysqldump.WithTables(),    // Option: Dump Tables (Default: All tables)
+		mysqldump.WithDropTable(), // Option: Delete table before create (Default: Not delete table)
+		mysqldump.WithAllViews(),  // Option: Dump Views (Default: Not dump views)
+		mysqldump.WithDropViews(),
 		mysqldump.WithData(),             // Option: Dump Data (Default: Only dump table schema)
-		mysqldump.WithTables(),           // Option: Dump Tables (Default: All tables)
 		mysqldump.WithWriter(gzipWriter), // Option: Writer (Default: os.Stdout)
 	)
 	gzipWriter.Close()
 	f.Close()
+	if err != nil {
+		println(err.Error())
+	}
 	f, _ = os.Open(filepath.Join(c.BaseDir, fmt.Sprintf("%d.sql.gz", timeStamoForFileName)))
 	defer f.Close()
 	c.SFileServerConfig.Upload(f, c, c.ServerConfig.Name)
