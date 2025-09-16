@@ -28,7 +28,7 @@ func deferFunc() {
 }
 
 func main() {
-	coreEnv.LoadEnv(".env-mysql-backup")
+	coreEnv.LoadEnv("mysql-backup.env")
 	CRON = cron.New()
 	for _, v := range env.ConnectionConfig.ServerConfig {
 		cccc := &interfaces.ConfigWithConnection{ServerConfig: &v}

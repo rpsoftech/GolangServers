@@ -1,4 +1,4 @@
-.env*
+*.env*
 build
 __debug_bin*
 
