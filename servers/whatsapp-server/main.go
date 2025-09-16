@@ -23,6 +23,7 @@ var version string
 // var app *fiber.App
 
 func main() {
+	env.LoadEnv(".env-whatsapp-server")
 	println(version)
 	go func() {
 		os.RemoveAll("./tmp")

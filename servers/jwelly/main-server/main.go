@@ -20,7 +20,7 @@ func deferMainFunc() {
 
 func main() {
 	defer deferMainFunc()
-
+	env.LoadEnv(".env-jwelly-server")
 	app := fiber.New(fiber.Config{
 		Network:      fiber.NetworkTCP,
 		ServerHeader: "Bullion Server V1.0.0",

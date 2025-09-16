@@ -28,7 +28,7 @@ func deferMainFunc() {
 
 func main() {
 	defer deferMainFunc()
-
+	env.LoadEnv(".env-bullion-server")
 	app := fiber.New(fiber.Config{
 		ServerHeader: "Bullion Server V1.0.0",
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
