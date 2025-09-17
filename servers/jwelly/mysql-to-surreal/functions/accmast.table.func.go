@@ -19,16 +19,16 @@ var (
 
 func removeAndInsertAccMastTable(c *ConfigWithConnection) {
 	// surrealdb.Query(c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", AccMastTableName), nil)
-	_, err := surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(AccMastTableName))
+	_, err := surrealdb.Delete[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, models.Table(AccMastTableName))
 	if err != nil {
-		_, err := surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(AccMastTableName))
+		_, err := surrealdb.Delete[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, models.Table(AccMastTableName))
 		fmt.Printf("Issue In Deleting Table %s from SurrealDB: %s\n", AccMastTableName, err.Error())
 	}
-	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", AccMastTableName), nil)
+	_, err = surrealdb.Query[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", AccMastTableName), nil)
 	if err != nil {
 		fmt.Printf("Issue In Removing Table %s from SurrealDB: %s\n", AccMastTableName, err.Error())
 	}
-	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(AccMastTableName, mysql_to_surreal_interfaces.AccMastTableStruct{}, true), nil)
+	_, err = surrealdb.Query[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(AccMastTableName, mysql_to_surreal_interfaces.AccMastTableStruct{}, true), nil)
 	if err != nil {
 		fmt.Printf("Issue In Defining Table %s in SurrealDB: %s\n", AccMastTableName, err.Error())
 	}
@@ -270,7 +270,7 @@ func (c *ConfigWithConnection) ReadAndStoreAccMastTable() {
 	waitGroup.Wait()
 	startTime = time.Now()
 	// surrealdb.Q
-	if dddd, err := surrealdb.Select[[]any](c.DbConnections.SurrealDbConncetion.Db, models.Table(AccMastTableName)); err == nil {
+	if dddd, err := surrealdb.Select[[]any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, models.Table(AccMastTableName)); err == nil {
 		fmt.Printf("Select All %s from SurrealDB in Duration of %s with total rows %d\n", AccMastTableName, time.Since(startTime), len(*dddd))
 	}
 	fmt.Printf("%s Operation Completed in Duration of %s\n", AccMastTableName, time.Since(initalTime))

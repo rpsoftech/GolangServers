@@ -3,6 +3,7 @@ package mysql_to_surreal_functions
 import (
 	"fmt"
 
+	localSurrealdb "github.com/rpsoftech/golang-servers/utility/surrealdb"
 	"github.com/surrealdb/surrealdb.go"
 )
 
@@ -113,7 +114,7 @@ const addTgMasterQuery = `DEFINE TABLE  IF NOT EXISTS %s TYPE NORMAL as
     FROM tgm1;`
 
 func removeAndInsertTgMaster(c *ConfigWithConnection) {
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TgMasterTableName), nil)
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf(addTgMasterQuery, TgMasterTableName), nil)
+	surrealdb.Query[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TgMasterTableName), nil)
+	surrealdb.Query[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf(addTgMasterQuery, TgMasterTableName), nil)
 	fmt.Printf("Removed And Created %s\n", TgMasterTableName)
 }

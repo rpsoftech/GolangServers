@@ -23,8 +23,8 @@ func init() {
 }
 
 func removeAndInsertItemGroupTable(c *ConfigWithConnection) {
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", ItemGroupTableName), nil)
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(ItemGroupTableName, mysql_to_surreal_interfaces.ItemGroupTableStruct{}, true), nil)
+	surrealdb.Query[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", ItemGroupTableName), nil)
+	surrealdb.Query[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(ItemGroupTableName, mysql_to_surreal_interfaces.ItemGroupTableStruct{}, true), nil)
 	fmt.Printf("Removed And Created %s\n", ItemGroupTableName)
 }
 
@@ -126,7 +126,7 @@ func (c *ConfigWithConnection) ReadAndStoreItemGroupTable() {
 		results = append(results, row)
 	}
 	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), ItemGroupTableName, time.Since(startTime))
-	// surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemGroupTableName))
+	// surrealdb.Delete[any](localSurrealdb.SurrealCTX,c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemGroupTableName))
 	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", ItemGroupTableName, time.Since(startTime))
 
 	var divided [][]*mysql_to_surreal_interfaces.ItemGroupTableStruct
@@ -149,7 +149,7 @@ func (c *ConfigWithConnection) ReadAndStoreItemGroupTable() {
 
 	startTime = time.Now()
 	// surrealdb.Q
-	if dddd, err := surrealdb.Select[[]any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemGroupTableName)); err == nil {
+	if dddd, err := surrealdb.Select[[]any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemGroupTableName)); err == nil {
 		fmt.Printf("Select All %s from SurrealDB in Duration of %s with total rows %d\n", ItemGroupTableName, time.Since(startTime), len(*dddd))
 	}
 	fmt.Printf("%s Operation Completed in Duration of %s\n", ItemGroupTableName, time.Since(initalTime))
