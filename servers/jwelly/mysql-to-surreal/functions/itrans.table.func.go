@@ -23,16 +23,16 @@ func init() {
 }
 
 func removeAndInsertItemTransTable(c *ConfigWithConnection) {
-	_, err := surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemTransTableName))
+	_, err := surrealdb.Delete[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemTransTableName))
 	if err != nil {
-		_, err := surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemTransTableName))
+		_, err := surrealdb.Delete[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemTransTableName))
 		fmt.Printf("Issue In Deleting Table %s from SurrealDB: %s\n", ItemTransTableName, err.Error())
 	}
-	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", ItemTransTableName), nil)
+	_, err = surrealdb.Query[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", ItemTransTableName), nil)
 	if err != nil {
 		fmt.Printf("Issue In Removing Table %s from SurrealDB: %s\n", ItemTransTableName, err.Error())
 	}
-	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(ItemTransTableName, mysql_to_surreal_interfaces.ITransStruct{}, true), nil)
+	_, err = surrealdb.Query[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(ItemTransTableName, mysql_to_surreal_interfaces.ITransStruct{}, true), nil)
 	if err != nil {
 		fmt.Printf("Issue In Defining Table %s in SurrealDB: %s\n", ItemTransTableName, err.Error())
 	}
@@ -328,7 +328,7 @@ func (c *ConfigWithConnection) ReadAndStoreItemTransTable() {
 	waitGroup.Wait()
 	startTime = time.Now()
 	// surrealdb.Q
-	if dddd, err := surrealdb.Select[[]any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemTransTableName)); err == nil {
+	if dddd, err := surrealdb.Select[[]any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemTransTableName)); err == nil {
 		fmt.Printf("Select All %s from SurrealDB in Duration of %s with total rows %d\n", ItemTransTableName, time.Since(startTime), len(*dddd))
 	}
 	fmt.Printf("%s Operation Completed in Duration of %s\n", ItemTransTableName, time.Since(initalTime))

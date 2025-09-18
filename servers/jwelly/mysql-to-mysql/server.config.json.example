@@ -1,0 +1,22 @@
+{
+  "serverConfig":[
+    {
+      "mysqlConfig": {
+        "MYSQL_HOST": "",
+        "MYSQL_PORT": "",
+        "MYSQL_USERNAME": "",
+        "MYSQL_PASSWORD": "",
+        "MYSQL_DATABASE": ""
+      },
+      "mysqlRemoteConfig": {
+        "MYSQL_HOST": "",
+        "MYSQL_PORT": "",
+        "MYSQL_USERNAME": "",
+        "MYSQL_PASSWORD": "",
+        "MYSQL_DATABASE": ""
+      },
+      "name": "golan_test",
+      "cron": "* * * * *"
+    }
+  ]
+}

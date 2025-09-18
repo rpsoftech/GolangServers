@@ -1,6 +1,9 @@
 package bullion_main_server_interfaces
 
-import "github.com/rpsoftech/golang-servers/validator"
+import (
+	"github.com/rpsoftech/golang-servers/interfaces"
+	"github.com/rpsoftech/golang-servers/validator"
+)
 
 type GeneralUserAuthStatus string
 
@@ -11,7 +14,7 @@ const (
 )
 
 var (
-	generalUserAuthStatusMap = EnumValidatorBase{
+	generalUserAuthStatusMap = interfaces.EnumValidatorBase{
 		Data: map[string]interface{}{
 			"Authorized": GENERAL_USER_AUTH_STATUS_AUTHORIZED,
 			"Requested":  GENERAL_USER_AUTH_STATUS_REQUESTED,

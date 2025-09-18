@@ -22,8 +22,8 @@ func init() {
 
 }
 func removeAndInsertCategory(c *ConfigWithConnection) {
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", CategoryTableName), nil)
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(CategoryTableName, mysql_to_surreal_interfaces.CategoryTableStruct{}, true), nil)
+	surrealdb.Query[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", CategoryTableName), nil)
+	surrealdb.Query[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(CategoryTableName, mysql_to_surreal_interfaces.CategoryTableStruct{}, true), nil)
 	fmt.Printf("Removed And Created %s\n", CategoryTableName)
 }
 func (c *ConfigWithConnection) ReadAndStoreCategory() {
@@ -54,7 +54,7 @@ func (c *ConfigWithConnection) ReadAndStoreCategory() {
 		results = append(results, row)
 	}
 	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), CategoryTableName, time.Since(startTime))
-	// surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(CategoryTableName))
+	// surrealdb.Delete[any](localSurrealdb.SurrealCTX,c.DbConnections.SurrealDbConncetion.Db, models.Table(CategoryTableName))
 	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", CategoryTableName, time.Since(startTime))
 	var divided [][]*mysql_to_surreal_interfaces.CategoryTableStruct
 	chunkSize := 50
@@ -75,7 +75,7 @@ func (c *ConfigWithConnection) ReadAndStoreCategory() {
 	}
 	startTime = time.Now()
 	// surrealdb.Q
-	if dddd, err := surrealdb.Select[[]any](c.DbConnections.SurrealDbConncetion.Db, models.Table(CategoryTableName)); err == nil {
+	if dddd, err := surrealdb.Select[[]any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, models.Table(CategoryTableName)); err == nil {
 		fmt.Printf("Select All %s from SurrealDB in Duration of %s with total rows %d\n", CategoryTableName, time.Since(startTime), len(*dddd))
 	}
 	fmt.Printf("%s Operation Completed in Duration of %s\n", CategoryTableName, time.Since(initalTime))

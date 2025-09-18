@@ -1,6 +1,7 @@
 package surrealdb
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/rpsoftech/golang-servers/env"
@@ -19,11 +20,13 @@ type SurrealDBStruct struct {
 	Db *surrealdb.DB
 }
 
+var SurrealCTX = context.Background()
+
 // var token = ""
 var SurrealDb *SurrealDBStruct
 
 func (c *SurrealDBStruct) DeferFunction() {
-	if err := c.Db.Invalidate(); err != nil {
+	if err := c.Db.Invalidate(SurrealCTX); err != nil {
 		panic(err)
 	}
 	fmt.Println("Surrealdb Defering...")
@@ -58,7 +61,7 @@ func InitalizeSurrealDbWithConfig(config *SurrealdbConfig) (*SurrealDBStruct, er
 	}
 
 	// Set the namespace and database
-	if err = db.Use(config.SURREAL_NAMESPACE, config.SURREAL_DB_NAME); err != nil {
+	if err = db.Use(SurrealCTX, config.SURREAL_NAMESPACE, config.SURREAL_DB_NAME); err != nil {
 		return nil, err
 	}
 
@@ -69,11 +72,11 @@ func InitalizeSurrealDbWithConfig(config *SurrealdbConfig) (*SurrealDBStruct, er
 		Username:  config.SURREAL_DB_USERNAME, // use your setup username
 		Password:  config.SURREAL_DB_PASSWORD, // use your setup password
 	}
-	token, err := db.SignIn(authData)
+	token, err := db.SignIn(SurrealCTX, authData)
 	if err != nil {
 		return nil, err
 	}
-	if err := db.Authenticate(token); err != nil {
+	if err := db.Authenticate(SurrealCTX, token); err != nil {
 		return nil, err
 	}
 	return &SurrealDBStruct{Db: db}, nil

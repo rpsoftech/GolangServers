@@ -35,7 +35,7 @@ type ConnectionsToDb struct {
 //	}
 func upsertDataToSurrealDb(c *surrealdb.SurrealDBStruct, table string, k int, v any, wg *sync.WaitGroup) {
 	// startTime := time.Now()
-	_, err := godSurrealdb.Upsert[any](c.Db, models.Table(table), v)
+	_, err := godSurrealdb.Upsert[any](surrealdb.SurrealCTX, c.Db, models.Table(table), v)
 	if err != nil {
 		panic(fmt.Errorf("issue in round %d while inserting %s with a struct: %s", k+1, table, "TLDR;"))
 	}

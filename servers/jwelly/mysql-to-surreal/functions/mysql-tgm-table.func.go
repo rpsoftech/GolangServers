@@ -18,16 +18,16 @@ var (
 )
 
 func removeAndInsertTgm1Table(c *ConfigWithConnection) {
-	_, err := surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgmTableName))
+	_, err := surrealdb.Delete[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, models.Table(TgmTableName))
 	if err != nil {
-		_, err := surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgmTableName))
+		_, err := surrealdb.Delete[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, models.Table(TgmTableName))
 		fmt.Printf("Issue In Deleting Table %s from SurrealDB: %s\n", TgmTableName, err.Error())
 	}
-	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TgmTableName), nil)
+	_, err = surrealdb.Query[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", TgmTableName), nil)
 	if err != nil {
 		fmt.Printf("Issue In Removing Table %s from SurrealDB: %s\n", TgmTableName, err.Error())
 	}
-	_, err = surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(TgmTableName, mysql_to_surreal_interfaces.TGM1Struct{}, true), nil)
+	_, err = surrealdb.Query[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(TgmTableName, mysql_to_surreal_interfaces.TGM1Struct{}, true), nil)
 	if err != nil {
 		fmt.Printf("Issue In Defining Table %s in SurrealDB: %s\n", TgmTableName, err.Error())
 	}
@@ -267,7 +267,7 @@ func (c *ConfigWithConnection) ReadAndStoreTgm1Table() {
 	waitGroup.Wait()
 	startTime = time.Now()
 	// surrealdb.Q
-	if dddd, err := surrealdb.Select[[]any](c.DbConnections.SurrealDbConncetion.Db, models.Table(TgmTableName)); err == nil {
+	if dddd, err := surrealdb.Select[[]any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, models.Table(TgmTableName)); err == nil {
 		fmt.Printf("Select All %s from SurrealDB in Duration of %s with total rows %d\n", TgmTableName, time.Since(startTime), len(*dddd))
 	}
 	fmt.Printf("%s Operation Completed in Duration of %s\n", TgmTableName, time.Since(initalTime))

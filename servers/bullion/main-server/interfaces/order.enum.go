@@ -1,6 +1,9 @@
 package bullion_main_server_interfaces
 
-import "github.com/rpsoftech/golang-servers/validator"
+import (
+	"github.com/rpsoftech/golang-servers/interfaces"
+	"github.com/rpsoftech/golang-servers/validator"
+)
 
 type (
 	OrderStatus string
@@ -26,7 +29,7 @@ const (
 )
 
 var (
-	OrderStatusEnumValidator = EnumValidatorBase{
+	OrderStatusEnumValidator = interfaces.EnumValidatorBase{
 		Data: map[string]interface{}{
 			"OrderPlaced":           OrderPlaced,
 			"LimitPlaced":           LimitPlaced,
@@ -39,14 +42,14 @@ var (
 		},
 	}
 
-	OrderTypeEnumValidator = EnumValidatorBase{
+	OrderTypeEnumValidator = interfaces.EnumValidatorBase{
 		Data: map[string]interface{}{
 			"Market": Market,
 			"Limit":  Limit,
 		},
 	}
 
-	BuySellEnumValidator = EnumValidatorBase{
+	BuySellEnumValidator = interfaces.EnumValidatorBase{
 		Data: map[string]interface{}{
 			"BUY":  Buy,
 			"SELL": Sell,

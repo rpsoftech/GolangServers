@@ -1,4 +1,4 @@
-package bullion_main_server_interfaces
+package interfaces
 
 type EnumValidatorBase struct {
 	Data map[string]interface{}

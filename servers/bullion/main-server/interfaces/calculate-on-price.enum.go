@@ -1,6 +1,9 @@
 package bullion_main_server_interfaces
 
-import "github.com/rpsoftech/golang-servers/validator"
+import (
+	"github.com/rpsoftech/golang-servers/interfaces"
+	"github.com/rpsoftech/golang-servers/validator"
+)
 
 type CalculateOnPriceType string
 
@@ -16,14 +19,14 @@ const (
 )
 
 var (
-	calculationPriceMethodMap = EnumValidatorBase{
+	calculationPriceMethodMap = interfaces.EnumValidatorBase{
 		Data: map[string]interface{}{
 			"FIX":  CALCULATION_PRICE_TYPE_FIX,
 			"BANK": CALCULATION_PRICE_TYPE_BANK,
 			"EXEC": CALCULATION_PRICE_TYPE_EXEC,
 		},
 	}
-	calculateOnPriceTypeMap = EnumValidatorBase{
+	calculateOnPriceTypeMap = interfaces.EnumValidatorBase{
 		Data: map[string]interface{}{
 			"BID_ASK": CALCULATE_ON_BID_ASK,
 			"ASK":     CALCULATE_ON_ASK,
