@@ -1,6 +1,9 @@
 package bullion_main_server_interfaces
 
-import "github.com/rpsoftech/golang-servers/validator"
+import (
+	"github.com/rpsoftech/golang-servers/interfaces"
+	"github.com/rpsoftech/golang-servers/validator"
+)
 
 type PriceKeyEnum string
 
@@ -18,7 +21,7 @@ const (
 )
 
 var (
-	priceKeyEnumMap = EnumValidatorBase{
+	priceKeyEnumMap = interfaces.EnumValidatorBase{
 		Data: map[string]interface{}{
 			"bid-high":  PRICE_KEY_BID_HIGH,
 			"bid-low":   PRICE_KEY_BID_LOW,

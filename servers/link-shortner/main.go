@@ -15,6 +15,7 @@ func deferMainFunc() {
 	// redis.DeferFunction()
 }
 func main() {
+	env.LoadEnv("link-shortner.env")
 	defer deferMainFunc()
 	app := fiber.New(fiber.Config{
 		ServerHeader: "Bullion Server V1.0.0",

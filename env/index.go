@@ -47,8 +47,8 @@ func ValidateEnv(env any) {
 	}
 }
 
-func init() {
-	godotenv.Load()
+func LoadEnv(filename string) {
+	godotenv.Load(filename)
 	IsDev = slices.Contains(os.Args, "--dev")
 	appEnv, _ := parseAppEnv(os.Getenv(app_ENV_KEY))
 	Env = &DefaultEnvInterface{

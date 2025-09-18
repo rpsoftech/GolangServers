@@ -18,8 +18,8 @@ var (
 )
 
 func removeAndInsertItemMastTable(c *ConfigWithConnection) {
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", ItemMastTableName), nil)
-	surrealdb.Query[any](c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(ItemMastTableName, mysql_to_surreal_interfaces.ItemMastTableStruct{}, true), nil)
+	surrealdb.Query[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, fmt.Sprintf("Remove Table %s", ItemMastTableName), nil)
+	surrealdb.Query[any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, localSurrealdb.GenerateDefineQueryWithIndexAndByStruct(ItemMastTableName, mysql_to_surreal_interfaces.ItemMastTableStruct{}, true), nil)
 	fmt.Printf("Removed And Created %s\n", ItemMastTableName)
 }
 func init() {
@@ -178,7 +178,7 @@ func (c *ConfigWithConnection) ReadAndStoreItemMast() {
 		results = append(results, row)
 	}
 	fmt.Printf("Fetched Total %d rows from %s in Duration of %s\n", len(results), ItemMastTableName, time.Since(startTime))
-	// surrealdb.Delete[any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemMastTableName))
+	// surrealdb.Delete[any](localSurrealdb.SurrealCTX,c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemMastTableName))
 	// fmt.Printf("Delete All %s from SurrealDB in Duration of %s\n", ItemMastTableName, time.Since(startTime))
 	var divided [][]*mysql_to_surreal_interfaces.ItemMastTableStruct
 	chunkSize := 50
@@ -199,7 +199,7 @@ func (c *ConfigWithConnection) ReadAndStoreItemMast() {
 	}
 	startTime = time.Now()
 	// surrealdb.Q
-	if dddd, err := surrealdb.Select[[]any](c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemMastTableName)); err == nil {
+	if dddd, err := surrealdb.Select[[]any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemMastTableName)); err == nil {
 		fmt.Printf("Select All %s from SurrealDB in Duration of %s with total rows %d\n", ItemMastTableName, time.Since(startTime), len(*dddd))
 	}
 	fmt.Printf("%s Operation Completed in Duration of %s\n", ItemMastTableName, time.Since(initalTime))

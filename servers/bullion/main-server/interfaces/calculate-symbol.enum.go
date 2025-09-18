@@ -1,6 +1,7 @@
 package bullion_main_server_interfaces
 
 import (
+	"github.com/rpsoftech/golang-servers/interfaces"
 	"github.com/rpsoftech/golang-servers/validator"
 )
 
@@ -12,7 +13,7 @@ const (
 )
 
 var (
-	baseSymbolEnumMap = EnumValidatorBase{
+	baseSymbolEnumMap = interfaces.EnumValidatorBase{
 		Data: map[string]interface{}{
 			"GOLD":   BASE_SYMBOL_GOLD,
 			"SILVER": BASE_SYMBOL_SILVER,

@@ -1,19 +1,18 @@
 package main
 
 import (
-	"compress/gzip"
+	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/robfig/cron/v3"
 	coreEnv "github.com/rpsoftech/golang-servers/env"
-	env "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-backup/env"
-	interfaces "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-backup/interfaces"
+	env "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-to-mysql/env"
+	interfaces "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-to-mysql/interfaces"
 	"github.com/rpsoftech/mysqldump"
 )
 
@@ -28,7 +27,7 @@ func deferFunc() {
 }
 
 func main() {
-	coreEnv.LoadEnv("mysql-backup.env")
+	coreEnv.LoadEnv("mysql-to-mysql.env")
 	CRON = cron.New()
 	for _, v := range env.ConnectionConfig.ServerConfig {
 		cccc := &interfaces.ConfigWithConnection{ServerConfig: &v}
@@ -55,31 +54,27 @@ func main() {
 }
 
 func DoBackupAndUpload(c *interfaces.ConfigWithConnection) {
-	timeStamoForFileName := time.Now().Unix()
-	f, _ := os.Create(filepath.Join(c.BaseDir, fmt.Sprintf("%d.sql.gz", timeStamoForFileName)))
+	// timeStamoForFileName := time.Now().Unix()
+	// f, _ := os.Create(filepath.Join(c.BaseDir, fmt.Sprintf("%d.sql.gz", timeStamoForFileName)))
 	// f, _ := os.Open(filepath.Join(c.BaseDir, "1749412432.sql.gz"))
-	// b := &bytes.Buffer{}
-	gzipWriter := gzip.NewWriter(f)
+	var b bytes.Buffer
+	writer := bufio.NewWriter(&b)
+	// gzipWriter := gzip.NewWriter(f)
 	err := mysqldump.Dump(
-		c.MysqlDbConncetion.Db,
+		c.MysqlHostDbConncetion.Db,
 		c.ServerConfig.MysqlConfig.MYSQL_DATABASE,
-		mysqldump.WithUseDatabase(),
+		// mysqldump.WithUseDatabase(),
 		mysqldump.WithTransaction(),
-		mysqldump.WithTables(),    // Option: Dump Tables (Default: All tables)
-		mysqldump.WithDropTable(), // Option: Delete table before create (Default: Not delete table)
-		mysqldump.WithAllViews(),  // Option: Dump Views (Default: Not dump views)
-		mysqldump.WithDropViews(),
-		mysqldump.WithData(),             // Option: Dump Data (Default: Only dump table schema)
-		mysqldump.WithWriter(gzipWriter), // Option: Writer (Default: os.Stdout)
+		mysqldump.WithTables("accmast"), // Option: Dump Tables (Default: All tables)
+		// mysqldump.WithDropTable(), // Option: Delete table before create (Default: Not delete table)
+		// mysqldump.WithAllViews(), // Option: Dump Views (Default: Not dump views)
+		// mysqldump.WithDropViews(),
+		mysqldump.WithData(),         // Option: Dump Data (Default: Only dump table schema)
+		mysqldump.WithWriter(writer), // Option: Writer (Default: os.Stdout)
 	)
-	gzipWriter.Close()
-	f.Close()
-	if err != nil {
-		println(err.Error())
-	}
-	f, _ = os.Open(filepath.Join(c.BaseDir, fmt.Sprintf("%d.sql.gz", timeStamoForFileName)))
-	defer f.Close()
-	c.SFileServerConfig.Upload(f, c, c.ServerConfig.Name)
+	// gzipWriter.Close()
+	// f.Close()
+	println(b.String())
 	if err != nil {
 		println(err.Error())
 	}

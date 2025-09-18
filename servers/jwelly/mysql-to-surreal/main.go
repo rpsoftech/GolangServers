@@ -22,6 +22,7 @@ func deferFunc() {
 }
 
 func main() {
+	coreEnv.LoadEnv("mysql-to-surreal.env")
 	defer deferFunc()
 	CRON = cron.New()
 	InitaliseAndPopulateTheConnection()
