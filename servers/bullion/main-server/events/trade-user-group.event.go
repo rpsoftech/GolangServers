@@ -6,52 +6,61 @@ import (
 )
 
 type tradeUserGroupEvent struct {
-	*events.BaseEvent `bson:"inline"`
+	*BullionBaseEvent `bson:"inline"`
 }
 
 func (base *tradeUserGroupEvent) Add() *tradeUserGroupEvent {
 	base.ParentNames = []string{base.EventName, "ProductEvent"}
-	base.BaseEvent.CreateBaseEvent()
+	base.BullionBaseEvent.CreateBaseEvent()
 	return base
 }
 
-func CreateTradeUserGroupCreated(bullionId string, tradeUserGroup *bullion_main_server_interfaces.TradeUserGroupEntity, adminId string) *events.BaseEvent {
+func CreateTradeUserGroupCreated(bullionId string, tradeUserGroup *bullion_main_server_interfaces.TradeUserGroupEntity, adminId string) *BullionBaseEvent {
 	event := &tradeUserGroupEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: bullionId,
-			KeyId:     tradeUserGroup.ID,
-			AdminId:   adminId,
-			Payload:   tradeUserGroup,
-			EventName: "TradeUserGroupCreated",
+			BaseEvent: &events.BaseEvent{
+
+				KeyId:     tradeUserGroup.ID,
+				AdminId:   adminId,
+				Payload:   tradeUserGroup,
+				EventName: "TradeUserGroupCreated",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }
-func CreateTradeUserGroupUpdated(bullionId string, tradeUserGroup *bullion_main_server_interfaces.TradeUserGroupEntity, adminId string) *events.BaseEvent {
+func CreateTradeUserGroupUpdated(bullionId string, tradeUserGroup *bullion_main_server_interfaces.TradeUserGroupEntity, adminId string) *BullionBaseEvent {
 	event := &tradeUserGroupEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: bullionId,
-			KeyId:     tradeUserGroup.ID,
-			AdminId:   adminId,
-			Payload:   tradeUserGroup,
-			EventName: "TradeUserGroupUpdated",
+			BaseEvent: &events.BaseEvent{
+
+				KeyId:     tradeUserGroup.ID,
+				AdminId:   adminId,
+				Payload:   tradeUserGroup,
+				EventName: "TradeUserGroupUpdated",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }
 
-func CreateTradeUserGroupMapUpdated(bullionId string, tradeUserGroupMap *[]bullion_main_server_interfaces.TradeUserGroupMapEntity, groupId string, adminId string) *events.BaseEvent {
+func CreateTradeUserGroupMapUpdated(bullionId string, tradeUserGroupMap *[]bullion_main_server_interfaces.TradeUserGroupMapEntity, groupId string, adminId string) *BullionBaseEvent {
 	event := &tradeUserGroupEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: bullionId,
-			KeyId:     groupId,
-			AdminId:   adminId,
-			Payload:   tradeUserGroupMap,
-			EventName: "TradeUserGroupMapUpdated",
+			BaseEvent: &events.BaseEvent{
+
+				KeyId:     groupId,
+				AdminId:   adminId,
+				Payload:   tradeUserGroupMap,
+				EventName: "TradeUserGroupMapUpdated",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }

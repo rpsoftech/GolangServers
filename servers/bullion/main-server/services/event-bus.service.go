@@ -1,7 +1,7 @@
 package bullion_main_server_services
 
 import (
-	"github.com/rpsoftech/golang-servers/events"
+	bullion_main_server_events "github.com/rpsoftech/golang-servers/servers/bullion/main-server/events"
 	bullion_main_server_repos "github.com/rpsoftech/golang-servers/servers/bullion/main-server/repos"
 	"github.com/rpsoftech/golang-servers/utility/redis"
 )
@@ -23,18 +23,18 @@ func getEventBusService() *eventBusService {
 	}
 	return eventBus
 }
-func (service *eventBusService) Publish(event *events.BaseEvent) {
+func (service *eventBusService) Publish(event *bullion_main_server_events.BullionBaseEvent) {
 	go service.saveToDb(event)
 }
-func (service *eventBusService) PublishAll(event *[]events.BaseEvent) {
+func (service *eventBusService) PublishAll(event *[]bullion_main_server_events.BullionBaseEvent) {
 	go service.saveAllToDb(event)
 }
-func (service *eventBusService) saveAllToDb(events *[]events.BaseEvent) {
+func (service *eventBusService) saveAllToDb(events *[]bullion_main_server_events.BullionBaseEvent) {
 	for _, event := range *events {
 		service.saveToDb(&event)
 	}
 }
-func (service *eventBusService) saveToDb(event *events.BaseEvent) {
+func (service *eventBusService) saveToDb(event *bullion_main_server_events.BullionBaseEvent) {
 	service.redis.PublishEvent(event)
 	service.eventsRepo.Save(event)
 }
