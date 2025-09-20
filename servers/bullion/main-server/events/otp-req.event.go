@@ -6,64 +6,72 @@ import (
 )
 
 type otpReqEvent struct {
-	*events.BaseEvent `bson:"inline"`
+	*BullionBaseEvent `bson:"inline"`
 }
 
 func (base *otpReqEvent) Add() *otpReqEvent {
 	base.ParentNames = []string{base.EventName, "OtpReqEvent"}
-	base.BaseEvent.CreateBaseEvent()
+	base.BullionBaseEvent.CreateBaseEvent()
 	return base
 }
 
-func CreateOtpSentEvent(entity *bullion_main_server_interfaces.OTPReqEntity) *events.BaseEvent {
+func CreateOtpSentEvent(entity *bullion_main_server_interfaces.OTPReqEntity) *BullionBaseEvent {
 	event := &otpReqEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: entity.BullionId,
-			KeyId:     entity.ID,
-			Payload:   entity,
-			EventName: "OTPSent",
+			BaseEvent: &events.BaseEvent{
+				KeyId:     entity.ID,
+				Payload:   entity,
+				EventName: "OTPSent",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }
 
-func CreateOtpResendEvent(entity *bullion_main_server_interfaces.OTPReqEntity) *events.BaseEvent {
+func CreateOtpResendEvent(entity *bullion_main_server_interfaces.OTPReqEntity) *BullionBaseEvent {
 	event := &otpReqEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: entity.BullionId,
-			KeyId:     entity.ID,
-			Payload:   entity,
-			EventName: "OTPResent",
+			BaseEvent: &events.BaseEvent{
+				KeyId:     entity.ID,
+				Payload:   entity,
+				EventName: "OTPResent",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }
 
-func CreateOtpVerifiedEvent(entity *bullion_main_server_interfaces.OTPReqEntity) *events.BaseEvent {
+func CreateOtpVerifiedEvent(entity *bullion_main_server_interfaces.OTPReqEntity) *BullionBaseEvent {
 	event := &otpReqEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: entity.BullionId,
-			KeyId:     entity.ID,
-			Payload:   entity,
-			EventName: "OTPVerified",
+			BaseEvent: &events.BaseEvent{
+				KeyId:     entity.ID,
+				Payload:   entity,
+				EventName: "OTPVerified",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }
 
-func CreateWhatsappMessageSendEvent(bullionId string, templateId string, number string, message string) *events.BaseEvent {
-	event := &events.BaseEvent{
+func CreateWhatsappMessageSendEvent(bullionId string, templateId string, number string, message string) *BullionBaseEvent {
+	event := &BullionBaseEvent{
 		BullionId: bullionId,
-		KeyId:     templateId,
-		Payload: map[string]string{
-			"number":  number,
-			"message": message,
+		BaseEvent: &events.BaseEvent{
+			KeyId: templateId,
+			Payload: map[string]string{
+				"number":  number,
+				"message": message,
+			},
+			ParentNames: []string{"WhatsappMessageSend", "MessageEvent"},
+			EventName:   "WhatsappMessageSend",
 		},
-		ParentNames: []string{"WhatsappMessageSend", "MessageEvent"},
-		EventName:   "WhatsappMessageSend",
 	}
 	event.CreateBaseEvent()
 	return event

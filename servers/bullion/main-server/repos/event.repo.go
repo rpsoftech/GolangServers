@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/rpsoftech/golang-servers/env"
-	"github.com/rpsoftech/golang-servers/events"
 	"github.com/rpsoftech/golang-servers/interfaces"
+	bullion_main_server_events "github.com/rpsoftech/golang-servers/servers/bullion/main-server/events"
 	"github.com/rpsoftech/golang-servers/utility/mongodb"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -31,7 +31,7 @@ func init() {
 	mongodb.AddIndexesToCollection([]string{"key", "bullionId", "occurredAt", "eventName", "parentNames"}, EventRepo.collection)
 }
 
-func (repo *EventRepoStruct) Save(entity *events.BaseEvent) error {
+func (repo *EventRepoStruct) Save(entity *bullion_main_server_events.BullionBaseEvent) error {
 	_, err := repo.collection.InsertOne(mongodb.MongoCtx, entity)
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {

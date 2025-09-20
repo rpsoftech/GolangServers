@@ -7,53 +7,62 @@ import (
 )
 
 type feedEvent struct {
-	*events.BaseEvent `bson:"inline"`
+	*BullionBaseEvent `bson:"inline"`
 }
 
 func (base *feedEvent) Add() *feedEvent {
 	base.ParentNames = []string{base.EventName, "FeedEvent"}
-	base.BaseEvent.CreateBaseEvent()
+	base.BullionBaseEvent.CreateBaseEvent()
 	return base
 }
 
-func CreateUpdateFeedEvent(entity *bullion_main_server_interfaces.FeedsEntity, adminId string) *events.BaseEvent {
+func CreateUpdateFeedEvent(entity *bullion_main_server_interfaces.FeedsEntity, adminId string) *BullionBaseEvent {
 	event := &feedEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: entity.BullionId,
-			KeyId:     entity.ID,
-			AdminId:   adminId,
-			Payload:   entity,
-			EventName: "FeedCreatedUpdatedEvent",
+			BaseEvent: &events.BaseEvent{
+
+				KeyId:     entity.ID,
+				AdminId:   adminId,
+				Payload:   entity,
+				EventName: "FeedCreatedUpdatedEvent",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }
 
-func CreateDeleteFeedEvent(entity *bullion_main_server_interfaces.FeedsBase, id string, adminId string) *events.BaseEvent {
+func CreateDeleteFeedEvent(entity *bullion_main_server_interfaces.FeedsBase, id string, adminId string) *BullionBaseEvent {
 	event := &feedEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: entity.BullionId,
-			KeyId:     id,
-			AdminId:   adminId,
-			Payload:   entity,
-			EventName: "FeedDeletedEvent",
+			BaseEvent: &events.BaseEvent{
+
+				KeyId:     id,
+				AdminId:   adminId,
+				Payload:   entity,
+				EventName: "FeedDeletedEvent",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }
 
-func CreateNotificationSendEvent(entity *bullion_main_server_interfaces.FeedsBase, adminId string) *events.BaseEvent {
+func CreateNotificationSendEvent(entity *bullion_main_server_interfaces.FeedsBase, adminId string) *BullionBaseEvent {
 	event := &feedEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: entity.BullionId,
-			KeyId:     utility_functions.GenerateNewUUID(),
-			AdminId:   adminId,
-			Payload:   entity,
-			EventName: "NotificationSendEvent",
+			BaseEvent: &events.BaseEvent{
+
+				KeyId:     utility_functions.GenerateNewUUID(),
+				AdminId:   adminId,
+				Payload:   entity,
+				EventName: "NotificationSendEvent",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }

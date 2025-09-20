@@ -8,10 +8,14 @@ import (
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 )
 
+type BaseEventInterface interface {
+	GetPayloadString() string
+	GetEventName() string
+}
+
 type BaseEvent struct {
 	ObjId     string `bson:"_id" json:"_id"`
 	Id        string `bson:"id" json:"id"`
-	BullionId string `bson:"bullionId" json:"bullionId" validate:"required,uuid"`
 	KeyId     string `bson:"key" json:"key"`
 	EventName string `bson:"eventName" json:"eventName"`
 	// IsProcessed bool        `bson:"isProcessed" json:"isProcessed"`

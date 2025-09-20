@@ -6,25 +6,28 @@ import (
 )
 
 type flagsEvent struct {
-	*events.BaseEvent `bson:"inline"`
+	*BullionBaseEvent `bson:"inline"`
 }
 
 func (base *flagsEvent) Add() *flagsEvent {
 	base.ParentNames = []string{base.EventName, "FlagsEvent"}
-	base.BaseEvent.CreateBaseEvent()
+	base.BullionBaseEvent.CreateBaseEvent()
 	return base
 }
 
-func FlagsUpdatedEvent(entity *bullion_main_server_interfaces.FlagsInterface, adminId string) *events.BaseEvent {
+func FlagsUpdatedEvent(entity *bullion_main_server_interfaces.FlagsInterface, adminId string) *BullionBaseEvent {
 	event := &flagsEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: entity.BullionId,
-			KeyId:     entity.BullionId,
-			AdminId:   adminId,
-			Payload:   entity,
-			EventName: "FlagsUpdatedEvent",
+			BaseEvent: &events.BaseEvent{
+
+				KeyId:     entity.BullionId,
+				AdminId:   adminId,
+				Payload:   entity,
+				EventName: "FlagsUpdatedEvent",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }
