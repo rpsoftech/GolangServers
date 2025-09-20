@@ -6,53 +6,61 @@ import (
 )
 
 type bankDetailsEvent struct {
-	*events.BaseEvent `bson:"inline"`
+	*BullionBaseEvent `bson:"inline"`
 }
 
 func (base *bankDetailsEvent) Add() *bankDetailsEvent {
 	base.ParentNames = []string{base.EventName, "BankDetailsEvent"}
-	base.BaseEvent.CreateBaseEvent()
+	base.BullionBaseEvent.CreateBaseEvent()
 	return base
 }
 
-func CreateNewBankDetailsCreated(entity *bullion_main_server_interfaces.BankDetailsEntity, adminId string) *events.BaseEvent {
+func CreateNewBankDetailsCreated(entity *bullion_main_server_interfaces.BankDetailsEntity, adminId string) *BullionBaseEvent {
 	event := &bankDetailsEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: entity.BullionId,
-			KeyId:     entity.ID,
-			AdminId:   adminId,
-			Payload:   entity,
-			EventName: "BankDetailsCreatedEvent",
+			BaseEvent: &events.BaseEvent{
+				KeyId:     entity.ID,
+				AdminId:   adminId,
+				Payload:   entity,
+				EventName: "BankDetailsCreatedEvent",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }
 
-func CreateBankDetailsDeletedEvent(entity *bullion_main_server_interfaces.BankDetailsBase, id string, adminId string) *events.BaseEvent {
+func CreateBankDetailsDeletedEvent(entity *bullion_main_server_interfaces.BankDetailsBase, id string, adminId string) *BullionBaseEvent {
 	event := &bankDetailsEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: entity.BullionId,
-			KeyId:     id,
-			AdminId:   adminId,
-			Payload:   entity,
-			EventName: "BankDetailsDeletedEvent",
+			BaseEvent: &events.BaseEvent{
+
+				KeyId:     id,
+				AdminId:   adminId,
+				Payload:   entity,
+				EventName: "BankDetailsDeletedEvent",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }
 
-func CreateBankDetailsUpdatedEvent(entity *bullion_main_server_interfaces.BankDetailsEntity, adminId string) *events.BaseEvent {
+func CreateBankDetailsUpdatedEvent(entity *bullion_main_server_interfaces.BankDetailsEntity, adminId string) *BullionBaseEvent {
 	event := &bankDetailsEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: entity.BullionId,
-			KeyId:     entity.ID,
-			AdminId:   adminId,
-			Payload:   entity,
-			EventName: "BankDetailsUpdatedEvent",
+			BaseEvent: &events.BaseEvent{
+
+				KeyId:     entity.ID,
+				AdminId:   adminId,
+				Payload:   entity,
+				EventName: "BankDetailsUpdatedEvent",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }

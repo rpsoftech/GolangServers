@@ -100,7 +100,7 @@ func (r *RedisClientStruct) SubscribeToChannels(channels ...string) *redis.PubSu
 	return r.redisClient.Subscribe(RedisCTX, channels...)
 }
 
-func (r *RedisClientStruct) PublishEvent(event *events.BaseEvent) {
+func (r *RedisClientStruct) PublishEvent(event events.BaseEventInterface) {
 	r.redisClient.Publish(RedisCTX, event.GetEventName(), event.GetPayloadString())
 }
 func (r *RedisClientStruct) GetHashValue(key string) map[string]string {

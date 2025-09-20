@@ -6,80 +6,94 @@ import (
 )
 
 type tradeUserEvent struct {
-	*events.BaseEvent `bson:"inline"`
+	*BullionBaseEvent `bson:"inline"`
 }
 
 func (base *tradeUserEvent) Add() *tradeUserEvent {
 	base.ParentNames = []string{base.EventName, "ProductEvent"}
-	base.BaseEvent.CreateBaseEvent()
+	base.BullionBaseEvent.CreateBaseEvent()
 	return base
 }
 
-func CreateTradeUserRegisteredEvent(bullionId string, tradeUser *bullion_main_server_interfaces.TradeUserEntity, adminId string) *events.BaseEvent {
+func CreateTradeUserRegisteredEvent(bullionId string, tradeUser *bullion_main_server_interfaces.TradeUserEntity, adminId string) *BullionBaseEvent {
 	event := &tradeUserEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: bullionId,
-			KeyId:     tradeUser.ID,
-			AdminId:   adminId,
-			Payload:   tradeUser,
-			EventName: "TradeUserRegisteredEvent",
+			BaseEvent: &events.BaseEvent{
+
+				KeyId:     tradeUser.ID,
+				AdminId:   adminId,
+				Payload:   tradeUser,
+				EventName: "TradeUserRegisteredEvent",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }
 
-func CreateTradeUserActivatedEvent(bullionId string, tradeUser *bullion_main_server_interfaces.TradeUserEntity, adminId string) *events.BaseEvent {
+func CreateTradeUserActivatedEvent(bullionId string, tradeUser *bullion_main_server_interfaces.TradeUserEntity, adminId string) *BullionBaseEvent {
 	event := &tradeUserEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: bullionId,
-			KeyId:     tradeUser.ID,
-			AdminId:   adminId,
-			Payload:   tradeUser,
-			EventName: "TradeUserActivatedEvent",
+			BaseEvent: &events.BaseEvent{
+
+				KeyId:     tradeUser.ID,
+				AdminId:   adminId,
+				Payload:   tradeUser,
+				EventName: "TradeUserActivatedEvent",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }
 
-func CreateTradeUserDisabledEvent(bullionId string, tradeUser *bullion_main_server_interfaces.TradeUserEntity, adminId string) *events.BaseEvent {
+func CreateTradeUserDisabledEvent(bullionId string, tradeUser *bullion_main_server_interfaces.TradeUserEntity, adminId string) *BullionBaseEvent {
 	event := &tradeUserEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: bullionId,
-			KeyId:     tradeUser.ID,
-			AdminId:   adminId,
-			Payload:   tradeUser,
-			EventName: "TradeUserDisabledEvent",
+			BaseEvent: &events.BaseEvent{
+
+				KeyId:     tradeUser.ID,
+				AdminId:   adminId,
+				Payload:   tradeUser,
+				EventName: "TradeUserDisabledEvent",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }
 
-func CreateTradeUserUpdated(bullionId string, tradeUser *bullion_main_server_interfaces.TradeUserEntity, adminId string) *events.BaseEvent {
+func CreateTradeUserUpdated(bullionId string, tradeUser *bullion_main_server_interfaces.TradeUserEntity, adminId string) *BullionBaseEvent {
 	event := &tradeUserEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: bullionId,
-			KeyId:     tradeUser.ID,
-			AdminId:   adminId,
-			Payload:   tradeUser,
-			EventName: "TradeUserUpdatedEvent",
+			BaseEvent: &events.BaseEvent{
+
+				KeyId:     tradeUser.ID,
+				AdminId:   adminId,
+				Payload:   tradeUser,
+				EventName: "TradeUserUpdatedEvent",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }
-func CreateTradeUserMarginModifiedEvent(bullionId string, tradeUser *bullion_main_server_interfaces.TradeUserEntity, adminId string) *events.BaseEvent {
+func CreateTradeUserMarginModifiedEvent(bullionId string, tradeUser *bullion_main_server_interfaces.TradeUserEntity, adminId string) *BullionBaseEvent {
 	event := &tradeUserEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: bullionId,
-			KeyId:     tradeUser.ID,
-			AdminId:   adminId,
-			Payload:   tradeUser.UsedMargins,
-			EventName: "TradeUserMarginModifiedEvent",
+			BaseEvent: &events.BaseEvent{
+				KeyId:     tradeUser.ID,
+				AdminId:   adminId,
+				Payload:   tradeUser.UsedMargins,
+				EventName: "TradeUserMarginModifiedEvent",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }

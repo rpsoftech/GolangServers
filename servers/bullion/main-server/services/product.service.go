@@ -58,7 +58,7 @@ func (service *productService) AddNewProduct(productBase *bullion_main_server_in
 	}
 	getTradeUserGroupService().CreateGroupMapFromNewProduct(entity.ID, entity.BullionId, adminId)
 	event := bullion_main_server_events.CreateProductCreatedEvent(entity.BullionId, entity.ID, entity, adminId)
-	service.eventBus.Publish(event.BaseEvent)
+	service.eventBus.Publish(event.BullionBaseEvent)
 	return entity, nil
 }
 
@@ -113,7 +113,7 @@ func (service *productService) UpdateProductCalcSnapshot(updateProductCalcSnapsh
 			if modified[i] {
 				event := bullion_main_server_events.CreateProductCalcUpdated(entity.BullionId, entity.ID, entity.CalcSnapshot, adminId)
 				service.saveProductEntityToLocalCaches(&entity, true)
-				service.eventBus.Publish(event.BaseEvent)
+				service.eventBus.Publish(event.BullionBaseEvent)
 			}
 		}
 	}
@@ -143,7 +143,7 @@ func (service *productService) UpdateProduct(updateProductBody *[]bullion_main_s
 			if modified[i] {
 				service.saveProductEntityToLocalCaches(&entity, true)
 				event := bullion_main_server_events.CreateProductUpdatedEvent(entity.BullionId, entity.ID, &entity, adminId)
-				service.eventBus.Publish(event.BaseEvent)
+				service.eventBus.Publish(event.BullionBaseEvent)
 			}
 		}
 	}

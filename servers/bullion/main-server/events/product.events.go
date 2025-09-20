@@ -6,7 +6,7 @@ import (
 )
 
 type productEvent struct {
-	*events.BaseEvent `bson:"inline"`
+	*BullionBaseEvent `bson:"inline"`
 }
 
 type productSequenceChangedEvent struct {
@@ -17,19 +17,22 @@ type productSequenceChangedEvent struct {
 
 func (base *productEvent) Add() *productEvent {
 	base.ParentNames = append(base.ParentNames, "ProductEvent")
-	base.BaseEvent.CreateBaseEvent()
+	base.BullionBaseEvent.CreateBaseEvent()
 	return base
 }
 
 func CreateProductCreatedEvent(bullionId string, productId string, product *bullion_main_server_interfaces.ProductEntity, adminId string) *productEvent {
 	event := &productEvent{
-		BaseEvent: &events.BaseEvent{
-			BullionId:   bullionId,
-			KeyId:       productId,
-			AdminId:     adminId,
-			Payload:     product,
-			EventName:   "ProductCreatedEvent",
-			ParentNames: []string{"ProductCreatedEvent"},
+		BullionBaseEvent: &BullionBaseEvent{
+			BullionId: bullionId,
+			BaseEvent: &events.BaseEvent{
+
+				KeyId:       productId,
+				AdminId:     adminId,
+				Payload:     product,
+				EventName:   "ProductCreatedEvent",
+				ParentNames: []string{"ProductCreatedEvent"},
+			},
 		},
 	}
 	event.Add()
@@ -38,51 +41,59 @@ func CreateProductCreatedEvent(bullionId string, productId string, product *bull
 
 func CreateProductUpdatedEvent(bullionId string, productId string, product *bullion_main_server_interfaces.ProductEntity, adminId string) *productEvent {
 	event := &productEvent{
-		BaseEvent: &events.BaseEvent{
-			BullionId:   bullionId,
-			KeyId:       productId,
-			AdminId:     adminId,
-			Payload:     product,
-			EventName:   "ProductUpdatedEvent",
-			ParentNames: []string{"ProductUpdatedEvent"},
+		BullionBaseEvent: &BullionBaseEvent{
+			BullionId: bullionId,
+			BaseEvent: &events.BaseEvent{
+
+				KeyId:       productId,
+				AdminId:     adminId,
+				Payload:     product,
+				EventName:   "ProductUpdatedEvent",
+				ParentNames: []string{"ProductUpdatedEvent"},
+			},
 		},
 	}
 	event.Add()
 	return event
 }
 
-func CreateProductSequenceChangedEvent(bullionId string, product *[]bullion_main_server_interfaces.ProductEntity, adminId string) *[]events.BaseEvent {
-	eventsArray := make([]events.BaseEvent, len(*product))
+func CreateProductSequenceChangedEvent(bullionId string, product *[]bullion_main_server_interfaces.ProductEntity, adminId string) *[]BullionBaseEvent {
+	eventsArray := make([]BullionBaseEvent, len(*product))
 	for i, pro := range *product {
 		event := productEvent{
-			BaseEvent: &events.BaseEvent{
+			BullionBaseEvent: &BullionBaseEvent{
 				BullionId: bullionId,
-				KeyId:     pro.ID,
-				AdminId:   adminId,
-				Payload: productSequenceChangedEvent{
-					Id:        pro.ID,
-					BullionId: pro.BullionId,
-					Sequence:  pro.Sequence,
+				BaseEvent: &events.BaseEvent{
+
+					KeyId:   pro.ID,
+					AdminId: adminId,
+					Payload: productSequenceChangedEvent{
+						Id:        pro.ID,
+						BullionId: pro.BullionId,
+						Sequence:  pro.Sequence,
+					},
+					EventName:   "ProductSequenceChangedEvent",
+					ParentNames: []string{"ProductSequenceChangedEvent"},
 				},
-				EventName:   "ProductSequenceChangedEvent",
-				ParentNames: []string{"ProductSequenceChangedEvent"},
 			},
 		}
 		event.Add()
-		eventsArray[i] = *event.BaseEvent
+		eventsArray[i] = *event.BullionBaseEvent
 	}
 	return &eventsArray
 }
 
 func CreateProductCalcUpdated(bullionId string, productId string, calcSnapshot *bullion_main_server_interfaces.CalcSnapshotStruct, adminId string) *productEvent {
 	event := &productEvent{
-		BaseEvent: &events.BaseEvent{
-			BullionId:   bullionId,
-			KeyId:       productId,
-			AdminId:     adminId,
-			Payload:     calcSnapshot,
-			EventName:   "ProductCalcUpdated",
-			ParentNames: []string{"ProductCalcUpdated"},
+		BullionBaseEvent: &BullionBaseEvent{
+			BullionId: bullionId,
+			BaseEvent: &events.BaseEvent{
+				KeyId:       productId,
+				AdminId:     adminId,
+				Payload:     calcSnapshot,
+				EventName:   "ProductCalcUpdated",
+				ParentNames: []string{"ProductCalcUpdated"},
+			},
 		},
 	}
 	event.Add()
@@ -91,13 +102,15 @@ func CreateProductCalcUpdated(bullionId string, productId string, calcSnapshot *
 
 func CreateProductDisabled(bullionId string, productId string, adminId string) *productEvent {
 	event := &productEvent{
-		BaseEvent: &events.BaseEvent{
-			BullionId:   bullionId,
-			KeyId:       productId,
-			AdminId:     adminId,
-			Payload:     "",
-			EventName:   "ProductDisabled",
-			ParentNames: []string{"ProductDisabled"},
+		BullionBaseEvent: &BullionBaseEvent{
+			BullionId: bullionId,
+			BaseEvent: &events.BaseEvent{
+				KeyId:       productId,
+				AdminId:     adminId,
+				Payload:     "",
+				EventName:   "ProductDisabled",
+				ParentNames: []string{"ProductDisabled"},
+			},
 		},
 	}
 	event.Add()

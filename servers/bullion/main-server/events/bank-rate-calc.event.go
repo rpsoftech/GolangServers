@@ -6,25 +6,28 @@ import (
 )
 
 type bankRateCalcEvent struct {
-	*events.BaseEvent `bson:"inline"`
+	*BullionBaseEvent `bson:"inline"`
 }
 
 func (base *bankRateCalcEvent) Add() *bankRateCalcEvent {
 	base.ParentNames = []string{base.EventName, "BankRateCalcEvent"}
-	base.BaseEvent.CreateBaseEvent()
+	base.BullionBaseEvent.CreateBaseEvent()
 	return base
 }
 
-func BankRateCalcUpdatedEvent(entity *bullion_main_server_interfaces.BankRateCalcEntity, adminId string) *events.BaseEvent {
+func BankRateCalcUpdatedEvent(entity *bullion_main_server_interfaces.BankRateCalcEntity, adminId string) *BullionBaseEvent {
 	event := &bankRateCalcEvent{
-		BaseEvent: &events.BaseEvent{
+		BullionBaseEvent: &BullionBaseEvent{
 			BullionId: entity.BullionId,
-			KeyId:     entity.ID,
-			AdminId:   adminId,
-			Payload:   entity,
-			EventName: "BankRateCalcUpdatedEvent",
+			BaseEvent: &events.BaseEvent{
+
+				KeyId:     entity.ID,
+				AdminId:   adminId,
+				Payload:   entity,
+				EventName: "BankRateCalcUpdatedEvent",
+			},
 		},
 	}
 	event.Add()
-	return event.BaseEvent
+	return event.BullionBaseEvent
 }
