@@ -9,7 +9,6 @@ import (
 	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	bullion_main_server_services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
-	"github.com/rpsoftech/golang-servers/utility/jwt"
 )
 
 // fiber middleware for jwt
@@ -26,7 +25,8 @@ func TokenDecrypter(c *fiber.Ctx) error {
 		return c.Next()
 	}
 	// userRolesCustomClaim, localErr := .VerifyToken(tokenString[0])
-	userRolesCustomClaim, localErr := jwt.VerifyToken[bullion_main_server_interfaces.GeneralUserAccessRefreshToken](bullion_main_server_services.AccessTokenService, &tokenString[0])
+	// jwt.VerifyToken[bullion_main_server_interfaces.GeneralUserAccessRefreshToken](bullion_main_server_services.AccessTokenService, &tokenString[0])
+	userRolesCustomClaim, localErr := bullion_main_server_services.ValidateGeneralUserAccessToken(bullion_main_server_services.AccessTokenService, &tokenString[0])
 	if localErr != nil {
 		c.Locals(bullion_main_server_interfaces.REQ_LOCAL_ERROR_KEY, localErr)
 		return c.Next()

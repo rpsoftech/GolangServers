@@ -88,7 +88,8 @@ func (service *tradeUserServiceStruct) VerifyAndSendOtpForNewUser(tradeUser *bul
 }
 
 func (service *tradeUserServiceStruct) verifyRegistrationToken(token string, returnTradeUser bool) (*bullion_main_server_interfaces.GeneralPurposeTokenGeneration, string, *bullion_main_server_interfaces.TradeUserBase, error) {
-	claims, err := localJwt.VerifyToken[bullion_main_server_interfaces.GeneralPurposeTokenGeneration](service.accessTokenService, &token)
+	claims, err := ValidateGeneralPurposeTokenGeneration(service.accessTokenService, &token)
+	//  localJwt.VerifyToken[bullion_main_server_interfaces.GeneralPurposeTokenGeneration](service.accessTokenService, &token)
 	if err != nil {
 		return nil, "", nil, &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
