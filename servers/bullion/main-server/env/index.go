@@ -11,6 +11,7 @@ type bullionEnv struct {
 var Env *bullionEnv
 
 func init() {
+	env.LoadEnv("bullion-server.env")
 	println("Bullion Main ServerEnv Initialized")
 	Env = &bullionEnv{
 		DefaultEnv:        env.Env,

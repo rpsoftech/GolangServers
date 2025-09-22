@@ -11,7 +11,7 @@ type bullionEnv struct {
 var Env *bullionEnv
 
 func init() {
-	println("Bullion Main ServerEnv Initialized")
+	println("Booz Server V3 Env Initialized")
 	Env = &bullionEnv{
 		DefaultEnv:        env.Env,
 		ACCESS_TOKEN_KEY:  env.Env.GetEnv("ACCESS_TOKEN_KEY"),

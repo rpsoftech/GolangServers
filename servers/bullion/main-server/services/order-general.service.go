@@ -233,9 +233,10 @@ func (service *orderGeneralService) PlaceOrder(orderType bullion_main_server_int
 
 func (service *orderGeneralService) calCulateAndReturnFinalRateForOrder(product *bullion_main_server_interfaces.ProductEntity, group *bullion_main_server_interfaces.TradeUserGroupEntity, groupMap *bullion_main_server_interfaces.TradeUserGroupMapEntity, buySell bullion_main_server_interfaces.BuySell) (float64, error) {
 	priceReadKey := bullion_main_server_interfaces.PRICE_ASK
-	if product.CalculatedOnPriceOf == bullion_main_server_interfaces.CALCULATE_ON_BID {
+	switch product.CalculatedOnPriceOf {
+	case bullion_main_server_interfaces.CALCULATE_ON_BID:
 		priceReadKey = bullion_main_server_interfaces.PRICE_BID
-	} else if product.CalculatedOnPriceOf == bullion_main_server_interfaces.CALCULATE_ON_BID_ASK {
+	case bullion_main_server_interfaces.CALCULATE_ON_BID_ASK:
 		if buySell == bullion_main_server_interfaces.Sell {
 			priceReadKey = bullion_main_server_interfaces.PRICE_ASK
 		} else {
