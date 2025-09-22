@@ -64,9 +64,10 @@ func (user *TradeUserEntity) DeletePassword() *TradeUserEntity {
 
 func (user *TradeUserEntity) UpdateMarginAfterOrder(weight int, symbol SourceSymbolEnum) (*TradeUserEntity, error) {
 	availableMargin := 0
-	if symbol == SOURCE_SYMBOL_GOLD {
+	switch symbol {
+	case SOURCE_SYMBOL_GOLD:
 		availableMargin = user.AllotedMargins.Gold - user.UsedMargins.Gold
-	} else if symbol == SOURCE_SYMBOL_SILVER {
+	case SOURCE_SYMBOL_SILVER:
 		availableMargin = user.AllotedMargins.Silver - user.UsedMargins.Silver
 	}
 
@@ -80,9 +81,10 @@ func (user *TradeUserEntity) UpdateMarginAfterOrder(weight int, symbol SourceSym
 		}
 	}
 
-	if symbol == SOURCE_SYMBOL_GOLD {
+	switch symbol {
+	case SOURCE_SYMBOL_GOLD:
 		user.UsedMargins.Gold = user.UsedMargins.Gold + weight
-	} else if symbol == SOURCE_SYMBOL_SILVER {
+	case SOURCE_SYMBOL_SILVER:
 		user.UsedMargins.Silver = user.UsedMargins.Silver + weight
 	}
 	return user, nil

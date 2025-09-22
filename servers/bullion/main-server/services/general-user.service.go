@@ -10,7 +10,6 @@ import (
 	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	bullion_main_server_repos "github.com/rpsoftech/golang-servers/servers/bullion/main-server/repos"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
-	"github.com/rpsoftech/golang-servers/utility/jwt"
 	"github.com/rpsoftech/golang-servers/validator"
 )
 
@@ -191,8 +190,8 @@ func (service *generalUserService) generateTokens(userId string, bullionId strin
 }
 func (service *generalUserService) RefreshToken(token string) (*bullion_main_server_interfaces.TokenResponseBody, error) {
 	var tokenResponse *bullion_main_server_interfaces.TokenResponseBody
-	tokenBody, err := jwt.VerifyToken[bullion_main_server_interfaces.GeneralUserAccessRefreshToken](RefreshTokenService, &token)
-	// RefreshTokenService.VerifyToken(token)
+	// tokenBody, err := jwt.VerifyToken[bullion_main_server_interfaces.GeneralUserAccessRefreshToken](RefreshTokenService, &token)
+	tokenBody, err := ValidateGeneralUserAccessToken(RefreshTokenService, &token)
 	if err != nil {
 		return tokenResponse, err
 	}

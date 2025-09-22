@@ -27,6 +27,6 @@ func (b *FeedsEntity) CreateNewId() *FeedsEntity {
 	if b.BaseEntity == nil {
 		b.BaseEntity = &interfaces.BaseEntity{}
 	}
-	b.CreateNewId()
+	b.BaseEntity.CreateNewId()
 	return b
 }

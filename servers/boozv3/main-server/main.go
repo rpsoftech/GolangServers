@@ -6,8 +6,6 @@ import (
 
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
-	middlewares "github.com/rpsoftech/golang-servers/middleware"
-	booz_main_utility "github.com/rpsoftech/golang-servers/servers/boozv3/common/utility"
 	"github.com/rpsoftech/golang-servers/utility/mongodb"
 	"github.com/rpsoftech/golang-servers/utility/redis"
 
@@ -88,5 +86,5 @@ func main() {
 func loadEnvConfig() {
 	env.LoadEnv("boozv3-server.env")
 	// Assigning Custom Token Decrypter Function
-	middlewares.TokenDecrypterFunctinos = booz_main_utility.TokenDecrypter
+	// middlewares.TokenDecrypterFunctinos = booz_main_utility.TokenDecrypter
 }
