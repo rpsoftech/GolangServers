@@ -19,7 +19,6 @@ var SqlContainer *sqlstore.Container
 var ctx = context.Background()
 
 func InitSqlContainer() {
-
 	dbLog := waLog.Stdout("Database", "WARN", true)
 	// Make sure you add appropriate DB connector imports, e.g. github.com/mattn/go-sqlite3 for SQLite
 	var err error
