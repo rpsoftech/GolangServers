@@ -1,6 +1,6 @@
 //go:build !windows
 
-package utility_functions
+package whatsapp_utility
 
 import (
 	"bytes"

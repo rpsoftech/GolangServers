@@ -13,6 +13,7 @@ import (
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	whatsapp_config "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/config"
+	whatsapp_utility "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/utility"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
@@ -305,7 +306,7 @@ func (connection *WhatsappConnection) sendMediaFile(to []string, fileByte []byte
 				println("finished uploading")
 				if strings.Contains(extensionName, "pdf") {
 					println("PDF to thumb")
-					thumb, err := utility_functions.ExtractFirstPage(fileByte)
+					thumb, err := whatsapp_utility.ExtractFirstPage(fileByte)
 					if err == nil && len(thumb) > 0 {
 						docProto.DocumentMessage.JPEGThumbnail = thumb
 					} else {

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	j "github.com/golang-jwt/jwt/v5"
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
@@ -15,9 +17,6 @@ import (
 	"github.com/rpsoftech/golang-servers/utility/jwt"
 	"github.com/rpsoftech/golang-servers/utility/mongodb"
 	"github.com/rpsoftech/golang-servers/utility/redis"
-
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 )
 
 func deferMainFunc() {
