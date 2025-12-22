@@ -11,7 +11,7 @@ type dumpEnv struct {
 var Env *dumpEnv
 
 func init() {
-	env.LoadEnv("http-dump-server.env")
+	env.LoadEnv("dump-whatsapp.env")
 	println("Dump Server Env Initialized")
 	Env = &dumpEnv{
 		DefaultEnv:            env.Env,
