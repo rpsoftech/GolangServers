@@ -17,6 +17,7 @@ type RedisClientConfig struct {
 	REDIS_DB_HOST     string `json:"REDIS_DB_HOST" validate:"required"`
 	REDIS_DB_PORT     int    `json:"REDIS_DB_PORT" validate:"required,port"`
 	REDIS_DB_PASSWORD string `json:"REDIS_DB_PASSWORD" validate:"required"`
+	REDIS_DB_USERNAME string `json:"REDIS_DB_USERNAME"`
 	REDIS_DB_DATABASE int    `json:"REDIS_DB_DATABASE" validate:"min=0,max=100"`
 }
 
@@ -59,12 +60,14 @@ func InitRedisAndRedisClient() *RedisClientStruct {
 		REDIS_DB_HOST:     env.Env.GetEnv(env.REDIS_DB_HOST_KEY),
 		REDIS_DB_PASSWORD: env.Env.GetEnv(env.REDIS_DB_PASSWORD_KEY),
 		REDIS_DB_DATABASE: redis_DB_DATABASE,
+		REDIS_DB_USERNAME: env.Env.GetEnv(env.REDIS_DB_USERNAME_KEY),
 	}
 	env.ValidateEnv(config)
 	client := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%v:%d", config.REDIS_DB_HOST, config.REDIS_DB_PORT),
 		Password: config.REDIS_DB_PASSWORD, // no password set
-		DB:       config.REDIS_DB_DATABASE, // use default DB
+		DB:       config.REDIS_DB_DATABASE, // use default DB,
+		Username: config.REDIS_DB_USERNAME,
 	})
 
 	RedisClient = &RedisClientStruct{
@@ -102,6 +105,9 @@ func (r *RedisClientStruct) SubscribeToChannels(channels ...string) *redis.PubSu
 
 func (r *RedisClientStruct) PublishEvent(event events.BaseEventInterface) {
 	r.redisClient.Publish(RedisCTX, event.GetEventName(), event.GetPayloadString())
+}
+func (r *RedisClientStruct) PublishCustomEvent(event string, payload string) {
+	r.redisClient.Publish(RedisCTX, event, payload)
 }
 func (r *RedisClientStruct) GetHashValue(key string) map[string]string {
 	return r.redisClient.HGetAll(RedisCTX, key).Val()
