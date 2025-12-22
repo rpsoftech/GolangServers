@@ -1,20 +1,22 @@
-package bullion_main_server_env
+package dump_server_env
 
 import "github.com/rpsoftech/golang-servers/env"
 
 type dumpEnv struct {
-	DefaultEnv *env.DefaultEnvInterface
-	// ACCESS_TOKEN_KEY  string `json:"ACCESS_TOKEN_KEY" validate:"required,min=100"`
-	// REFRESH_TOKEN_KEY string `json:"REFRESH_TOKEN_KEY" validate:"required,min=100"`
+	DefaultEnv            *env.DefaultEnvInterface
+	REDIS_DEFAULT_KEY     string `json:"REDIS_DEFAULT_KEY" validate:"required,min=3"`
+	REDIS_DEFAULT_CHANNEL string `json:"REDIS_DEFAULT_CHANNEL" validate:"required,min=3"`
 }
 
 var Env *dumpEnv
 
 func init() {
 	env.LoadEnv("http-dump-server.env")
-	println("Bullion Main ServerEnv Initialized")
+	println("Dump Server Env Initialized")
 	Env = &dumpEnv{
-		DefaultEnv: env.Env,
+		DefaultEnv:            env.Env,
+		REDIS_DEFAULT_KEY:     env.Env.GetEnv("REDIS_DEFAULT_KEY"),
+		REDIS_DEFAULT_CHANNEL: env.Env.GetEnv("REDIS_DEFAULT_CHANNEL"),
 		// ACCESS_TOKEN_KEY:  env.Env.GetEnv("ACCESS_TOKEN_KEY"),
 		// REFRESH_TOKEN_KEY: env.Env.GetEnv("REFRESH_TOKEN_KEY"),
 	}
