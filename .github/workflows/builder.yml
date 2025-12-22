@@ -18,11 +18,11 @@ jobs:
         run: go build -v ./...
       - name: Build Servers
         run: | 
-          go build ./servers/bullion/main-server/main.go
-          go build ./servers/jwelly/mysql-to-surreal/main.go
-          go build ./servers/jwelly/main-server/main.go
-          go build ./servers/jwelly/mysql-backup/main.go
-          go build ./servers/jwelly/mysql-to-mysql/main.go
-          go build ./servers/link-shortner/main.go
-          go build ./servers/whatsapp-server/main.go
-          go build ./servers/http-dump/dump-server/main.go
+          go build -v -ldflags "-s -w" ./servers/bullion/main-server/main.go
+          go build -v -ldflags "-s -w" ./servers/jwelly/mysql-to-surreal/main.go
+          go build -v -ldflags "-s -w" ./servers/jwelly/main-server/main.go
+          go build -v -ldflags "-s -w" ./servers/jwelly/mysql-backup/main.go
+          go build -v -ldflags "-s -w" ./servers/jwelly/mysql-to-mysql/main.go
+          go build -v -ldflags "-s -w" ./servers/link-shortner/main.go
+          go build -v -ldflags "-s -w" ./servers/whatsapp-server/main.go
+          go build -v -ldflags "-s -w" ./servers/http-dump/dump-server/main.go
