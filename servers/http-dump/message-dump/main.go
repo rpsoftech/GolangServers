@@ -22,7 +22,8 @@ func deferMainFunc() {
 }
 func main() {
 	defer deferMainFunc()
-	println("WhatsApp Dump Server Started")
+	println("Message Dump Server Started")
+	println("Getting Details From MONGO")
 	repo := messagedump_repo.InitAndReturnMessageDumpConfigRepo()
 	res, err := repo.FindOne(messagedump_env.Env.ServerId)
 	if err != nil {
@@ -37,18 +38,31 @@ func main() {
 		wg.Add(1)
 		go func(config *messagedump_interfaces.MessageDumpConfig) {
 			pubSub := redis.InitRedisAndRedisClient().SubscribeToChannels(messagedump_env.GetRedisEventKey(fmt.Sprintf("d/%s", config.SourceChannel)))
-			teleBot, err := messagedump_telegram.CreateTelegramBotInstance(config.TelegramConfig.TelegramBotToken)
-			if err != nil {
-				panic(err)
+			var teleBot *messagedump_telegram.TelegramBotInstance
+			var whatsappBot *messagedump_whatsapp.WhatsappBotInstance
+			var err error
+			if config.TelegramConfig.TelegramBotToken != "" {
+				println("Telegram Bot Token Found:")
+				teleBot, err = messagedump_telegram.CreateTelegramBotInstance(config.TelegramConfig.TelegramBotToken)
+				if err != nil {
+					panic(err)
+				}
 			}
-			whatsappBot := messagedump_whatsapp.CreateWhatsappBotInstance(config.WhatsappConfig.WhatsappServerUrl, config.WhatsappConfig.WhatsappServerToken)
+			if config.WhatsappConfig.WhatsappServerUrl != "" && config.WhatsappConfig.WhatsappServerToken != "" {
+				println("WhatsApp Server URL:", config.WhatsappConfig.WhatsappServerUrl)
+				whatsappBot = messagedump_whatsapp.CreateWhatsappBotInstance(config.WhatsappConfig.WhatsappServerUrl, config.WhatsappConfig.WhatsappServerToken)
+			}
 			ch := pubSub.Channel()
 			for msg := range ch {
-				for _, chatId := range config.TelegramConfig.UserChatId {
-					msg := tgbotapi.NewMessage(chatId, msg.Payload)
-					teleBot.Bot.BotAPI.Send(msg)
+				if teleBot != nil && teleBot.Bot != nil {
+					for _, chatId := range config.TelegramConfig.UserChatId {
+						msg := tgbotapi.NewMessage(chatId, msg.Payload)
+						teleBot.Bot.BotAPI.Send(msg)
+					}
 				}
-				whatsappBot.SendTextMessage(config.WhatsappConfig.SendNumbers, msg.Payload)
+				if whatsappBot != nil {
+					whatsappBot.SendTextMessage(config.WhatsappConfig.SendNumbers, msg.Payload)
+				}
 				fmt.Printf("Message from channel %s: %s\n", msg.Channel, msg.Payload)
 			}
 			wg.Done()
