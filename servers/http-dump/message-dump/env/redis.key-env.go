@@ -1,4 +1,4 @@
-package whatsappdump_env
+package messagedump_env
 
 import "fmt"
 
