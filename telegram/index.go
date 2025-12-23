@@ -13,11 +13,13 @@ type TelegramBot struct {
 
 var TelegramBotInstance *TelegramBot
 
-func InitAndReturnTelegramBOT() *TelegramBot {
+func InitAndReturnTelegramBOT(token string) *TelegramBot {
 	if TelegramBotInstance != nil {
 		return TelegramBotInstance
 	}
-	token := env.Env.GetEnv(TELEGRAM_APITOKEN_ENV_KEY)
+	if token == "" {
+		token = env.Env.GetEnv(TELEGRAM_APITOKEN_ENV_KEY)
+	}
 	if token == "" {
 		panic("Telegram API Token is not set in environment variables")
 	}

@@ -1,7 +1,7 @@
 package whatsappdump
 
 import (
-	_ "github.com/rpsoftech/golang-servers/servers/http-dump/whatsapp-dump/env"
+	_ "github.com/rpsoftech/golang-servers/servers/http-dump/message-dump/env"
 	"github.com/rpsoftech/golang-servers/utility/mongodb"
 	"github.com/rpsoftech/golang-servers/utility/redis"
 )
