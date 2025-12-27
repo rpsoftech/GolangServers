@@ -1,19 +1,18 @@
 package telegram_server_apis
 
 import (
-	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rpsoftech/golang-servers/interfaces"
+	telegram_server_middleware "github.com/rpsoftech/golang-servers/servers/telegram-server/middleware"
 	telegram_config "github.com/rpsoftech/golang-servers/servers/telegram-server/telegram"
-	whatsapp_functions "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/functions"
-	whatsapp_server_middleware "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/middleware"
-	"github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/whatsapp"
+	telegram_server "github.com/rpsoftech/golang-servers/servers/telegram-server/telegram"
+
+	// "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/whatsapp"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
-	"github.com/skip2/go-qrcode"
 )
 
 type (
@@ -29,7 +28,7 @@ type (
 )
 
 func AddApis(app fiber.Router) {
-	authenticated := app.Group("", whatsapp_server_middleware.AllowOnlyValidLoggedInWhatsapp)
+	authenticated := app.Group("", telegram_server_middleware.AllowOnlyValidLoggedInWhatsapp)
 	authenticated.Post("/send_message", SendMessage)
 	// authenticated.Post("/send_media", SendMediaFile)
 	// authenticated.Post("/send_media_64", SendMediaFileWithBase64)
@@ -49,7 +48,7 @@ func SendMessage(c *fiber.Ctx) error {
 			Name:       "ERROR_INVALID_INPUT",
 		}
 	}
-	token, err := whatsapp_functions.ExtractNumberFromCtx(c)
+	token, err := telegram_server.ExtractNumberFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -70,7 +69,8 @@ func SendMessage(c *fiber.Ctx) error {
 			Name:       "ERROR_CONNECTION_NOT_FOUND",
 		}
 	}
-	runHeadLess, err := strconv.ParseBool(whatsapp_functions.ExtractKeyFromHeader(c, "Headless"))
+	// runHeadLess := true
+	runHeadLess, err := strconv.ParseBool(telegram_server.ExtractKeyFromHeader(c, "Headless"))
 	if err != nil {
 		runHeadLess = false
 	}
@@ -212,31 +212,31 @@ func SendMessage(c *fiber.Ctx) error {
 // @Failure 404 {object} interfaces.RequestError
 // @Failure 500 {object} interfaces.RequestError
 // @Router /connections/{number}/qrcode [get]
-func GetQrCode(c *fiber.Ctx) error {
-	number, err := whatsapp_functions.ExtractNumberFromCtx(c)
-	if err != nil {
-		return err
-	}
+// func GetQrCode(c *fiber.Ctx) error {
+// 	number, err := telegram_server.ExtractNumberFromCtx(c)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	connection, ok := whatsapp.ConnectionMap[number]
-	if !ok || connection == nil {
-		return &interfaces.RequestError{
-			StatusCode: http.StatusNotFound,
-			Code:       interfaces.ERROR_CONNECTION_NOT_FOUND,
-			Message:    fmt.Sprintf("Number %s Not Found", number),
-			Name:       "ERROR_CONNECTION_NOT_FOUND",
-		}
-	}
-	err = connection.ReturnStatusError()
+// 	connection, ok := whatsapp.ConnectionMap[number]
+// 	if !ok || connection == nil {
+// 		return &interfaces.RequestError{
+// 			StatusCode: http.StatusNotFound,
+// 			Code:       interfaces.ERROR_CONNECTION_NOT_FOUND,
+// 			Message:    fmt.Sprintf("Number %s Not Found", number),
+// 			Name:       "ERROR_CONNECTION_NOT_FOUND",
+// 		}
+// 	}
+// 	err = connection.ReturnStatusError()
 
-	if err != nil {
-		png, _ := qrcode.Encode(connection.QrCodeString, qrcode.High, 512)
-		return c.JSON(fiber.Map{
-			"qrCode":     base64.StdEncoding.EncodeToString(png),
-			"qrCodeData": connection.QrCodeString,
-		})
-	}
-	return c.JSON(fiber.Map{
-		"success": true,
-	})
-}
+// 	if err != nil {
+// 		png, _ := qrcode.Encode(connection.QrCodeString, qrcode.High, 512)
+// 		return c.JSON(fiber.Map{
+// 			"qrCode":     base64.StdEncoding.EncodeToString(png),
+// 			"qrCodeData": connection.QrCodeString,
+// 		})
+// 	}
+// 	return c.JSON(fiber.Map{
+// 		"success": true,
+// 	})
+// }

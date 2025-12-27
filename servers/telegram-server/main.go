@@ -11,10 +11,12 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
-	whatsapp_server_apis "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/apis"
-	whatsapp_config "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/config"
-	whatsapp_server_middleware "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/middleware"
-	"github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/whatsapp"
+	telegram_server_apis "github.com/rpsoftech/golang-servers/servers/telegram-server/apis"
+	telegram_server_config "github.com/rpsoftech/golang-servers/servers/telegram-server/config"
+	telegram_server_middleware "github.com/rpsoftech/golang-servers/servers/telegram-server/middleware"
+	telegram_config "github.com/rpsoftech/golang-servers/servers/telegram-server/telegram"
+	telegram_server "github.com/rpsoftech/golang-servers/servers/telegram-server/telegram"
+	"github.com/rpsoftech/golang-servers/telegram"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 )
 
@@ -31,15 +33,16 @@ func main() {
 	if _, err := utility_functions.Exist(outputLogFolderDir); errors.Is(err, os.ErrNotExist) {
 		os.MkdirAll(outputLogFolderDir, 0777)
 	}
-	whatsapp.OutPutFilePath = ReturnOutPutFilePath(env.FindAndReturnCurrentDir())
-	if whatsapp_config.Env.AUTO_CONNECT_TO_WHATSAPP {
-		go func() {
-			for k := range whatsapp_config.WhatsappNumberConfigMap.Tokens {
-				jidString := whatsapp_config.WhatsappNumberConfigMap.JID[k]
-				whatsapp.ConnectToNumber(jidString, k)
-			}
-		}()
-	}
+	telegram_config.OutPutFilePath = ReturnOutPutFilePath(env.FindAndReturnCurrentDir())
+	go func() {
+		for i, t := range telegram_server_config.TelegramBotConfigMap.Tokens {
+			println(i, t)
+			bot := telegram.InitAndReturnTelegramBOT(t)
+			go bot.UserIdListner()
+			telegram_server.ConnectionMap.AddBotConnection(i, telegram_server.CreateTelegramBot(t, bot))
+		}
+		// telegram_config.ConnectionMap
+	}()
 	InitFiberServer()
 
 }
@@ -62,9 +65,7 @@ func InitFiberServer() {
 	})
 	app.Use(logger.New())
 	app.Static("/swagger", "./swagger")
-	whatsapp_server_apis.AddApis(app.Group("/v1", whatsapp_server_middleware.TokenDecrypter, whatsapp_server_middleware.AllowOnlyValidTokenMiddleWare))
-
-	app.Get("/scan/:id", whatsapp_server_apis.OpenBrowserWithQr)
+	telegram_server_apis.AddApis(app.Group("/v1", telegram_server_middleware.TokenDecrypter, telegram_server_middleware.AllowOnlyValidTokenMiddleWare))
 	app.Use(func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).SendString("Sorry can't find that!")
 	})

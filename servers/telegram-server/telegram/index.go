@@ -1,4 +1,4 @@
-package telegram_config
+package telegram_server
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -15,8 +15,12 @@ type (
 
 var (
 	OutPutFilePath = ""
-	ConnectionMap  = new(ITelegramBotConnectionMap)
+	ConnectionMap  *ITelegramBotConnectionMap
 )
+
+func init() {
+	ConnectionMap = &ITelegramBotConnectionMap{}
+}
 
 func (bot *TelegramBotConnection) SendMessage(chatId []int64, message string) *map[int64]*tgbotapi.Message {
 	result := make(map[int64]*tgbotapi.Message)
@@ -30,13 +34,19 @@ func (bot *TelegramBotConnection) SendMessage(chatId []int64, message string) *m
 	return &result
 }
 
-func (cm *ITelegramBotConnectionMap) GetBotConnection(token string) *TelegramBotConnection {
-	conn, found := (*cm)[token]
+func (cm ITelegramBotConnectionMap) GetBotConnection(token string) *TelegramBotConnection {
+	conn, found := cm[token]
 	if !found {
 		return nil
 	}
 	return conn
 }
-func (cm *ITelegramBotConnectionMap) AddBotConnection(token string, connection *TelegramBotConnection) {
-	(*cm)[token] = connection
+func (cm ITelegramBotConnectionMap) AddBotConnection(token string, connection *TelegramBotConnection) {
+	cm[token] = connection
+}
+func CreateTelegramBot(token string, bot *telegram.TelegramBot) *TelegramBotConnection {
+	return &TelegramBotConnection{
+		BotToken: token,
+		bot:      bot,
+	}
 }

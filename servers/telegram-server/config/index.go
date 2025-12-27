@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	TelegramBotConfigMap *IServerConfig
+	TelegramBotConfigMap        = &IServerConfig{}
 	CurrentDirectory     string = ""
 	serverConfigFilePath string = ""
 )
@@ -22,6 +22,11 @@ const ServerConfigFileName = "server.config.json"
 
 type IServerConfig struct {
 	Tokens map[string]string `json:"tokens" validate:"required"`
+}
+
+func init() {
+	CurrentDirectory = env.FindAndReturnCurrentDir()
+	TelegramBotConfigMap = ReadConfigFileAndReturnIt(CurrentDirectory)
 }
 
 func (sc *IServerConfig) Save() {
