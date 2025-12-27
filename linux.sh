@@ -1,0 +1,2 @@
+GOOS=linux GOARCH=amd64 go build -v -o http-dump -ldflags="-s -w" ./servers/http-dump/dump-server/main.go
+GOOS=linux GOARCH=amd64 go build -v -o message-dump -ldflags="-s -w" ./servers/http-dump/message-dump/main.go

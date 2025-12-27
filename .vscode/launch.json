@@ -5,6 +5,14 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Run Telegram Server",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "args": ["--dev"],
+      "program": "${workspaceFolder}/servers/telegram-server/main.go"
+    },
+    {
       "name": "Run Bullion Server",
       "type": "go",
       "request": "launch",
@@ -18,7 +26,15 @@
       "request": "launch",
       "mode": "auto",
       "args": ["--dev"],
-      "program": "${workspaceFolder}/servers/http-dump-server/main.go"
+      "program": "${workspaceFolder}/servers/http-dump/dump-server/main.go"
+    },
+    {
+      "name": "Run Message Dump Server",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "args": ["--dev"],
+      "program": "${workspaceFolder}/servers/http-dump/message-dump/main.go"
     },
     {
       "name": "Run Whatsapp Server",
@@ -67,6 +83,14 @@
       "mode": "auto",
       "args": ["--dev"],
       "program": "${workspaceFolder}/servers/jwelly/mysql-to-mysql/main.go"
+    },
+    {
+      "name": "Run TEST",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "args": ["--dev"],
+      "program": "${workspaceFolder}/test.go"
     }
   ]
 }
