@@ -40,7 +40,8 @@ var (
 )
 
 func (connection *WhatsappConnection) ReturnStatusError() error {
-	if connection.ConnectionStatus == 0 {
+	switch connection.ConnectionStatus {
+	case 0:
 		return &interfaces.RequestError{
 			StatusCode: http.StatusNotFound,
 			Code:       interfaces.ERROR_CONNECTION_NOT_INITIALIZED,
@@ -48,7 +49,7 @@ func (connection *WhatsappConnection) ReturnStatusError() error {
 			Name:       "ERROR_CONNECTION_NOT_INITIALIZED",
 			Extra:      []string{connection.QrCodeString},
 		}
-	} else if connection.ConnectionStatus == -1 {
+	case -1:
 		return &interfaces.RequestError{
 			StatusCode: http.StatusNotFound,
 			Code:       interfaces.ERROR_CONNECTION_LOGGED_OUT,

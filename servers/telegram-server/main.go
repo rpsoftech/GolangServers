@@ -32,7 +32,6 @@ func main() {
 		os.MkdirAll(outputLogFolderDir, 0777)
 	}
 	whatsapp.OutPutFilePath = ReturnOutPutFilePath(env.FindAndReturnCurrentDir())
-	whatsapp.InitSqlContainer()
 	if whatsapp_config.Env.AUTO_CONNECT_TO_WHATSAPP {
 		go func() {
 			for k := range whatsapp_config.WhatsappNumberConfigMap.Tokens {

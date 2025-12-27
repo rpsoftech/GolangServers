@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	_ "github.com/rpsoftech/golang-servers/servers/http-dump/message-dump/env"
 	messagedump_env "github.com/rpsoftech/golang-servers/servers/http-dump/message-dump/env"
 	messagedump_interfaces "github.com/rpsoftech/golang-servers/servers/http-dump/message-dump/interfaces"
@@ -56,8 +55,7 @@ func main() {
 			for msg := range ch {
 				if teleBot != nil && teleBot.Bot != nil {
 					for _, chatId := range config.TelegramConfig.UserChatId {
-						msg := tgbotapi.NewMessage(chatId, msg.Payload)
-						teleBot.Bot.BotAPI.Send(msg)
+						teleBot.Bot.SendMessage(chatId, msg.Payload)
 					}
 				}
 				if whatsappBot != nil {
