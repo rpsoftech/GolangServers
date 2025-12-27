@@ -2,11 +2,14 @@ package main
 
 import (
 	"fmt"
-	"path/filepath"
+	"strconv"
 )
 
 func main() {
-	file_path := "/path/to/myfile.txt"    //assign the absolute path
-	file_name := filepath.Base(file_path) //use this built-in function to obtain filename
-	fmt.Println(" The file Name from the absolute path is:", file_name)
+	num64 := int64(12345)
+	str := strconv.FormatInt(num64, 10)    // Decimal string
+	hexStr := strconv.FormatInt(num64, 16) // Hexadecimal string
+
+	fmt.Println("Decimal string:", str)
+	fmt.Println("Hexadecimal string:", hexStr)
 }
