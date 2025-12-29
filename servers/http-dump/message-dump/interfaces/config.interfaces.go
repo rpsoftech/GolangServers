@@ -24,6 +24,7 @@ type WhatsappSideConfig struct {
 	SendWhatsappId      []string `bson:"sendWhatsappId" json:"sendWhatsappId" validate:"required"`
 }
 type TelegramSideConfig struct {
-	TelegramBotToken string  `bson:"telegramBotToken" json:"telegramBotToken" validate:"required"`
-	UserChatId       []int64 `bson:"userChatId" json:"userChatId" validate:"required"`
+	TelegramServerToken string  `bson:"telegramServerToken" json:"telegramServerToken" validate:"required"`
+	TelegramServerUrl   string  `bson:"telegramServerUrl" json:"telegramServerUrl" validate:"required,url"`
+	UserChatId          []int64 `bson:"userChatId" json:"userChatId" validate:"required"`
 }

@@ -39,13 +39,10 @@ func main() {
 			pubSub := redis.InitRedisAndRedisClient().SubscribeToChannels(messagedump_env.GetRedisEventKey(fmt.Sprintf("d/%s", config.SourceChannel)))
 			var teleBot *messagedump_telegram.TelegramBotInstance
 			var whatsappBot *messagedump_whatsapp.WhatsappBotInstance
-			var err error
-			if config.TelegramConfig.TelegramBotToken != "" {
+			if config.TelegramConfig.TelegramServerUrl != "" && config.TelegramConfig.TelegramServerToken != "" {
 				println("Telegram Bot Token Found:")
-				teleBot, err = messagedump_telegram.CreateTelegramBotInstance(config.TelegramConfig.TelegramBotToken)
-				if err != nil {
-					panic(err)
-				}
+				teleBot = messagedump_telegram.CreateTelegramBotInstance(config.TelegramConfig.TelegramServerUrl, config.TelegramConfig.TelegramServerToken)
+
 			}
 			if config.WhatsappConfig.WhatsappServerUrl != "" && config.WhatsappConfig.WhatsappServerToken != "" {
 				println("WhatsApp Server URL:", config.WhatsappConfig.WhatsappServerUrl)
@@ -53,10 +50,8 @@ func main() {
 			}
 			ch := pubSub.Channel()
 			for msg := range ch {
-				if teleBot != nil && teleBot.Bot != nil {
-					for _, chatId := range config.TelegramConfig.UserChatId {
-						teleBot.Bot.SendMessage(chatId, msg.Payload)
-					}
+				if teleBot != nil {
+					teleBot.SendTextMessage(config.TelegramConfig.UserChatId, msg.Payload)
 				}
 				if whatsappBot != nil {
 					whatsappBot.SendTextMessage(config.WhatsappConfig.SendNumbers, msg.Payload)

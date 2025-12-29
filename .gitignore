@@ -8,3 +8,4 @@ main
 *.exe
 
 .DS_St*
+*.o
