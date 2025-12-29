@@ -10,7 +10,6 @@ import (
 // fiber middleware for jwt
 func TokenDecrypter(c *fiber.Ctx) error {
 	reqHeaders := c.GetReqHeaders()
-	println(c.IP())
 	tokenString, foundToken := reqHeaders[env.RequestTokenHeaderKey]
 	if !foundToken || len(tokenString) != 1 || tokenString[0] == "" {
 		if c.IP() == "127.0.0.1" || whatsapp_config.Env.ALLOW_LOCAL_NO_AUTH {

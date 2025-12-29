@@ -1,29 +1,58 @@
 package messagedump_telegram
 
 import (
-	messagedump_interfaces "github.com/rpsoftech/golang-servers/servers/http-dump/message-dump/interfaces"
-	"github.com/rpsoftech/golang-servers/telegram"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
 )
 
 type TelegramBotInstance struct {
-	Bot    *telegram.TelegramBot
-	config *messagedump_interfaces.TelegramSideConfig
+	URL            string `json:"url" validate:"required"`
+	Token          string `json:"token" validate:"required"`
+	sendMessageUrl string
 }
 
-var telegramBotsMap = make(map[string]*TelegramBotInstance)
+func (w *TelegramBotInstance) SendTextMessage(numbers []int64, msg string) bool {
+	postBody, _ := json.Marshal(map[string]any{
+		"to":  numbers,
+		"msg": msg,
+	})
+	payload := bytes.NewBuffer(postBody)
 
-func CreateTelegramBotInstance(token string) (*TelegramBotInstance, error) {
-	// bot, err := tgbotapi.NewBotAPI(token)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// return &TelegramBotInstance{BotAPI: bot}, nil
-	if bot, exists := telegramBotsMap[token]; exists {
-		return bot, nil
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", w.sendMessageUrl, payload)
+
+	if err != nil {
+		fmt.Println(err)
+		return false
 	}
-	b := telegram.InitAndReturnTelegramBOT(token)
-	bot := &TelegramBotInstance{Bot: b}
-	go bot.Bot.UserIdListner()
-	telegramBotsMap[token] = bot
-	return bot, nil
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("X-Api-Token", w.Token)
+
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	bodyString := string(body)
+	println(bodyString)
+	return !strings.Contains(bodyString, "false")
+}
+
+func CreateTelegramBotInstance(url string, token string) *TelegramBotInstance {
+	return &TelegramBotInstance{
+		URL:            url,
+		Token:          token,
+		sendMessageUrl: fmt.Sprintf("%s/send_message", url),
+	}
 }
