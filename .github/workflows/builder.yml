@@ -17,13 +17,4 @@ jobs:
       - name: Build
         run: go build -v ./...
       - name: Build Servers
-        run: | 
-          go build -ldflags "-s -w" -v ./servers/bullion/main-server/main.go
-          go build -ldflags "-s -w" -v ./servers/jwelly/mysql-to-surreal/main.go
-          go build -ldflags "-s -w" -v ./servers/jwelly/main-server/main.go
-          go build -ldflags "-s -w" -v ./servers/jwelly/mysql-backup/main.go
-          go build -ldflags "-s -w" -v ./servers/jwelly/mysql-to-mysql/main.go
-          go build -ldflags "-s -w" -v ./servers/link-shortner/main.go
-          go build -ldflags "-s -w" -v ./servers/whatsapp-server/main.go
-          go build -ldflags "-s -w" -v ./servers/telegram-server/main.go
-          go build -ldflags "-s -w" -v ./servers/http-dump/dump-server/main.go
+        run: sh ./linux.sh
