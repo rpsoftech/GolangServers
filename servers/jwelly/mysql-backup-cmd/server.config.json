@@ -1,0 +1,21 @@
+{
+  "serverConfig": [
+    {
+      "mysqlConfig": {
+        "MYSQL_HOST": "103.174.86.25",
+        "MYSQL_PORT": 3306,
+        "MYSQL_USERNAME": "golang_test",
+        "MYSQL_PASSWORD": "Golang@Test;",
+        "MYSQL_DATABASE": "golang_test1"
+      },
+      "fileServerType": "TYPE1",
+      "fileServerConfig": {
+        "folderPath":"jwelly/golan_test",
+        "url": "https://files.rpso.in/upload/",
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE2MjQ2MDY4Mjd9.M9JdIvFFzYa0gzM8BUos-HMdahsHi8byb-rn-KEThzY"
+      },
+      "name": "golan_test",
+      "cron": "* * * * *"
+    }
+  ]
+}
