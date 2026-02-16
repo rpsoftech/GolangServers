@@ -2,6 +2,7 @@ package mysql_backup_interfaces
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -26,11 +27,16 @@ func ValidateAllConnectionsAndAssign(c *ConfigWithConnection) error {
 	if mysqlDb, err := mysqldb.InitalizeMysqlDbWithConfig(&c.ServerConfig.MysqlConfig); err != nil {
 		return err
 	} else {
-		// mysqlDb.Db.Close()
 		c.BaseDir = filepath.Join(coreEnv.FindAndReturnCurrentDir(), "backup", c.ServerConfig.Name)
-		if exists, err := utility_functions.Exist(c.BaseDir); !exists && err == nil {
+		if exists, err := utility_functions.Exist(c.BaseDir); err == nil {
+			if exists {
+				err := os.RemoveAll(c.BaseDir)
+				if err != nil {
+					log.Fatalf("Error removing directory: %v", err)
+				}
+			}
 			os.MkdirAll(c.BaseDir, 0777)
-		} else if err != nil {
+		} else {
 			println(err.Error())
 		}
 		c.ConnectionString = fmt.Sprintf(dsn, c.ServerConfig.MysqlConfig.MYSQL_USERNAME, c.ServerConfig.MysqlConfig.MYSQL_PASSWORD, c.ServerConfig.MysqlConfig.MYSQL_HOST, c.ServerConfig.MysqlConfig.MYSQL_PORT, c.ServerConfig.MysqlConfig.MYSQL_DATABASE)

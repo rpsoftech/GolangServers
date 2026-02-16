@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"time"
 
@@ -30,6 +31,8 @@ func deferFunc() {
 func main() {
 	// env.LoadEnv("telegram-server.env")
 	CRON = cron.New()
+	var wg sync.WaitGroup // Declare a WaitGroup
+
 	for _, v := range env.ConnectionConfig.ServerConfig {
 		cccc := &interfaces.ConfigWithConnection{ServerConfig: &v}
 		if err := interfaces.ValidateAllConnectionsAndAssign(cccc); err != nil {
@@ -37,13 +40,20 @@ func main() {
 			println(err.Error())
 		}
 		if env.ServerEnv.IsDev && env.ServerEnv.Env.APP_ENV == coreEnv.APP_ENV_LOCAL {
-			DoBackupAndUpload(cccc)
-			os.Exit(0)
+			wg.Add(1) // Increment the WaitGroup counter
+			go func() {
+				defer wg.Done() // Decrement the WaitGroup counter when the goroutine completes
+				DoBackupAndUpload(cccc)
+			}()
 		} else {
 			CRON.AddFunc(v.Cron, func() {
 				DoBackupAndUpload(cccc)
 			})
 		}
+	}
+	if env.ServerEnv.IsDev && env.ServerEnv.Env.APP_ENV == coreEnv.APP_ENV_LOCAL {
+		wg.Wait()
+		os.Exit(0)
 	}
 	CRON.Start()
 	// defer deferFunc()
@@ -63,14 +73,20 @@ func DoBackupAndUpload(c *interfaces.ConfigWithConnection) {
 	gzipWriter := gzip.NewWriter(f)
 	gzipWriter.Write([]byte("SET foreign_key_checks = 0;\n"))
 	var err error
+	cmdArray := []string{"mysqldump",
+		"-h", c.ServerConfig.MysqlConfig.MYSQL_HOST}
+	if c.ServerConfig.MysqlConfig.MYSQL_PORT != 3306 {
+		cmdArray = append(cmdArray, fmt.Sprintf("--port=%d", c.ServerConfig.MysqlConfig.MYSQL_PORT))
+	}
+	if c.ServerConfig.MysqlConfig.MYSQL_USERNAME != "" {
+		cmdArray = append(cmdArray, "-u", c.ServerConfig.MysqlConfig.MYSQL_USERNAME)
+	}
+	if c.ServerConfig.MysqlConfig.MYSQL_PASSWORD != "" {
+		cmdArray = append(cmdArray, "-p"+c.ServerConfig.MysqlConfig.MYSQL_PASSWORD)
+	}
+	cmdArray = append(cmdArray, "--add-drop-table", "--single-transaction", c.ServerConfig.MysqlConfig.MYSQL_DATABASE)
 	// --add-drop-table --no-data --single-transaction
-	cmd := exec.Command("mysqldump",
-		"-h", c.ServerConfig.MysqlConfig.MYSQL_HOST,
-		"-u", c.ServerConfig.MysqlConfig.MYSQL_USERNAME,
-		"-p"+c.ServerConfig.MysqlConfig.MYSQL_PASSWORD,
-		"--add-drop-table",
-		"--single-transaction",
-		c.ServerConfig.MysqlConfig.MYSQL_DATABASE)
+	cmd := exec.Command(cmdArray[0], cmdArray[1:]...)
 	cmd.Stdout = gzipWriter
 	err = cmd.Run()
 	gzipWriter.Write([]byte("SET foreign_key_checks = 1;\n"))
