@@ -16,6 +16,7 @@ type TelegramBotInstance struct {
 }
 
 func (w *TelegramBotInstance) SendTextMessage(numbers []int64, msg string) bool {
+	println("Sending message to Telegram Bot:", msg)
 	postBody, _ := json.Marshal(map[string]any{
 		"to":  numbers,
 		"msg": msg,

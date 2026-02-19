@@ -11,3 +11,4 @@ GOOS=windows GOARCH=amd64 go build -o "dist/windows-amd64/mysql-to-surreal.exe" 
 GOOS=windows GOARCH=amd64 go build -o "dist/windows-amd64/main-server.exe" -v -ldflags="-s -w" ./servers/jwelly/main-server/main.go
 GOOS=windows GOARCH=amd64 go build -o "dist/windows-amd64/mysql-backup.exe" -v -ldflags="-s -w" ./servers/jwelly/mysql-backup/main.go
 GOOS=windows GOARCH=amd64 go build -o "dist/windows-amd64/mysql-to-mysql.exe" -v -ldflags="-s -w" ./servers/jwelly/mysql-to-mysql/main.go
+GOOS=windows GOARCH=amd64 go build -o "dist/windows-amd64/mysql-backup-cmd.exe" -v -ldflags="-s -w" ./servers/jwelly/mysql-backup-cmd/main.go
