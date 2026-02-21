@@ -1,0 +1,157 @@
+{
+  "serverConfig": [
+    {
+      "mysqlConfig": {
+        "MYSQL_HOST": "127.0.0.1",
+        "MYSQL_PORT": 3306,
+        "MYSQL_USERNAME": "",
+        "MYSQL_PASSWORD": "",
+        "MYSQL_DATABASE": "aarya_gold_zero"
+      },
+      "fileServerType": "TYPE1",
+      "fileServerConfig": {
+        "folderPath": "jwelly/aaryagold_zero",
+        "url": "https://files.rpso.in/upload/",
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE2MjQ2MDY4Mjd9.M9JdIvFFzYa0gzM8BUos-HMdahsHi8byb-rn-KEThzY"
+      },
+      "name": "aaryagold_zero",
+      "cron": "*/30 7-22 * * 1-6"
+    },
+    {
+      "mysqlConfig": {
+        "MYSQL_HOST": "127.0.0.1",
+        "MYSQL_PORT": 3306,
+        "MYSQL_USERNAME": "",
+        "MYSQL_PASSWORD": "",
+        "MYSQL_DATABASE": "aaryagold_hero"
+      },
+      "fileServerType": "TYPE1",
+      "fileServerConfig": {
+        "folderPath": "jwelly/aaryagold_hero",
+        "url": "https://files.rpso.in/upload/",
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE2MjQ2MDY4Mjd9.M9JdIvFFzYa0gzM8BUos-HMdahsHi8byb-rn-KEThzY"
+      },
+      "name": "aaryagold_hero",
+      "cron": "*/30 7-22 * * 1-6"
+    },
+    {
+      "mysqlConfig": {
+        "MYSQL_HOST": "127.0.0.1",
+        "MYSQL_PORT": 3306,
+        "MYSQL_USERNAME": "",
+        "MYSQL_PASSWORD": "",
+        "MYSQL_DATABASE": "goj_hero"
+      },
+      "fileServerType": "TYPE1",
+      "fileServerConfig": {
+        "folderPath": "jwelly/goj_hero",
+        "url": "https://files.rpso.in/upload/",
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE2MjQ2MDY4Mjd9.M9JdIvFFzYa0gzM8BUos-HMdahsHi8byb-rn-KEThzY"
+      },
+      "name": "goj_hero",
+      "cron": "*/30 7-22 * * 1-6"
+    },
+    {
+      "mysqlConfig": {
+        "MYSQL_HOST": "127.0.0.1",
+        "MYSQL_PORT": 3306,
+        "MYSQL_USERNAME": "",
+        "MYSQL_PASSWORD": "",
+        "MYSQL_DATABASE": "goj_zero"
+      },
+      "fileServerType": "TYPE1",
+      "fileServerConfig": {
+        "folderPath": "jwelly/goj_zero",
+        "url": "https://files.rpso.in/upload/",
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE2MjQ2MDY4Mjd9.M9JdIvFFzYa0gzM8BUos-HMdahsHi8byb-rn-KEThzY"
+      },
+      "name": "goj_zero",
+      "cron": "*/30 7-22 * * 1-6"
+    },
+    {
+      "mysqlConfig": {
+        "MYSQL_HOST": "127.0.0.1",
+        "MYSQL_PORT": 3306,
+        "MYSQL_USERNAME": "",
+        "MYSQL_PASSWORD": "",
+        "MYSQL_DATABASE": "goj_zero_new"
+      },
+      "fileServerType": "TYPE1",
+      "fileServerConfig": {
+        "folderPath": "jwelly/goj_zero_new",
+        "url": "https://files.rpso.in/upload/",
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE2MjQ2MDY4Mjd9.M9JdIvFFzYa0gzM8BUos-HMdahsHi8byb-rn-KEThzY"
+      },
+      "name": "goj_zero_new",
+      "cron": "*/30 7-22 * * 1-6"
+    },
+    {
+      "mysqlConfig": {
+        "MYSQL_HOST": "127.0.0.1",
+        "MYSQL_PORT": 3306,
+        "MYSQL_USERNAME": "",
+        "MYSQL_PASSWORD": "",
+        "MYSQL_DATABASE": "rpj_zero"
+      },
+      "fileServerType": "TYPE1",
+      "fileServerConfig": {
+        "folderPath": "jwelly/rpj_zero",
+        "url": "https://files.rpso.in/upload/",
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE2MjQ2MDY4Mjd9.M9JdIvFFzYa0gzM8BUos-HMdahsHi8byb-rn-KEThzY"
+      },
+      "name": "rpj_zero",
+      "cron": "*/30 7-22 * * 1-6"
+    },
+    {
+      "mysqlConfig": {
+        "MYSQL_HOST": "127.0.0.1",
+        "MYSQL_PORT": 3306,
+        "MYSQL_USERNAME": "",
+        "MYSQL_PASSWORD": "",
+        "MYSQL_DATABASE": "rpg_zero"
+      },
+      "fileServerType": "TYPE1",
+      "fileServerConfig": {
+        "folderPath": "jwelly/rpg_zero",
+        "url": "https://files.rpso.in/upload/",
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE2MjQ2MDY4Mjd9.M9JdIvFFzYa0gzM8BUos-HMdahsHi8byb-rn-KEThzY"
+      },
+      "name": "rpg_zero",
+      "cron": "*/30 7-22 * * 1-6"
+    },
+    {
+      "mysqlConfig": {
+        "MYSQL_HOST": "127.0.0.1",
+        "MYSQL_PORT": 3306,
+        "MYSQL_USERNAME": "",
+        "MYSQL_PASSWORD": "",
+        "MYSQL_DATABASE": "rpg_hero"
+      },
+      "fileServerType": "TYPE1",
+      "fileServerConfig": {
+        "folderPath": "jwelly/rpg_hero",
+        "url": "https://files.rpso.in/upload/",
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE2MjQ2MDY4Mjd9.M9JdIvFFzYa0gzM8BUos-HMdahsHi8byb-rn-KEThzY"
+      },
+      "name": "rpg_hero",
+      "cron": "*/30 7-22 * * 1-6"
+    },
+    {
+      "mysqlConfig": {
+        "MYSQL_HOST": "127.0.0.1",
+        "MYSQL_PORT": 3306,
+        "MYSQL_USERNAME": "",
+        "MYSQL_PASSWORD": "",
+        "MYSQL_DATABASE": "shubh_lax_n"
+      },
+      "fileServerType": "TYPE1",
+      "fileServerConfig": {
+        "folderPath": "jwelly/shubh_lax_n",
+        "url": "https://files.rpso.in/upload/",
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE2MjQ2MDY4Mjd9.M9JdIvFFzYa0gzM8BUos-HMdahsHi8byb-rn-KEThzY"
+      },
+      "name": "shubh_lax_n",
+      "cron": "*/30 7-22 * * 1-6"
+    }
+  ]
+}
