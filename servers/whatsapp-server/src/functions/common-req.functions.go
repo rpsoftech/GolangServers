@@ -5,7 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rpsoftech/golang-servers/interfaces"
-	whatsapp_config "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/config"
+	whatsapp_config "github.com/rpsoftech/golang-servers/utility/whatsapp/config"
 )
 
 func ExtractKeyFromHeader(c *fiber.Ctx, key string) string {

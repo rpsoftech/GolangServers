@@ -1,4 +1,4 @@
-package whatsapp
+package whatsapp_interfaces
 
 import (
 	"context"
@@ -15,26 +15,26 @@ import (
 	waLog "go.mau.fi/whatsmeow/util/log"
 )
 
-var SqlContainer *sqlstore.Container
+var sqlContainer *sqlstore.Container
 var ctx = context.Background()
 
 func InitSqlContainer() *sqlstore.Container {
-	if SqlContainer == nil {
+	if sqlContainer == nil {
 
 		dbLog := waLog.Stdout("Database", "WARN", true)
 		// Make sure you add appropriate DB connector imports, e.g. github.com/mattn/go-sqlite3 for SQLite
 		var err error
-		SqlContainer, err = sqlstore.New(ctx, "sqlite3", fmt.Sprintf("file:%s?_foreign_keys=on", filepath.Join(env.FindAndReturnCurrentDir(), "WhatsappSuperSecrete.db")), dbLog)
+		sqlContainer, err = sqlstore.New(ctx, "sqlite3", fmt.Sprintf("file:%s?_foreign_keys=on", filepath.Join(env.FindAndReturnCurrentDir(), "WhatsappSuperSecrete.db")), dbLog)
 		if err != nil {
 			panic(err)
 		}
 	}
-	return SqlContainer
+	return sqlContainer
 }
 
-func ConnectToNumber(jidString string, token string) {
+func ConnectToNumber(jidString string, token string, sqlContainer *sqlstore.Container) {
 	// SqlContainer.PutDevice()
-	if deviceStores, _ := SqlContainer.GetAllDevices(ctx); true {
+	if deviceStores, _ := sqlContainer.GetAllDevices(ctx); true {
 		for _, deviceStore := range deviceStores {
 			println(deviceStore.ID.User)
 		}
@@ -46,13 +46,13 @@ func ConnectToNumber(jidString string, token string) {
 	var deviceStore *store.Device
 	if !JID.IsEmpty() {
 		var err error
-		deviceStore, err = SqlContainer.GetDevice(ctx, JID)
+		deviceStore, err = sqlContainer.GetDevice(ctx, JID)
 		if err != nil {
 			println(err.Error())
 		}
 	}
 	if deviceStore == nil {
-		deviceStore = SqlContainer.NewDevice()
+		deviceStore = sqlContainer.NewDevice()
 		// deviceStore = types.DEv(number, types.DefaultUserServer)
 	}
 	clientLog := waLog.Stdout("Client", "ERROR", true)
