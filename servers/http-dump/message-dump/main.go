@@ -40,7 +40,7 @@ func main() {
 			var teleBot *messagedump_telegram.TelegramBotInstance
 			var whatsappBot *messagedump_whatsapp.WhatsappBotInstance
 			if config.TelegramConfig.TelegramServerUrl != "" && config.TelegramConfig.TelegramServerToken != "" {
-				println("Telegram Bot Token Found:")
+				println("Telegram Server URL: ", config.TelegramConfig.TelegramServerUrl)
 				teleBot = messagedump_telegram.CreateTelegramBotInstance(config.TelegramConfig.TelegramServerUrl, config.TelegramConfig.TelegramServerToken)
 
 			}
