@@ -11,3 +11,4 @@ GOOS=linux GOARCH=amd64 go build -o "dist/linux-amd64/mysql-to-surreal.o" -ldfla
 GOOS=linux GOARCH=amd64 go build -o "dist/linux-amd64/main-server.o" -ldflags "-s -w" -v ./servers/jwelly/main-server/main.go
 GOOS=linux GOARCH=amd64 go build -o "dist/linux-amd64/mysql-backup.o" -ldflags "-s -w" -v ./servers/jwelly/mysql-backup/main.go
 GOOS=linux GOARCH=amd64 go build -o "dist/linux-amd64/mysql-to-mysql.o" -ldflags "-s -w" -v ./servers/jwelly/mysql-to-mysql/main.go
+GOOS=linux GOARCH=amd64 go build -o "dist/linux-amd64/mysql-backup-cmd.o" -v -ldflags="-s -w" ./servers/jwelly/mysql-backup-cmd/main.go
