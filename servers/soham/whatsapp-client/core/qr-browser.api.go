@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
+	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
 )
 
 const index = `<!DOCTYPE html>
@@ -15,6 +16,7 @@ const index = `<!DOCTYPE html>
   </head>
   <body>
     <h1>Scan The QR Code to Log into whatsapp web account</h1>
+    <h2>Number: %s</h2>
     <img height="512" width="512" />
     <script>
       // get host url for api calling
@@ -59,7 +61,10 @@ const index = `<!DOCTYPE html>
 
 func OpenBrowserWithQr(c *fiber.Ctx) error {
 	id := c.Params("id")
-	// println(c.Hostname())
+	number, ok := whatsapp_config.WhatsappNumberToIDMap[id]
+	if !ok {
+		return c.Status(404).SendString("Invalid ID")
+	}
 	c.Set("Content-Type", "text/html; charset=utf-8")
-	return c.Send([]byte(fmt.Sprintf(index, id)))
+	return c.Send([]byte(fmt.Sprintf(index, number, id)))
 }

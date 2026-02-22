@@ -1,4 +1,4 @@
-package whatsapp_interfaces
+package whatsapp_core
 
 import (
 	"context"
@@ -11,9 +11,9 @@ import (
 
 	"github.com/mdp/qrterminal/v3"
 	"github.com/rpsoftech/golang-servers/env"
+	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
-	whatsapp_config "github.com/rpsoftech/golang-servers/utility/whatsapp/config"
 	whatsapp_utility "github.com/rpsoftech/golang-servers/utility/whatsapp/utility"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
@@ -82,6 +82,7 @@ func (connection *WhatsappConnection) ConnectAndGetQRCode() {
 					qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
 				}
 			} else {
+
 				fmt.Println("Login event:", evt.Event)
 			}
 		}

@@ -2,7 +2,7 @@ package whatsapp_server_apis
 
 import (
 	"github.com/gofiber/fiber/v2"
-	whatsapp_config "github.com/rpsoftech/golang-servers/utility/whatsapp/config"
+	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
 )
 
 func AppendTokenInConfigJSON(c *fiber.Ctx) error {

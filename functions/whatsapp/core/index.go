@@ -1,4 +1,4 @@
-package whatsapp_interfaces
+package whatsapp_core
 
 import (
 	"context"
