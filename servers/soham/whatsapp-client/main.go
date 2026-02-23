@@ -23,8 +23,6 @@ import (
 
 var version string
 
-// var app *fiber.App
-
 func main() {
 	soham_whatsapp_client_env.InialiseSohamWhatsappClientEnv()
 	println(version)
