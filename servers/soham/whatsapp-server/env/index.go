@@ -14,7 +14,10 @@ type whatsappEnv struct {
 
 var Env *whatsappEnv
 
-var WebsocketConnectionMap = make(map[string]*websocket.Conn)
+var (
+	WebsocketConnectionMap    = make(map[string]*websocket.Conn)
+	ConnectionNumberStatusMap = make(map[string]int)
+)
 
 func init() {
 	env.LoadEnv("whatsapp-server.env")

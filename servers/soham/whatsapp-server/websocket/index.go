@@ -24,6 +24,7 @@ func WhatsappClientWebsocketHandler(c *websocket.Conn) {
 	println("Websocket Connection Established with Number Token:", numberToken, "and UUID Token:", uuidToken)
 	// Handle WebSocket communication here
 	soham_whatsapp_server_env.WebsocketConnectionMap[numberToken] = c
+	soham_whatsapp_server_env.ConnectionNumberStatusMap[numberToken] = soham_common_req_keys.NOT_LOGGED_IN
 	for {
 		mt, msg, err := c.ReadMessage()
 		if err != nil {
@@ -34,4 +35,6 @@ func WhatsappClientWebsocketHandler(c *websocket.Conn) {
 		log.Printf("recv1: %d", mt)
 	}
 	delete(soham_whatsapp_server_env.WebsocketConnectionMap, numberToken)
+	delete(soham_whatsapp_server_env.ConnectionNumberStatusMap, numberToken)
+	log.Println("Websocket Connection Closed for Number Token:", numberToken)
 }
