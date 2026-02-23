@@ -16,6 +16,8 @@ import (
 	"github.com/rpsoftech/golang-servers/interfaces"
 	soham_whatsapp_client_apis "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/apis"
 	whatsapp_client_core "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/core"
+	soham_whatsapp_client_env "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/env"
+	soham_whatsapp_client_websocket "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/websoceket"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 )
 
@@ -24,8 +26,7 @@ var version string
 // var app *fiber.App
 
 func main() {
-	env.LoadEnv("whatsapp-client.env")
-	whatsapp_config.InitaliseWhatsappEnvAndConfig()
+	soham_whatsapp_client_env.InialiseSohamWhatsappClientEnv()
 	println(version)
 	go func() {
 		os.RemoveAll("./tmp")
@@ -39,16 +40,23 @@ func main() {
 	whatsapp_core.OutPutFilePath = ReturnOutPutFilePath(env.FindAndReturnCurrentDir())
 	container := whatsapp_core.InitSqlContainer()
 	if whatsapp_config.Env.AUTO_CONNECT_TO_WHATSAPP {
-		go func() {
-			for k, n := range whatsapp_config.WhatsappNumberConfigMap.Tokens {
-				jidString := whatsapp_config.WhatsappNumberConfigMap.JID[k]
-				whatsapp_config.WhatsappNumberToIDMap[k] = n
-				whatsapp_core.ConnectToNumber(jidString, k, container)
+		for k, n := range whatsapp_config.WhatsappNumberConfigMap.Tokens {
+			jidString := whatsapp_config.WhatsappNumberConfigMap.JID[k]
+			whatsapp_config.WhatsappNumberToIDMap[k] = n
+			go whatsapp_core.ConnectToNumber(jidString, k, container)
+			websokcetObj := soham_whatsapp_client_websocket.WebsocketConnectionObject{
+				Url:                   soham_whatsapp_client_env.SocketUrl,
+				Conn:                  nil,
+				UUID:                  k,
+				NUMBER:                n,
+				WhatsappConnectionMap: &whatsapp_core.ConnectionMap,
 			}
-		}()
+			go websokcetObj.InitalizeWebsocket()
+			go websokcetObj.CheckStatusAndSendResponse()
+		}
 	}
-	InitFiberServer()
 
+	InitFiberServer()
 }
 
 func InitFiberServer() {

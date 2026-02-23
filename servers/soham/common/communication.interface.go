@@ -4,6 +4,7 @@ type MessageType string
 
 const (
 	STATUS_MESSAGE    MessageType = "STATUS_MESSAGE"
+	REPSONSE_MESSAGE  MessageType = "RESPONSE_MESSAGE"
 	SEND_TEXT_MESSAGE MessageType = "SEND_TEXT_MESSAGE"
 )
 

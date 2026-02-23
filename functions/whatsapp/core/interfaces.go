@@ -115,7 +115,6 @@ func (connection *WhatsappConnection) eventHandler(evt interface{}) {
 		connection.Client.Store.Save(ctx)
 		connection.Number = connection.Client.Store.ID.User
 		go func() {
-			whatsapp_config.WhatsappNumberConfigMap.Tokens[connection.Token] = connection.Number
 			whatsapp_config.WhatsappNumberConfigMap.JID[connection.Token] = connection.Client.Store.ID.String()
 			whatsapp_config.WhatsappNumberConfigMap.Save()
 		}()
