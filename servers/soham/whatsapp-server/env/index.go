@@ -44,10 +44,10 @@ func init() {
 	env.ValidateEnv(Env)
 }
 
-func (c *WebsocketConnection) SendMessage(reqid string, s *soham_common_req_keys.SendTextMessage) error {
+func (c *WebsocketConnection) SendMessage(reqid string, messageType soham_common_req_keys.MessageType, s any) error {
 	return c.Conn.WriteJSON(soham_common_req_keys.WhatsappClientMessage{
 		ReqId:   reqid,
-		Type:    soham_common_req_keys.SEND_TEXT_MESSAGE,
+		Type:    messageType,
 		Message: s,
 	})
 }

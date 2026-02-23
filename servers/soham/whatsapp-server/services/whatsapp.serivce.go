@@ -27,7 +27,21 @@ func InialiseWhatsappService(reqIdMap *map[string]chan any, websocketConnectionM
 }
 
 func (w *whatsappService) SendTextMessage(s *soham_common_req_keys.SendTextMessage) (any, error) {
-	conn, ok := (*w.WebsocketConnectionMap)[s.From]
+	return w.sendMessage(soham_common_req_keys.SEND_TEXT_MESSAGE, s.From, s)
+}
+
+func (w *whatsappService) SendBase64Image(s *soham_common_req_keys.SendBase64Image) (any, error) {
+	return w.sendMessage(soham_common_req_keys.SEND_BASE64_IMAGE, s.From, s)
+}
+func (w *whatsappService) SendWebMedia(s *soham_common_req_keys.SendWebMediaType) (any, error) {
+	return w.sendMessage(soham_common_req_keys.SEND_WEB_MEDIA, s.From, s)
+}
+func (w *whatsappService) SendLocalMedia(s *soham_common_req_keys.SendFilePathMediaType) (any, error) {
+	return w.sendMessage(soham_common_req_keys.SEND_FILE_PATH_MEDIA, s.From, s)
+}
+
+func (w *whatsappService) sendMessage(messageType soham_common_req_keys.MessageType, from int, s any) (any, error) {
+	conn, ok := (*w.WebsocketConnectionMap)[from]
 	if !ok {
 		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusNotFound,
@@ -39,7 +53,7 @@ func (w *whatsappService) SendTextMessage(s *soham_common_req_keys.SendTextMessa
 	reqId := utility_functions.GenerateNewUUID()
 	(*w.ReqIdMap)[reqId] = make(chan any)
 	defer delete((*w.ReqIdMap), reqId)
-	err := conn.SendMessage(reqId, s)
+	err := conn.SendMessage(reqId, messageType, s)
 	if err != nil {
 		return nil, err
 	}
