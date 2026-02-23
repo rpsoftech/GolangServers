@@ -3,6 +3,7 @@ package soham_whatsapp_server_websocket
 import (
 	"encoding/json"
 	"log"
+	"strconv"
 
 	"github.com/gofiber/contrib/v3/websocket"
 	soham_common_req_keys "github.com/rpsoftech/golang-servers/servers/soham/common"
@@ -10,7 +11,7 @@ import (
 )
 
 func WhatsappClientWebsocketHandler(c *websocket.Conn) {
-	numberToken, ok := c.Locals(soham_common_req_keys.WHATSAPP_CLIENT_NUM_KEY).(string)
+	numberTokenString, ok := c.Locals(soham_common_req_keys.WHATSAPP_CLIENT_NUM_KEY).(string)
 	if !ok {
 		log.Println("Missing Number Token in WebSocket connection")
 		c.Close()
@@ -23,13 +24,23 @@ func WhatsappClientWebsocketHandler(c *websocket.Conn) {
 		return
 	}
 	println("Websocket Connection Established with Number Token:", uuidToken)
-	log.Printf("Connected ======> %s\n", numberToken)
-	soham_whatsapp_server_env.WebsocketConnectionMap[numberToken] = c
+	log.Printf("Connected ======> %s\n", numberTokenString)
+	numberToken, err := strconv.Atoi(numberTokenString)
+	if err != nil {
+		log.Println("Error converting number token to integer:", err)
+		c.Close()
+		return
+	}
+	connection := &soham_whatsapp_server_env.WebsocketConnection{
+		Conn:   c,
+		Status: soham_common_req_keys.NOT_LOGGED_IN,
+	}
+
+	soham_whatsapp_server_env.WebsocketConnectionMap[numberToken] = connection
 	soham_whatsapp_server_env.ConnectionNumberStatusMap[numberToken] = soham_common_req_keys.NOT_LOGGED_IN
+	log.Printf("Subscribed ======> %d\n", numberToken)
+	log.Printf("ConnectionStatus ======> %s\n", soham_common_req_keys.NOT_LOGGED_IN)
 	for {
-		log.Printf("Subscribed ======> %s\n", numberToken)
-		// console.log('Connection Status====>', a);
-		log.Printf("ConnectionStatus ======> %d\n", soham_common_req_keys.NOT_LOGGED_IN)
 		_, msg, err := c.ReadMessage()
 		if err != nil {
 			break
@@ -41,13 +52,24 @@ func WhatsappClientWebsocketHandler(c *websocket.Conn) {
 			continue
 		}
 		if whatsappClientMessage.Type == soham_common_req_keys.STATUS_MESSAGE {
-			status, ok := whatsappClientMessage.Message.(soham_common_req_keys.ConnectionStatus)
+			statusString, ok := whatsappClientMessage.Message.(string)
+			if !ok {
+				log.Printf("Invalid status message format: %+v\n", whatsappClientMessage)
+				continue
+			}
+			status, ok := soham_common_req_keys.StringToEnumConnectionStatus(statusString)
 			if ok {
-				// fmt.Printf("ConnectionStatus ======> %d\n", status)
+				// fmt.Printf("ConnectionStatus ======> %s\n", status)
 				if status == soham_common_req_keys.LOGGED_IN {
-					log.Printf("Loggedin =====> %s", numberToken)
+					log.Printf("Loggedin =====> %d", numberToken)
 				}
 				soham_whatsapp_server_env.ConnectionNumberStatusMap[numberToken] = status
+			}
+		} else if whatsappClientMessage.ReqId != "" {
+			if ch, ok := soham_whatsapp_server_env.ReqestIdMap[whatsappClientMessage.ReqId]; ok {
+				ch <- whatsappClientMessage.Message
+			} else {
+				log.Printf("Request ID not found: %+v", whatsappClientMessage)
 			}
 		} else {
 			log.Printf("Unmarshalled Message: %+v", whatsappClientMessage)
@@ -56,5 +78,5 @@ func WhatsappClientWebsocketHandler(c *websocket.Conn) {
 	delete(soham_whatsapp_server_env.WebsocketConnectionMap, numberToken)
 	delete(soham_whatsapp_server_env.ConnectionNumberStatusMap, numberToken)
 	log.Println("Websocket Connection Closed for Number Token:", numberToken)
-	log.Printf("Unsubscribed =====> %s", numberToken)
+	log.Printf("Unsubscribed =====> %d", numberToken)
 }

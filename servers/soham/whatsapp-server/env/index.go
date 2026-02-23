@@ -7,25 +7,34 @@ import (
 	soham_common_req_keys "github.com/rpsoftech/golang-servers/servers/soham/common"
 )
 
-type whatsappEnv struct {
-	DefaultEnv *env.DefaultEnvInterface
-	BASE_UUID  string    `json:"BASE_UUID" validate:"required"`
-	UUIDObj    uuid.UUID `json:"-" validate:"-"`
-}
+type (
+	whatsappEnv struct {
+		DefaultEnv       *env.DefaultEnvInterface
+		BASE_UUID        string    `json:"BASE_UUID" validate:"required"`
+		ACCESS_TOKEN_KEY string    `json:"ACCESS_TOKEN_KEY" validate:"required,min=10"`
+		UUIDObj          uuid.UUID `json:"-" validate:"-"`
+	}
+	WebsocketConnection struct {
+		Conn   *websocket.Conn
+		Status soham_common_req_keys.ConnectionStatus
+	}
+)
 
 var Env *whatsappEnv
 
 var (
-	WebsocketConnectionMap    = make(map[string]*websocket.Conn)
-	ConnectionNumberStatusMap = make(map[string]soham_common_req_keys.ConnectionStatus)
+	WebsocketConnectionMap    = make(map[int]*WebsocketConnection)
+	ConnectionNumberStatusMap = make(map[int]soham_common_req_keys.ConnectionStatus)
+	ReqestIdMap               = make(map[string]chan any)
 )
 
 func init() {
 	env.LoadEnv("whatsapp-server.env")
 	println("WhatsApp ServerEnv Initialized")
 	Env = &whatsappEnv{
-		DefaultEnv: env.Env,
-		BASE_UUID:  env.Env.GetEnv("BASE_UUID"),
+		DefaultEnv:       env.Env,
+		BASE_UUID:        env.Env.GetEnv("BASE_UUID"),
+		ACCESS_TOKEN_KEY: env.Env.GetEnv("ACCESS_TOKEN_KEY"),
 	}
 	uuidObj, err := uuid.Parse(Env.BASE_UUID)
 	if err != nil {
@@ -33,4 +42,12 @@ func init() {
 	}
 	Env.UUIDObj = uuidObj
 	env.ValidateEnv(Env)
+}
+
+func (c *WebsocketConnection) SendMessage(reqid string, s *soham_common_req_keys.SendTextMessage) error {
+	return c.Conn.WriteJSON(soham_common_req_keys.WhatsappClientMessage{
+		ReqId:   reqid,
+		Type:    soham_common_req_keys.SEND_TEXT_MESSAGE,
+		Message: s,
+	})
 }
