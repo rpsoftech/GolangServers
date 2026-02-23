@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/contrib/v3/websocket"
 	"github.com/google/uuid"
 	"github.com/rpsoftech/golang-servers/env"
+	soham_common_req_keys "github.com/rpsoftech/golang-servers/servers/soham/common"
 )
 
 type whatsappEnv struct {
@@ -16,7 +17,7 @@ var Env *whatsappEnv
 
 var (
 	WebsocketConnectionMap    = make(map[string]*websocket.Conn)
-	ConnectionNumberStatusMap = make(map[string]int)
+	ConnectionNumberStatusMap = make(map[string]soham_common_req_keys.ConnectionStatus)
 )
 
 func init() {

@@ -1,6 +1,7 @@
 package soham_whatsapp_server_websocket
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/gofiber/contrib/v3/websocket"
@@ -21,20 +22,39 @@ func WhatsappClientWebsocketHandler(c *websocket.Conn) {
 		c.Close()
 		return
 	}
-	println("Websocket Connection Established with Number Token:", numberToken, "and UUID Token:", uuidToken)
-	// Handle WebSocket communication here
+	println("Websocket Connection Established with Number Token:", uuidToken)
+	log.Printf("Connected ======> %s\n", numberToken)
 	soham_whatsapp_server_env.WebsocketConnectionMap[numberToken] = c
 	soham_whatsapp_server_env.ConnectionNumberStatusMap[numberToken] = soham_common_req_keys.NOT_LOGGED_IN
 	for {
-		mt, msg, err := c.ReadMessage()
+		log.Printf("Subscribed ======> %s\n", numberToken)
+		// console.log('Connection Status====>', a);
+		log.Printf("ConnectionStatus ======> %d\n", soham_common_req_keys.NOT_LOGGED_IN)
+		_, msg, err := c.ReadMessage()
 		if err != nil {
-			log.Println("read:", err)
 			break
 		}
-		log.Printf("recv: %s", msg)
-		log.Printf("recv1: %d", mt)
+		var whatsappClientMessage soham_common_req_keys.WhatsappClientMessage
+		err = json.Unmarshal(msg, &whatsappClientMessage)
+		if err != nil {
+			log.Println("Error unmarshalling message:", err)
+			continue
+		}
+		if whatsappClientMessage.Type == soham_common_req_keys.STATUS_MESSAGE {
+			status, ok := whatsappClientMessage.Message.(soham_common_req_keys.ConnectionStatus)
+			if ok {
+				// fmt.Printf("ConnectionStatus ======> %d\n", status)
+				if status == soham_common_req_keys.LOGGED_IN {
+					log.Printf("Loggedin =====> %s", numberToken)
+				}
+				soham_whatsapp_server_env.ConnectionNumberStatusMap[numberToken] = status
+			}
+		} else {
+			log.Printf("Unmarshalled Message: %+v", whatsappClientMessage)
+		}
 	}
 	delete(soham_whatsapp_server_env.WebsocketConnectionMap, numberToken)
 	delete(soham_whatsapp_server_env.ConnectionNumberStatusMap, numberToken)
 	log.Println("Websocket Connection Closed for Number Token:", numberToken)
+	log.Printf("Unsubscribed =====> %s", numberToken)
 }

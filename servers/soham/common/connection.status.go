@@ -1,7 +1,9 @@
 package soham_common_req_keys
 
+type ConnectionStatus int
+
 const (
-	DISCONNECTED  = 0
-	NOT_LOGGED_IN = -1
-	LOGGED_IN     = 1
+	DISCONNECTED  ConnectionStatus = 0
+	NOT_LOGGED_IN ConnectionStatus = -1
+	LOGGED_IN     ConnectionStatus = 1
 )
