@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/tls"
+
 	"github.com/gofiber/contrib/v3/websocket"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
@@ -45,5 +47,8 @@ func main() {
 		hostAndPort = "127.0.0.1"
 	}
 	hostAndPort = hostAndPort + ":" + env.GetServerPort(env.PORT_KEY)
-	app.Listen(hostAndPort)
+	app.Listen(hostAndPort, fiber.ListenConfig{
+		// TLSConfig: ,
+		TLSMinVersion: tls.VersionTLS10,
+	})
 }
