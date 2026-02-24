@@ -106,7 +106,6 @@ func (connection *WhatsappConnection) eventHandler(evt interface{}) {
 		delete(ConnectionMap, connection.Token)
 		delete(whatsapp_config.WhatsappNumberConfigMap.Tokens, connection.Token)
 		delete(whatsapp_config.WhatsappNumberConfigMap.JID, connection.Token)
-		// whatsapp_config.WhatsappNumberConfigMap.Tokens[connection.Token] = ""
 		whatsapp_config.WhatsappNumberConfigMap.Save()
 		go connection.ConnectAndGetQRCode()
 	case *events.Connected:
@@ -114,7 +113,6 @@ func (connection *WhatsappConnection) eventHandler(evt interface{}) {
 		connection.Client.Store.Save(ctx)
 		connection.Number = connection.Client.Store.ID.User
 		go func() {
-			whatsapp_config.WhatsappNumberConfigMap.Tokens[connection.Token] = connection.Number
 			whatsapp_config.WhatsappNumberConfigMap.JID[connection.Token] = connection.Client.Store.ID.String()
 			whatsapp_config.WhatsappNumberConfigMap.Save()
 		}()

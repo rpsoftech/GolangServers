@@ -47,8 +47,9 @@ func main() {
 		hostAndPort = "127.0.0.1"
 	}
 	hostAndPort = hostAndPort + ":" + env.GetServerPort(env.PORT_KEY)
-	app.Listen(hostAndPort, fiber.ListenConfig{
+	tlsConfig := fiber.ListenConfig{
 		// TLSConfig: ,
 		TLSMinVersion: tls.VersionTLS10,
-	})
+	}
+	app.Listen(hostAndPort, tlsConfig)
 }
