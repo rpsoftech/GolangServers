@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"path"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -137,12 +136,8 @@ func (w *WebsocketConnectionObject) SendTextMessage(wcm *soham_common_req_keys.W
 		})
 		return
 	}
-	toNumber := make([]string, len(body.To))
-	for i, v := range body.To {
-		toNumber[i] = strconv.Itoa(v)
-	}
 
-	resp := wc.SendTextMessage(toNumber, body.Message)
+	resp := wc.SendTextMessage(body.To, body.Message)
 	w.SendResponse(&soham_common_req_keys.WhatsappClientMessage{
 		ReqId:   reqId,
 		Type:    soham_common_req_keys.REPSONSE_MESSAGE,
@@ -192,12 +187,8 @@ func (w *WebsocketConnectionObject) SendBase64Image(wcm *soham_common_req_keys.W
 		})
 		return
 	}
-	toNumber := make([]string, len(body.To))
-	for i, v := range body.To {
-		toNumber[i] = strconv.Itoa(v)
-	}
 
-	resp := wc.SendMediaFileBase64(toNumber, body.Base64, body.Media, body.ImageDesc)
+	resp := wc.SendMediaFileBase64(body.To, body.Base64, body.Media, body.ImageDesc)
 	w.SendResponse(&soham_common_req_keys.WhatsappClientMessage{
 		ReqId:   reqId,
 		Type:    soham_common_req_keys.REPSONSE_MESSAGE,
@@ -257,12 +248,8 @@ func (w *WebsocketConnectionObject) SendWebMedia(wcm *soham_common_req_keys.What
 		})
 		return
 	}
-	toNumber := make([]string, len(body.To))
-	for i, v := range body.To {
-		toNumber[i] = strconv.Itoa(v)
-	}
 
-	resp := wc.SendMediaFileWithPath(toNumber, filePath, body.MediaName, body.ImageDesc)
+	resp := wc.SendMediaFileWithPath(body.To, filePath, body.MediaName, body.ImageDesc)
 	w.SendResponse(&soham_common_req_keys.WhatsappClientMessage{
 		ReqId:   reqId,
 		Type:    soham_common_req_keys.REPSONSE_MESSAGE,
@@ -311,12 +298,8 @@ func (w *WebsocketConnectionObject) SendMediaWithFilePath(wcm *soham_common_req_
 		})
 		return
 	}
-	toNumber := make([]string, len(body.To))
-	for i, v := range body.To {
-		toNumber[i] = strconv.Itoa(v)
-	}
 
-	resp := wc.SendMediaFileWithPath(toNumber, body.LocalMediaPath, filepath.Base(body.LocalMediaPath), body.ImageDesc)
+	resp := wc.SendMediaFileWithPath(body.To, body.LocalMediaPath, filepath.Base(body.LocalMediaPath), body.ImageDesc)
 	w.SendResponse(&soham_common_req_keys.WhatsappClientMessage{
 		ReqId:   reqId,
 		Type:    soham_common_req_keys.REPSONSE_MESSAGE,
