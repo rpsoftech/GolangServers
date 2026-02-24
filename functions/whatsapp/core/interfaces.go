@@ -62,6 +62,7 @@ func (connection *WhatsappConnection) ReturnStatusError() error {
 }
 
 func (connection *WhatsappConnection) ConnectAndGetQRCode() {
+	ConnectionMap[connection.Token] = connection
 	if connection.Client.Store.ID == nil {
 		// No ID stored, new login
 		if whatsapp_config.Env.OPEN_BROWSER_FOR_SCAN {
@@ -102,14 +103,14 @@ func (connection *WhatsappConnection) eventHandler(evt interface{}) {
 	case *events.LoggedOut:
 		// Send Status
 		// connection.ConnectionStatus = -1
-		connection.Client.Logout(ctx)
-		connection.Client.Store.Delete(ctx)
+		// connection.Client.Disconnect()
+		if err := connection.Client.Logout(ctx); err != nil {
+			connection.Client.Disconnect()
+			connection.Client.Store.Delete(ctx)
+		}
 		println(connection.Number, " Logged Out")
-		connection.Client.Disconnect()
 		delete(ConnectionMap, connection.Token)
-		delete(whatsapp_config.WhatsappNumberConfigMap.Tokens, connection.Token)
 		delete(whatsapp_config.WhatsappNumberConfigMap.JID, connection.Token)
-		// whatsapp_config.WhatsappNumberConfigMap.Tokens[connection.Token] = ""
 		whatsapp_config.WhatsappNumberConfigMap.Save()
 		go connection.ConnectAndGetQRCode()
 	case *events.Connected:
