@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -60,7 +61,7 @@ func main() {
 	}
 
 	sslPath := filepath.Join(env.FindAndReturnCurrentDir(), "ssl.config.json")
-	if _, err := utility_functions.Exist(sslPath); err != nil {
+	if _, err := utility_functions.Exist(sslPath); err == nil {
 		sslConfig := new(interfaces.SSLConfig)
 		dat, err := os.ReadFile(sslPath)
 		env.Check(err)
@@ -77,26 +78,22 @@ func main() {
 			log.Printf("SSL Key File Not Exist at %s", sslConfig.KeyFilePath)
 			return
 		}
-		cert, err := os.ReadFile(sslConfig.CertFilePath)
-		if err != nil {
-			log.Printf("Error Reading SSL Cert File at %s, Error: %v", sslConfig.CertFilePath, err)
-			return
-		}
-		key, err := os.ReadFile(sslConfig.KeyFilePath)
-		if err != nil {
-			log.Printf("Error Reading SSL Key File at %s, Error: %v", sslConfig.KeyFilePath, err)
-			return
-		}
-		certificate, err := tls.X509KeyPair(cert, key)
+		certificate, err := tls.LoadX509KeyPair(sslConfig.CertFilePath, sslConfig.KeyFilePath)
 		if err != nil {
 			log.Printf("Error Loading SSL Certificate, Error: %v", err)
 			return
 		}
+		caCertPool := x509.NewCertPool()
+		caCert, err := os.ReadFile("/Users/keyurshah/Projects/GolangServers/ssl/fullchain.crt")
+		if err != nil {
+			log.Printf("Error Reading CA Certificate File, Error: %v", err)
+			return
+		}
+		caCertPool.AppendCertsFromPEM(caCert)
+		tlsConfig.CertClientFile = sslConfig.CertFilePath
 		tlsConfig.TLSConfig = &tls.Config{
-			GetCertificate: func(chi *tls.ClientHelloInfo) (*tls.Certificate, error) {
-				return &certificate, nil
-			},
-			// Certificates: []tls.Certificate{certificate},
+			RootCAs:      caCertPool,
+			Certificates: []tls.Certificate{certificate},
 		}
 		// tlsConfig.TLSConfig.Certificates =
 		// key := sslConfig.KeyFilePath
