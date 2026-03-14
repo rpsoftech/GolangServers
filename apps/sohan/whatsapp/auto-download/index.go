@@ -1,0 +1,251 @@
+package sohan_whatsapp_auto_download
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"runtime"
+	"time"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/widget"
+	soham_whatsapp_gui_config "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/config"
+)
+
+const VersionFileName = "client-version.json"
+
+type VersionInfo struct {
+	Version int    `json:"version"`
+	URL     string `json:"url"`
+	SHA256  string `json:"sha256"`
+}
+
+type progressReader struct {
+	reader   io.Reader
+	total    int64
+	read     int64
+	progress *widget.ProgressBar
+}
+
+func (p *progressReader) Read(buf []byte) (int, error) {
+
+	n, err := p.reader.Read(buf)
+
+	p.read += int64(n)
+
+	if p.total > 0 {
+
+		value := float64(p.read) / float64(p.total)
+
+		fyne.Do(func() {
+			p.progress.SetValue(value)
+		})
+	}
+
+	return n, err
+}
+
+var checkAndRunCalled = false
+
+func sha256File(path string) (string, error) {
+
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	hash := sha256.New()
+
+	_, err = io.Copy(hash, file)
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+// OLD Function
+// func downloadFile(url string, path string) error {
+
+// 	resp, err := http.Get(url)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer resp.Body.Close()
+
+// 	out, err := os.Create(path)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer out.Close()
+
+// 	_, err = io.Copy(out, resp.Body)
+
+// 	return err
+// }
+
+func GetVersionEndpoint() string {
+
+	switch fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH) {
+	// soham_go_wbot_darwin_amd64
+	case "windows_amd64":
+		return "https://keyvalue.rpso.in/public/soham_go_wbot_windows_amd64"
+
+	case "darwin_amd64":
+		return "https://keyvalue.rpso.in/public/soham_go_wbot_darwin_amd64"
+	case "darwin_arm64":
+		return "https://keyvalue.rpso.in/public/soham_go_wbot_darwin_arm64"
+
+	default:
+		return ""
+	}
+}
+
+func CheckAndDownload(progress *widget.ProgressBar, win fyne.Window) string {
+	serverBinary := "whatsapp-client.o"
+	if runtime.GOOS == "windows" {
+		serverBinary = "whatsapp-client.exe"
+	}
+	if checkAndRunCalled {
+		return serverBinary
+	}
+	endpoint := GetVersionEndpoint()
+	if endpoint == "" {
+		panic(fmt.Errorf("Endpoint Not Found For %s and %s", runtime.GOOS, runtime.GOARCH))
+	}
+	resp, err := http.Get(endpoint)
+	if err != nil {
+		fmt.Println("Error in Downloading client file")
+		panic(err)
+	}
+	defer resp.Body.Close()
+	var cloud VersionInfo
+	json.NewDecoder(resp.Body).Decode(&cloud)
+
+	var local VersionInfo
+
+	data, err := os.ReadFile(VersionFileName)
+	if err == nil {
+		json.Unmarshal(data, &local)
+	}
+
+	tmpFile := serverBinary + ".tmp"
+
+	needDownload := false
+
+	if _, err := os.Stat(serverBinary); os.IsNotExist(err) {
+		needDownload = true
+	}
+
+	if local.Version != cloud.Version {
+		needDownload = true
+	}
+
+	if needDownload {
+		os.Remove(tmpFile)
+		fyne.DoAndWait(func() {
+			win.Show()
+		})
+		err := downloadFileWithProgress(cloud.URL, tmpFile, progress)
+		if err != nil {
+			if _, err := os.Stat(serverBinary); os.IsNotExist(err) {
+				panic(fmt.Errorf("File Downloading Failed"))
+				// needDownload = true
+			}
+			return serverBinary
+		}
+
+		hash, err := sha256File(tmpFile)
+		if err != nil {
+			return serverBinary
+		}
+
+		if hash != cloud.SHA256 {
+			os.Remove(tmpFile)
+			return serverBinary
+		}
+		err = replaceBinarySafe(tmpFile, serverBinary)
+		if err != nil {
+			log.Println("Binary replace failed:", err)
+			return serverBinary
+		}
+		vdata, _ := json.Marshal(cloud)
+		os.WriteFile(VersionFileName, vdata, 0644)
+	}
+	checkAndRunCalled = true
+	return serverBinary
+}
+
+func downloadFileWithProgress(url string, filepath string, progress *widget.ProgressBar) error {
+	client := &http.Client{
+		Timeout: 500 * time.Second,
+	}
+	resp, err := client.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	out, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	total := resp.ContentLength
+	if total <= 0 {
+		// unknown size → indeterminate progress
+		fyne.Do(func() {
+			progress.SetValue(0)
+		})
+	}
+
+	pr := &progressReader{
+		reader:   resp.Body,
+		total:    total,
+		progress: progress,
+	}
+
+	_, err = io.Copy(out, pr)
+	return err
+}
+
+func replaceBinarySafe(tmpFile string, serverBinary string) error {
+
+	// stop server first
+	if soham_whatsapp_gui_config.ServerCmd != nil && soham_whatsapp_gui_config.ServerCmd.Process != nil {
+		soham_whatsapp_gui_config.ServerCmd.Process.Kill()
+		time.Sleep(1 * time.Second)
+	}
+
+	// backup existing binary
+	backup := serverBinary + ".old"
+
+	os.Remove(backup)
+
+	if _, err := os.Stat(serverBinary); err == nil {
+		os.Rename(serverBinary, backup)
+	}
+
+	// move new binary
+	err := os.Rename(tmpFile, serverBinary)
+	if err != nil {
+		return err
+	}
+
+	// macOS / Linux need execute permission
+	if runtime.GOOS != "windows" {
+		os.Chmod(serverBinary, 0755)
+	}
+
+	// cleanup backup
+	os.Remove(backup)
+
+	return nil
+}
