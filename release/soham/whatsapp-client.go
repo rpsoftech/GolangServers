@@ -71,7 +71,7 @@ func main() {
 			buildFilePath,
 		)
 		cmd.Env = os.Environ()
-		cmd.Env = append(cmd.Env, fmt.Sprintf("GOOS=%s", arch))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("GOARCH=%s", arch))
 		log.Printf("running command %s", cmd.String())
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
