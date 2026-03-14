@@ -27,7 +27,7 @@ jobs:
       - name: Extract version from tag
         id: version
         run: |
-          TAG=${GITHUB_REF#refs/tags/server-v}
+          TAG=${GITHUB_REF#refs/tags/soham-v}
           echo "VERSION=$TAG" >> $GITHUB_ENV
 
       - name: Run builder
