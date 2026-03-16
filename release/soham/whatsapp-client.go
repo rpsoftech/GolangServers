@@ -148,7 +148,7 @@ func uploadFile(path string, filename string, uploadPath string) error {
 		return err
 	}
 	client := &http.Client{
-		Timeout: time.Second * 120,
+		Timeout: time.Second * 540,
 	}
 	io.Copy(part, file)
 
