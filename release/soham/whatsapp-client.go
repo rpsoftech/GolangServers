@@ -37,11 +37,16 @@ type VersionInfo struct {
 
 func main() {
 
+	version := ""
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: builder <version>")
-		return
+		if os.Getenv("VERSION") == "" {
+			fmt.Println("Usage: builder <version>")
+			return
+		}
+		version = os.Getenv("VERSION")
+	} else {
+		version = os.Args[1]
 	}
-	version := os.Args[1]
 	err := os.MkdirAll("build", 0755)
 	if err != nil {
 		panic(err)
@@ -60,7 +65,6 @@ func main() {
 	serverBinaryPath := filepath.Join("build", serverBinary)
 	for _, arch := range archs {
 		fmt.Printf("Building server for %s...", arch)
-
 		cmd := exec.Command(
 			"go",
 			"build",
