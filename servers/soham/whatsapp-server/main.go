@@ -60,7 +60,7 @@ func main() {
 	}
 
 	sslPath := filepath.Join(env.FindAndReturnCurrentDir(), "ssl.config.json")
-	if _, err := utility_functions.Exist(sslPath); err != nil {
+	if _, err := utility_functions.Exist(sslPath); err == nil {
 		sslConfig := new(interfaces.SSLConfig)
 		dat, err := os.ReadFile(sslPath)
 		env.Check(err)
