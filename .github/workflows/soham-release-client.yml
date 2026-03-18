@@ -1,0 +1,48 @@
+name: Soham Release Server
+
+on:
+  push:
+    tags:
+      - "soham-v*"
+
+jobs:
+
+  release:
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Extract version from tag
+        id: version
+        shell: bash
+        run: |
+          TAG=${GITHUB_REF#refs/tags/soham-v}
+          echo "VERSION=$TAG" >> $GITHUB_ENV
+          export CGO_ENABLED=1
+
+      - name: Debug Runner Info
+        run: |
+          echo "OS: $RUNNER_OS"
+          echo "Ref: $GITHUB_REF"
+          echo "Workspace: $GITHUB_WORKSPACE"
+
+      - name: Run builder
+        env:
+          FILE_SERVER_TOKEN: ${{ secrets.FILE_SERVER_TOKEN }}
+          KV_TOKEN: ${{ secrets.KEYVALUETOKEN }}
+        run: |
+          go run release/soham/whatsapp-client.go ${{ env.VERSION }}

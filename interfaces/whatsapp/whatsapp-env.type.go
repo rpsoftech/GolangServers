@@ -40,6 +40,13 @@ func ReadConfigFileAndReturniserverConfig(configFilePath string) *IServerConfig 
 	return config
 }
 
+func (sc *IServerConfig) GetConfigPath() string {
+	return sc.configFilePath
+}
+func (sc *IServerConfig) SetConfigPath(path string) *IServerConfig {
+	sc.configFilePath = path
+	return sc
+}
 func (sc *IServerConfig) Save() {
 	byteJson, err := json.MarshalIndent(sc, "", "    ")
 	if err != nil {
