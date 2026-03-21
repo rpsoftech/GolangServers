@@ -44,7 +44,7 @@ jobs:
 
       - name: Run builder
         env:
-          FILE_SERVER_TOKEN: ${{ vars.FILE_SERVER_TOKEN }}
-          KV_TOKEN: ${{ vars.KEYVALUETOKEN }}
+          FILE_SERVER_TOKEN: ${{ env.FILE_SERVER_TOKEN }}
+          KV_TOKEN: ${{ env.KEYVALUETOKEN }}
         run: |
           go run release/soham/whatsapp-client.go ${{ env.VERSION }}
