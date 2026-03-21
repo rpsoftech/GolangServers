@@ -4,9 +4,6 @@ on:
   push:
     tags:
       - "soham-v*"
-    branches:
-      - tags/*
-
 jobs:
 
   release:
