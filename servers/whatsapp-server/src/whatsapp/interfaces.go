@@ -11,10 +11,10 @@ import (
 
 	"github.com/mdp/qrterminal/v3"
 	"github.com/rpsoftech/golang-servers/env"
+	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
 	"github.com/rpsoftech/golang-servers/interfaces"
-	whatsapp_config "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/config"
-	whatsapp_utility "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/utility"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
+	whatsapp_utility "github.com/rpsoftech/golang-servers/utility/whatsapp/utility"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types/events"
@@ -106,7 +106,6 @@ func (connection *WhatsappConnection) eventHandler(evt interface{}) {
 		delete(ConnectionMap, connection.Token)
 		delete(whatsapp_config.WhatsappNumberConfigMap.Tokens, connection.Token)
 		delete(whatsapp_config.WhatsappNumberConfigMap.JID, connection.Token)
-		// whatsapp_config.WhatsappNumberConfigMap.Tokens[connection.Token] = ""
 		whatsapp_config.WhatsappNumberConfigMap.Save()
 		go connection.ConnectAndGetQRCode()
 	case *events.Connected:
@@ -114,7 +113,6 @@ func (connection *WhatsappConnection) eventHandler(evt interface{}) {
 		connection.Client.Store.Save(ctx)
 		connection.Number = connection.Client.Store.ID.User
 		go func() {
-			whatsapp_config.WhatsappNumberConfigMap.Tokens[connection.Token] = connection.Number
 			whatsapp_config.WhatsappNumberConfigMap.JID[connection.Token] = connection.Client.Store.ID.String()
 			whatsapp_config.WhatsappNumberConfigMap.Save()
 		}()

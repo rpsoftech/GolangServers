@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
-	whatsapp_config "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/config"
+	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
 	whatsapp_functions "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/functions"
 	"github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/whatsapp"
 )

@@ -18,14 +18,18 @@ import (
 var SqlContainer *sqlstore.Container
 var ctx = context.Background()
 
-func InitSqlContainer() {
-	dbLog := waLog.Stdout("Database", "WARN", true)
-	// Make sure you add appropriate DB connector imports, e.g. github.com/mattn/go-sqlite3 for SQLite
-	var err error
-	SqlContainer, err = sqlstore.New(ctx, "sqlite3", fmt.Sprintf("file:%s?_foreign_keys=on", filepath.Join(env.FindAndReturnCurrentDir(), "WhatsappSuperSecrete.db")), dbLog)
-	if err != nil {
-		panic(err)
+func InitSqlContainer() *sqlstore.Container {
+	if SqlContainer == nil {
+
+		dbLog := waLog.Stdout("Database", "WARN", true)
+		// Make sure you add appropriate DB connector imports, e.g. github.com/mattn/go-sqlite3 for SQLite
+		var err error
+		SqlContainer, err = sqlstore.New(ctx, "sqlite3", fmt.Sprintf("file:%s?_foreign_keys=on", filepath.Join(env.FindAndReturnCurrentDir(), "WhatsappSuperSecrete.db")), dbLog)
+		if err != nil {
+			panic(err)
+		}
 	}
+	return SqlContainer
 }
 
 func ConnectToNumber(jidString string, token string) {
@@ -54,14 +58,7 @@ func ConnectToNumber(jidString string, token string) {
 	clientLog := waLog.Stdout("Client", "ERROR", true)
 	client := whatsmeow.NewClient(deviceStore, clientLog)
 	client.EnableAutoReconnect = true
-	// client.
 	println(client.LastSuccessfulConnect.String())
-
-	// client.MessengerConfig = &whatsmeow.MessengerConfig{
-	// 	UserAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-	// 	BaseURL:   "https://web.whatsapp.com",
-	// }
-	// client.PairPhone()
 	connection := &WhatsappConnection{Client: client, ConnectionStatus: 0, SyncFinished: false, Token: token}
 	ConnectionMap[token] = connection
 	client.AddEventHandler(connection.eventHandler)
