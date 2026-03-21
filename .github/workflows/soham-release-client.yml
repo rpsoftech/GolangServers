@@ -18,6 +18,8 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
 
+    environment: Production
+
     steps:
 
       - name: Checkout repository
@@ -44,7 +46,7 @@ jobs:
 
       - name: Run builder
         env:
-          FILE_SERVER_TOKEN: ${{ env.FILE_SERVER_TOKEN }}
-          KV_TOKEN: ${{ env.KEYVALUETOKEN }}
+          FILE_SERVER_TOKEN: ${{ secrets.FILE_SERVER_TOKEN }}
+          KV_TOKEN: ${{ secrets.KEYVALUETOKEN }}
         run: |
           go run release/soham/whatsapp-client.go ${{ env.VERSION }}
