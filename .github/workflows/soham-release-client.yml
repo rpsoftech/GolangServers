@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - "soham-v*"
-
 jobs:
 
   release:
@@ -16,10 +15,12 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
 
+    environment: Production
+
     steps:
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Go
         uses: actions/setup-go@v5

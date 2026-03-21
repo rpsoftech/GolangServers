@@ -36,7 +36,8 @@ type VersionInfo struct {
 }
 
 func main() {
-
+	fmt.Printf("File token length: %d\n", len(fileServerToken))
+	fmt.Printf("Keyvalue token length: %d\n", len(kvToken))
 	version := ""
 	if len(os.Args) < 2 {
 		if os.Getenv("VERSION") == "" {
