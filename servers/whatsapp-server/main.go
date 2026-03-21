@@ -10,9 +10,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/rpsoftech/golang-servers/env"
+	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	whatsapp_server_apis "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/apis"
-	whatsapp_config "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/config"
 	whatsapp_server_middleware "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/middleware"
 	"github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/whatsapp"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
@@ -24,6 +24,7 @@ var version string
 
 func main() {
 	env.LoadEnv("whatsapp-server.env")
+	whatsapp_config.InitaliseWhatsappEnvAndConfig()
 	println(version)
 	go func() {
 		os.RemoveAll("./tmp")

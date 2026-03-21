@@ -12,3 +12,6 @@ GOOS=windows GOARCH=amd64 go build -o "dist/windows-amd64/main-server.exe" -v -l
 GOOS=windows GOARCH=amd64 go build -o "dist/windows-amd64/mysql-backup.exe" -v -ldflags="-s -w" ./servers/jwelly/mysql-backup/main.go
 GOOS=windows GOARCH=amd64 go build -o "dist/windows-amd64/mysql-to-mysql.exe" -v -ldflags="-s -w" ./servers/jwelly/mysql-to-mysql/main.go
 GOOS=windows GOARCH=amd64 go build -o "dist/windows-amd64/mysql-backup-cmd.exe" -v -ldflags="-s -w" ./servers/jwelly/mysql-backup-cmd/main.go
+GOOS=windows GOARCH=amd64 go build -o "dist/windows-amd64/bgprocess.exe" -v -ldflags="-s -w" ./servers/background-service/main.go
+GOOS=windows GOARCH=amd64 go build -o "dist/windows-amd64/soham/whatsapp-server.exe" -v -ldflags="-s -w" ./servers/soham/whatsapp-server/main.go
+GOOS=windows GOARCH=amd64 go build -o "dist/windows-amd64/soham/whatsapp-client.exe" -v -ldflags="-s -w" ./servers/soham/whatsapp-client/main.go

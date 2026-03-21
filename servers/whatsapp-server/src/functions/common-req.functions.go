@@ -5,7 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rpsoftech/golang-servers/interfaces"
-	whatsapp_config "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/config"
+	whatsapp_interfaces "github.com/rpsoftech/golang-servers/interfaces/whatsapp"
 )
 
 func ExtractKeyFromHeader(c *fiber.Ctx, key string) string {
@@ -17,7 +17,7 @@ func ExtractKeyFromHeader(c *fiber.Ctx, key string) string {
 	}
 }
 func ExtractNumberFromCtx(c *fiber.Ctx) (string, error) {
-	id, ok := c.Locals(whatsapp_config.REQ_LOCAL_NUMBER_KEY).(string)
+	id, ok := c.Locals(whatsapp_interfaces.REQ_LOCAL_NUMBER_KEY).(string)
 	if !ok {
 		return "", &interfaces.RequestError{
 			StatusCode: http.StatusForbidden,

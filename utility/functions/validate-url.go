@@ -1,5 +1,8 @@
 package utility_functions
 
-func ValidateUrl(url string) bool {
-	return true
+import "net/url"
+
+func ValidateUrl(urlString string) bool {
+	_, err := url.ParseRequestURI(urlString)
+	return err == nil
 }

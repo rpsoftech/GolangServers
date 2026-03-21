@@ -36,7 +36,7 @@ var ServerEnv *SMysqlToSurrealEnv
 var ConnectionConfig *SConfig
 
 func init() {
-	coreEnv.LoadEnv("mysql-backup-cmd.env")
+	coreEnv.LoadEnv(filepath.Join(env.FindAndReturnCurrentDir(), "mysql-backup-cmd.env"))
 	ServerEnv = &SMysqlToSurrealEnv{
 		Env:            env.Env,
 		ConfigFileName: env.Env.GetEnv(ConfigFileName),
