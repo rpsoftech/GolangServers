@@ -1,5 +1,3 @@
-// build:!linux
-
 package sohan_whatsapp_auto_download
 
 import (
