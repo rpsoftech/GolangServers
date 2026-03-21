@@ -43,8 +43,5 @@ jobs:
           echo "Workspace: $GITHUB_WORKSPACE"
 
       - name: Run builder
-        env:
-          FILE_SERVER_TOKEN: ${{ secrets.FILE_SERVER_TOKEN }}
-          KV_TOKEN: ${{ secrets.KEYVALUETOKEN }}
         run: |
           go run release/soham/whatsapp-client.go ${{ env.VERSION }}
