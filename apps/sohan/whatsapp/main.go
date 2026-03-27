@@ -1,11 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"syscall"
 	"time"
@@ -17,6 +17,7 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"github.com/google/uuid"
 	sohan_whatsapp_auto_download "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/auto-download"
 	soham_whatsapp_gui_config "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/config"
 	"github.com/rpsoftech/golang-servers/env"
@@ -48,13 +49,17 @@ type Config struct {
 // UUID VALIDATION
 //////////////////////////////////////////////////////
 
-func validUUID(uuid string) bool {
-
-	reg := regexp.MustCompile(
-		`^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[1-5][a-fA-F0-9]{3}-[89abAB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$`,
-	)
-
-	return reg.MatchString(uuid)
+func validUUID(uuidstring string) (bool, string) {
+	u, err := uuid.Parse(uuidstring)
+	if err != nil {
+		return false, fmt.Sprintf("String %q is invalid: %v\n", uuidstring, err)
+	}
+	// Check if it is specifically version 5
+	if u.Version() == 5 {
+		return true, ""
+	} else {
+		return false, fmt.Sprintf("It is UUID Version %d.\n", u.Version())
+	}
 }
 
 //////////////////////////////////////////////////////
@@ -270,8 +275,8 @@ func configForm(a fyne.App) fyne.CanvasObject {
 
 	saveBtn := widget.NewButton("Save Config", func() {
 
-		if !validUUID(token.Text) {
-			status.SetText("Invalid UUID Token")
+		if ok, t := validUUID(token.Text); !ok {
+			status.SetText(t)
 			return
 		}
 

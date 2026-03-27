@@ -35,6 +35,7 @@ func main() {
 	if _, err := utility_functions.Exist(outputLogFolderDir); errors.Is(err, os.ErrNotExist) {
 		os.MkdirAll(outputLogFolderDir, 0777)
 	}
+	// store.DeviceProps.Os = proto.String("BOSS")
 	whatsapp_core.OutPutFilePath = ReturnOutPutFilePath(env.FindAndReturnCurrentDir())
 	container := whatsapp_core.InitSqlContainer()
 	if whatsapp_config.Env.AUTO_CONNECT_TO_WHATSAPP {

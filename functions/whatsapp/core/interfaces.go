@@ -18,12 +18,20 @@ import (
 	whatsapp_utility "github.com/rpsoftech/golang-servers/utility/whatsapp/utility"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
+	"go.mau.fi/whatsmeow/store"
+	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types/events"
+	waLog "go.mau.fi/whatsmeow/util/log"
 	"google.golang.org/protobuf/proto"
 )
 
 type (
+	ParentData struct {
+		DeviceStore  *store.Device
+		SqlContainer *sqlstore.Container
+	}
 	WhatsappConnection struct {
+		*ParentData
 		Client           *whatsmeow.Client
 		Number           string
 		Token            string
@@ -85,7 +93,6 @@ func (connection *WhatsappConnection) ConnectAndGetQRCode() {
 					qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
 				}
 			} else {
-
 				fmt.Println("Login event:", evt.Event)
 			}
 		}
@@ -98,21 +105,34 @@ func (connection *WhatsappConnection) ConnectAndGetQRCode() {
 		}
 	}
 }
+func (connection *WhatsappConnection) closeTheConnection() {
+	if err := connection.Client.Logout(ctx); err != nil {
+		connection.Client.Disconnect()
+		connection.Client.Store.Delete(ctx)
+	}
+	println(connection.Number, " Logged Out")
+	delete(ConnectionMap, connection.Token)
+	delete(whatsapp_config.WhatsappNumberConfigMap.JID, connection.Token)
+	whatsapp_config.WhatsappNumberConfigMap.Save()
+	connection.ConnectionStatus = -1
+	// deviceStore = sqlContainer.NewDevice()
+	// if deviceStore == nil {
+	// deviceStore = types.DEv(number, types.DefaultUserServer)
+	// }
+	connection.ParentData.SqlContainer.DeleteDevice(ctx, connection.ParentData.DeviceStore)
+	deviceStore := connection.ParentData.SqlContainer.NewDevice()
+	client := whatsmeow.NewClient(deviceStore, waLog.Stdout("Client", "ERROR", true))
+	client.EnableAutoReconnect = true
+	println(client.LastSuccessfulConnect.String())
+	connection.Client = client
+	connection.ParentData.DeviceStore = deviceStore
+	go connection.ConnectAndGetQRCode()
+
+}
 func (connection *WhatsappConnection) eventHandler(evt interface{}) {
 	switch v := evt.(type) {
 	case *events.LoggedOut:
-		// Send Status
-		// connection.ConnectionStatus = -1
-		// connection.Client.Disconnect()
-		if err := connection.Client.Logout(ctx); err != nil {
-			connection.Client.Disconnect()
-			connection.Client.Store.Delete(ctx)
-		}
-		println(connection.Number, " Logged Out")
-		delete(ConnectionMap, connection.Token)
-		delete(whatsapp_config.WhatsappNumberConfigMap.JID, connection.Token)
-		whatsapp_config.WhatsappNumberConfigMap.Save()
-		go connection.ConnectAndGetQRCode()
+		connection.closeTheConnection()
 	case *events.Connected:
 		// Send Status
 		connection.Client.Store.Save(ctx)

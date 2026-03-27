@@ -2,6 +2,7 @@ package soham_whatsapp_server_env
 
 import (
 	"github.com/gofiber/contrib/v3/websocket"
+	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/rpsoftech/golang-servers/env"
 	soham_common_req_keys "github.com/rpsoftech/golang-servers/servers/soham/common"
@@ -30,7 +31,7 @@ var (
 
 func init() {
 	env.LoadEnv("whatsapp-server.env")
-	println("WhatsApp ServerEnv Initialized")
+	log.Debug("WhatsApp ServerEnv Initialized")
 	Env = &whatsappEnv{
 		DefaultEnv:       env.Env,
 		BASE_UUID:        env.Env.GetEnv("BASE_UUID"),
