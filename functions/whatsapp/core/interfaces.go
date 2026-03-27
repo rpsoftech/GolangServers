@@ -151,8 +151,8 @@ func (connection *WhatsappConnection) eventHandler(evt interface{}) {
 		fmt.Printf("Event Occurred%s\n", reflect.TypeOf(v))
 	}
 }
-func (connection *WhatsappConnection) SendTextMessage(to []string, msg string) *map[string]interface{} {
-	response := make(map[string]interface{})
+func (connection *WhatsappConnection) SendTextMessage(to []string, msg string) *map[string]bool {
+	response := make(map[string]bool)
 	for _, number := range to {
 		IsOnWhatsappCheck, err := connection.Client.IsOnWhatsApp(ctx, []string{"+" + number})
 		if err != nil {
@@ -177,11 +177,11 @@ func (connection *WhatsappConnection) SendTextMessage(to []string, msg string) *
 		fmt.Printf("sending Text To %s\n", number)
 		response[number] = false
 		if len(msg) > 0 {
-			resp, err := connection.Client.SendMessage(context.Background(), targetJID, &waE2E.Message{
+			_, err := connection.Client.SendMessage(context.Background(), targetJID, &waE2E.Message{
 				Conversation: proto.String(msg),
 			})
 			if err == nil {
-				response[number] = resp
+				response[number] = true
 			}
 		}
 	}

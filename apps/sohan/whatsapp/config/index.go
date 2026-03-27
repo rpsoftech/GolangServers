@@ -7,10 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -25,21 +28,34 @@ import (
 var ServerConfigFilePath = ""
 var ServerCmd *exec.Cmd
 
+const QRCODEURL = "http://localhost:4000/v1/qr_code"
+const LoginStatusURL = "http://localhost:4000/v1/status"
+
+type LoginStatusApiReponse struct {
+	Status int `json:"status"`
+}
+
+type QrCodeApiCallResponse struct {
+	QrCode     string `json:"qrCode"`
+	QrCodeData string `json:"qrCodeData"`
+}
+
 func init() {
 	CurrentDirectory := env.FindAndReturnCurrentDir()
 	ServerConfigFilePath = filepath.Join(CurrentDirectory, whatsapp_config.ServerConfigFileName)
 }
 
-func ValidateConfig() bool {
+func ValidateConfig() (bool, *whatsapp_interfaces.IServerConfig) {
 	if _, err := utility_functions.Exist(ServerConfigFilePath); errors.Is(err, os.ErrNotExist) {
-		panic(fmt.Errorf("CONFIG_NOT_EXIST_ON_PATH %s", ServerConfigFilePath))
+		// panic(fmt.Errorf("CONFIG_NOT_EXIST_ON_PATH %s", ServerConfigFilePath))
+		return false, nil
 	}
-	_, err := readConfigFileAndReturniserverConfig(ServerConfigFilePath)
+	config, err := readConfigFileAndReturniserverConfig(ServerConfigFilePath)
 	if err != nil {
-		return false
+		return false, nil
 		// panic(err)
 	}
-	return true
+	return true, config
 }
 
 func readConfigFileAndReturniserverConfig(configFilePath string) (*whatsapp_interfaces.IServerConfig, error) {
@@ -121,5 +137,68 @@ func ValidUUID(uuidstring string) (bool, string) {
 		return true, ""
 	} else {
 		return false, fmt.Sprintf("It is UUID Version %d.\n", u.Version())
+	}
+}
+
+func QrCodeApiCall(token string) (bool, string) {
+	req, err := http.NewRequest("GET", QRCODEURL, nil)
+
+	if err != nil {
+		fmt.Println(err)
+		return false, ""
+	}
+	req.Header.Add("X-Api-Token", token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return false, ""
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println(err)
+		return false, ""
+	}
+	if strings.Contains(string(body), "success") {
+		return false, ""
+	}
+	qrcodeRespo := new(QrCodeApiCallResponse)
+	err = json.Unmarshal(body, qrcodeRespo)
+	if err != nil {
+		fmt.Println(err)
+		return false, ""
+	}
+	return true, qrcodeRespo.QrCode
+}
+func LoginApiCall(token string) (bool, error) {
+	req, err := http.NewRequest("GET", LoginStatusURL, nil)
+
+	if err != nil {
+		fmt.Println(err)
+		return false, err
+	}
+	req.Header.Add("X-Api-Token", token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return false, err
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println(err)
+		return false, err
+	}
+	statusRespo := new(LoginStatusApiReponse)
+	err = json.Unmarshal(body, statusRespo)
+	if err != nil {
+		fmt.Println(err)
+		return false, err
+	}
+	if statusRespo.Status == 1 {
+		return true, nil
+	} else {
+		return false, nil
+
 	}
 }

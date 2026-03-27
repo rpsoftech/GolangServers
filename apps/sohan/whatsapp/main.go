@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -29,6 +30,9 @@ import (
 
 var mainWindow fyne.Window
 var trayStatusItem *fyne.MenuItem
+var qrContainer = container.NewCenter(
+	widget.NewLabel("Loading QR..."),
+)
 var version string
 var configFile = "config.json"
 var serverLock = "server.lock"
@@ -196,7 +200,8 @@ func saveConfig(token, number string) {
 //////////////////////////////////////////////////////
 
 func loadConfig() bool {
-	return soham_whatsapp_gui_config.ValidateConfig()
+	ok, _ := soham_whatsapp_gui_config.ValidateConfig()
+	return ok
 }
 
 //////////////////////////////////////////////////////
@@ -204,10 +209,52 @@ func loadConfig() bool {
 //////////////////////////////////////////////////////
 
 func successScreen() fyne.CanvasObject {
+	ok, config := soham_whatsapp_gui_config.ValidateConfig()
+	if !ok {
+		panic("Config issue")
+	}
+	for token, _ := range config.Tokens {
+		go func() {
+			for {
+				loggedin, err := soham_whatsapp_gui_config.LoginApiCall(token)
+				if err != nil {
+					fmt.Println(err)
+					time.Sleep(5 * time.Second)
+					continue
+				}
+				if loggedin {
+					if !qrContainer.Hidden {
+						qrContainer.Hide()
+					}
+					time.Sleep(5 * time.Second)
+					continue
+				}
+				ok, qrcode := soham_whatsapp_gui_config.QrCodeApiCall(token)
+				if !ok {
+					time.Sleep(5 * time.Second)
+					continue
+				}
+				img, err := soham_whatsapp_gui_config.CreateQRFromBase64(qrcode)
+				if err != nil {
+					fmt.Println(err)
+					time.Sleep(5 * time.Second)
+					continue
+				}
+				fyne.Do(func() {
+					if qrContainer.Hidden {
+						qrContainer.Show()
+					}
+					qrContainer.Objects = []fyne.CanvasObject{
+						container.NewCenter(img),
+					}
+					qrContainer.Refresh()
 
-	go func() {
-
-	}()
+				})
+				time.Sleep(10 * time.Second)
+				// break
+			}
+		}()
+	}
 	msg := widget.NewLabelWithStyle(
 		"Configuration Successful",
 		fyne.TextAlignCenter,
@@ -235,7 +282,7 @@ func successScreen() fyne.CanvasObject {
 	return container.NewVBox(
 		layout.NewSpacer(),
 		container.NewHBox(layout.NewSpacer(), msg, layout.NewSpacer()),
-		layout.NewSpacer(),
+		qrContainer,
 		buttons,
 		layout.NewSpacer(),
 	)
