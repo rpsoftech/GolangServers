@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -17,7 +16,6 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
-	"github.com/google/uuid"
 	sohan_whatsapp_auto_download "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/auto-download"
 	soham_whatsapp_gui_config "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/config"
 	"github.com/rpsoftech/golang-servers/env"
@@ -43,23 +41,6 @@ var guiLock = "gui.lock"
 type Config struct {
 	Token  string `json:"token"`
 	Number string `json:"number"`
-}
-
-//////////////////////////////////////////////////////
-// UUID VALIDATION
-//////////////////////////////////////////////////////
-
-func validUUID(uuidstring string) (bool, string) {
-	u, err := uuid.Parse(uuidstring)
-	if err != nil {
-		return false, fmt.Sprintf("String %q is invalid: %v\n", uuidstring, err)
-	}
-	// Check if it is specifically version 5
-	if u.Version() == 5 {
-		return true, ""
-	} else {
-		return false, fmt.Sprintf("It is UUID Version %d.\n", u.Version())
-	}
 }
 
 //////////////////////////////////////////////////////
@@ -215,7 +196,6 @@ func saveConfig(token, number string) {
 //////////////////////////////////////////////////////
 
 func loadConfig() bool {
-
 	return soham_whatsapp_gui_config.ValidateConfig()
 }
 
@@ -225,6 +205,9 @@ func loadConfig() bool {
 
 func successScreen() fyne.CanvasObject {
 
+	go func() {
+
+	}()
 	msg := widget.NewLabelWithStyle(
 		"Configuration Successful",
 		fyne.TextAlignCenter,
@@ -232,7 +215,6 @@ func successScreen() fyne.CanvasObject {
 	)
 
 	restartBtn := widget.NewButton("Restart Server", func() {
-
 		msg.SetText("Restarting Server...")
 		restartServer()
 	})
@@ -275,7 +257,7 @@ func configForm(a fyne.App) fyne.CanvasObject {
 
 	saveBtn := widget.NewButton("Save Config", func() {
 
-		if ok, t := validUUID(token.Text); !ok {
+		if ok, t := soham_whatsapp_gui_config.ValidUUID(token.Text); !ok {
 			status.SetText(t)
 			return
 		}
