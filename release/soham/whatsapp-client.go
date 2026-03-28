@@ -16,6 +16,8 @@ import (
 	"runtime"
 	"slices"
 	"time"
+
+	utility_functions_gzip "github.com/rpsoftech/golang-servers/utility/functions/gzip"
 )
 
 const (
@@ -58,12 +60,12 @@ func main() {
 		buildFilePath = "../../servers/soham/whatsapp-client/main.go"
 	}
 
-	serverBinary := "whatsapp-client.o"
+	serverBinaryName := "whatsapp-client.o"
 	if runtime.GOOS == "windows" {
 		archs = append(archs, "386")
-		serverBinary = "whatsapp-client.exe"
+		serverBinaryName = "whatsapp-client.exe"
 	}
-	serverBinaryPath := filepath.Join("build", serverBinary)
+	serverBinaryPath := filepath.Join("build", serverBinaryName)
 	for _, arch := range archs {
 		fmt.Printf("Building server for %s...", arch)
 		cmd := exec.Command(
@@ -85,24 +87,26 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-
+		gzipFilePath := serverBinaryPath + ".gz"
+		gzipFileName := serverBinaryName + ".gz"
+		utility_functions_gzip.GzipCompressFile(serverBinaryPath, gzipFilePath)
 		fmt.Println("Calculating SHA256...")
 
-		hash, err := sha256File(serverBinaryPath)
+		hash, err := sha256File(gzipFilePath)
 		if err != nil {
 			panic(err)
 		}
 		// https://files.rpso.in/static/soham/wbot/darwin_amd64/whatsapp-client.o
 		versionInfo := VersionInfo{
 			Version: atoi(version),
-			URL:     fmt.Sprintf("https://files.rpso.in/static/soham/wbot/%s_%s/%s", runtime.GOOS, arch, serverBinary),
+			URL:     fmt.Sprintf("https://files.rpso.in/static/soham/wbot/%s_%s/%s", runtime.GOOS, arch, gzipFileName),
 			SHA256:  hash,
 		}
 
-		data, _ := json.MarshalIndent(versionInfo, "", " ")
+		data, _ := json.MarshalIndent(versionInfo, "", " 	")
 
 		fmt.Println("Uploading server binary...")
-		err = uploadFile(serverBinaryPath, serverBinary, fmt.Sprintf("soham/wbot/%s_%s", runtime.GOOS, arch))
+		err = uploadFile(gzipFilePath, gzipFileName, fmt.Sprintf("soham/wbot/%s_%s", runtime.GOOS, arch))
 		// uploadFile(serverBinaryPath, "https://fileserver.com/server_v"+version)
 		if err != nil {
 			panic(err)
@@ -114,9 +118,9 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		fmt.Printf("Uploaded %s", data)
 		// uploadFile(versionFile, "https://kvserver.com/version.json")
 	}
-
 	fmt.Println("Build and upload complete")
 }
 

@@ -213,8 +213,10 @@ func successScreen() fyne.CanvasObject {
 	if !ok {
 		panic("Config issue")
 	}
-	for token, _ := range config.Tokens {
+	initialLoggedin := true
+	for token := range config.Tokens {
 		go func() {
+			time.Sleep(5 * time.Second)
 			for {
 				loggedin, err := soham_whatsapp_gui_config.LoginApiCall(token)
 				if err != nil {
@@ -223,8 +225,16 @@ func successScreen() fyne.CanvasObject {
 					continue
 				}
 				if loggedin {
+					if initialLoggedin {
+						fyne.Do(func() {
+							mainWindow.Hide()
+							initialLoggedin = false
+						})
+					}
 					if !qrContainer.Hidden {
-						qrContainer.Hide()
+						fyne.Do(func() {
+							qrContainer.Hide()
+						})
 					}
 					time.Sleep(5 * time.Second)
 					continue
