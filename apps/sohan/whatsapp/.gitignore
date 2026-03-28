@@ -1,3 +1,4 @@
 whatsapp-client*
 *.lock
 *.json
+*.db

@@ -30,6 +30,7 @@ import (
 
 var mainWindow fyne.Window
 var trayStatusItem *fyne.MenuItem
+var trayMenu *fyne.Menu
 var qrContainer = container.NewCenter(
 	widget.NewLabel("Loading QR..."),
 )
@@ -216,7 +217,7 @@ func successScreen() fyne.CanvasObject {
 	initialLoggedin := true
 	for token := range config.Tokens {
 		go func() {
-			time.Sleep(5 * time.Second)
+			time.Sleep(3 * time.Second)
 			for {
 				loggedin, err := soham_whatsapp_gui_config.LoginApiCall(token)
 				if err != nil {
@@ -250,10 +251,11 @@ func successScreen() fyne.CanvasObject {
 					time.Sleep(5 * time.Second)
 					continue
 				}
-				fyne.Do(func() {
+				fyne.DoAndWait(func() {
 					if qrContainer.Hidden {
 						qrContainer.Show()
 					}
+					// if mainWindow.
 					qrContainer.Objects = []fyne.CanvasObject{
 						container.NewCenter(img),
 					}
@@ -410,8 +412,11 @@ func updateTrayStatus(status string) {
 		return
 	}
 
-	fyne.Do(func() {
+	fyne.DoAndWait(func() {
+		log.Println("Here", status)
 		trayStatusItem.Label = status
+		// time.Sleep(1 * time.Second)
+		trayMenu.Refresh()
 	})
 }
 
@@ -438,7 +443,7 @@ func SetEnv() {
 		os.Setenv("AUTO_CONNECT_TO_WHATSAPP", "true")
 	}
 	if os.Getenv("OPEN_BROWSER_FOR_SCAN") == "" {
-		os.Setenv("OPEN_BROWSER_FOR_SCAN", "true")
+		os.Setenv("OPEN_BROWSER_FOR_SCAN", "false")
 	}
 }
 
@@ -482,7 +487,6 @@ func main() {
 	if desk, ok := a.(desktop.App); ok {
 
 		trayStatusItem = fyne.NewMenuItem("🟡 Starting...", nil)
-		trayStatusItem.Disabled = true
 
 		showItem := fyne.NewMenuItem("Open Config", func() {
 			window.Show()
@@ -496,7 +500,7 @@ func main() {
 			a.Quit()
 		})
 
-		menu := fyne.NewMenu("WABOT Utility",
+		trayMenu := fyne.NewMenu("WABOT Utility",
 			trayStatusItem,
 			fyne.NewMenuItemSeparator(),
 			showItem,
@@ -504,8 +508,7 @@ func main() {
 			fyne.NewMenuItemSeparator(),
 			quitItem,
 		)
-
-		desk.SetSystemTrayMenu(menu)
+		desk.SetSystemTrayMenu(trayMenu)
 		desk.SetSystemTrayIcon(iconResource)
 	}
 
@@ -520,11 +523,10 @@ func main() {
 	if loadConfig() {
 		window.SetContent(successScreen())
 		go func() {
-			time.Sleep(3 * time.Second)
 			startServer(a)
 			time.Sleep(3 * time.Second)
 			fyne.Do(func() {
-				window.Hide()
+				// window.Hide()
 			})
 		}()
 	} else {
