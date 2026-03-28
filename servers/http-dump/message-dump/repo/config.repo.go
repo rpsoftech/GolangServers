@@ -8,8 +8,8 @@ import (
 	"github.com/rpsoftech/golang-servers/interfaces"
 	messagedump_interfaces "github.com/rpsoftech/golang-servers/servers/http-dump/message-dump/interfaces"
 	"github.com/rpsoftech/golang-servers/utility/mongodb"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type MessageDumpConfigRepoStruct struct {

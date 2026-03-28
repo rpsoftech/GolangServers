@@ -1,10 +1,9 @@
 package mongodb
 
 import (
-	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type MongoDbFilter struct {
@@ -14,9 +13,7 @@ type MongoDbFilter struct {
 	Skip       int64
 }
 
-var FindOneAndUpdateOptions = &options.FindOneAndUpdateOptions{
-	Upsert: utility_functions.BoolPointer(true),
-}
+var FindOneAndUpdateOptions = options.FindOneAndUpdate().SetUpsert(true)
 
 func AddComboUniqueIndexesToCollection(UniqueIndexes []string, collection *mongo.Collection) {
 	i := bson.D{}

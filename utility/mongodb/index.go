@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/rpsoftech/golang-servers/env"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type MongoDBConfig struct {
@@ -27,7 +27,7 @@ func init() {
 	}
 	env.ValidateEnv(config)
 	// env.Env.DB_URL
-	client, err := mongo.Connect(MongoCtx, options.Client().ApplyURI(config.DB_URL).SetMinPoolSize(2))
+	client, err := mongo.Connect(options.Client().ApplyURI(config.DB_URL).SetMinPoolSize(2))
 	if err != nil {
 		panic(err)
 	}
