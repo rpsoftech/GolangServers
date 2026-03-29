@@ -19,6 +19,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	sohan_whatsapp_auto_download "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/auto-download"
 	soham_whatsapp_gui_config "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/config"
+	sohan_whatsapp_keys "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/keys"
 	"github.com/rpsoftech/golang-servers/env"
 	whatsapp_interfaces "github.com/rpsoftech/golang-servers/interfaces/whatsapp"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
@@ -122,9 +123,9 @@ func startServer(a fyne.App) {
 	if serverRunning() {
 		return
 	}
-	progressBar, progressWin := showDownloadProgress(a)
 
 	go func() {
+		progressBar, progressWin := showDownloadProgress(a)
 		serverBinary := sohan_whatsapp_auto_download.CheckAndDownload(progressBar, progressWin)
 		// start server
 		fyne.Do(func() {
@@ -132,8 +133,8 @@ func startServer(a fyne.App) {
 		})
 		for {
 			updateTrayStatus("🟡 Starting server...")
-			soham_whatsapp_gui_config.ServerCmd = exec.Command(filepath.Join(env.FindAndReturnCurrentDir(), serverBinary))
-			serverCmd := soham_whatsapp_gui_config.ServerCmd
+			sohan_whatsapp_keys.ServerCmd = exec.Command(serverBinary, "--dev")
+			serverCmd := sohan_whatsapp_keys.ServerCmd
 			if env.IsDev {
 				stdout, err := serverCmd.StdoutPipe()
 				if err != nil {
@@ -151,7 +152,7 @@ func startServer(a fyne.App) {
 				go utility_functions.StreamLogs(stdout, "SERVER")
 				go utility_functions.StreamLogs(stderr, "SERVER")
 			}
-			err := soham_whatsapp_gui_config.ServerCmd.Start()
+			err := sohan_whatsapp_keys.ServerCmd.Start()
 			if err != nil {
 				updateTrayStatus("🔴 Server failed")
 				time.Sleep(50 * time.Second)
@@ -159,7 +160,8 @@ func startServer(a fyne.App) {
 			}
 
 			updateTrayStatus("🟢 Server running")
-			err = soham_whatsapp_gui_config.ServerCmd.Wait()
+			err = sohan_whatsapp_keys.ServerCmd.Wait()
+			println(err)
 			updateTrayStatus("🔴 Server stopped")
 			time.Sleep(3 * time.Second)
 
@@ -177,8 +179,8 @@ func startServer(a fyne.App) {
 
 func restartServer() {
 
-	if soham_whatsapp_gui_config.ServerCmd != nil && soham_whatsapp_gui_config.ServerCmd.Process != nil {
-		soham_whatsapp_gui_config.ServerCmd.Process.Kill()
+	if sohan_whatsapp_keys.ServerCmd != nil && sohan_whatsapp_keys.ServerCmd.Process != nil {
+		sohan_whatsapp_keys.ServerCmd.Process.Kill()
 	}
 
 }
@@ -192,7 +194,7 @@ func saveConfig(token, number string) {
 	config.Tokens = make(map[string]string)
 	config.JID = make(map[string]string)
 	config.Tokens[token] = number
-	config.SetConfigPath(soham_whatsapp_gui_config.ServerConfigFilePath)
+	config.SetConfigPath(sohan_whatsapp_keys.ServerConfigFilePath)
 	soham_whatsapp_gui_config.SaveConfig(config)
 }
 
@@ -467,7 +469,7 @@ func main() {
 	a := app.New()
 	// a.Settings().SetTheme(theme.)
 
-	window := a.NewWindow("RP Softech Config Tool")
+	window := a.NewWindow("WABOT Config Tool")
 	window.Resize(fyne.NewSize(520, 380))
 	window.CenterOnScreen()
 
