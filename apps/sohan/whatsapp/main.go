@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"syscall"
 	"time"
@@ -30,7 +31,6 @@ import (
 //////////////////////////////////////////////////////
 
 var mainWindow fyne.Window
-var trayStatusItem *fyne.MenuItem
 var trayMenu *fyne.Menu
 var qrContainer = container.NewCenter(
 	widget.NewLabel("Loading QR..."),
@@ -135,6 +135,12 @@ func startServer(a fyne.App) {
 			updateTrayStatus("🟡 Starting server...")
 			sohan_whatsapp_keys.ServerCmd = exec.Command(serverBinary, "--dev")
 			serverCmd := sohan_whatsapp_keys.ServerCmd
+			if runtime.GOOS == "windows" {
+				serverCmd.SysProcAttr = &syscall.SysProcAttr{
+					HideWindow:    true,
+					CreationFlags: 0x08000000, // CREATE_NO_WINDOW
+				}
+			}
 			if env.IsDev {
 				stdout, err := serverCmd.StdoutPipe()
 				if err != nil {
@@ -354,8 +360,7 @@ func configForm(a fyne.App) fyne.CanvasObject {
 	)
 
 	// embedded logo
-	logo := canvas.NewImageFromFile("icon.png")
-
+	logo := canvas.NewImageFromResource(resourceIconPng)
 	logo.FillMode = canvas.ImageFillContain
 	logo.SetMinSize(fyne.NewSize(120, 80))
 
@@ -409,17 +414,17 @@ func showDownloadProgress(a fyne.App) (*widget.ProgressBar, fyne.Window) {
 //////////////////////////////////////////////////////
 
 func updateTrayStatus(status string) {
+	return
+	// if trayStatusItem == nil {
+	// 	return
+	// }
 
-	if trayStatusItem == nil {
-		return
-	}
-
-	fyne.DoAndWait(func() {
-		log.Println("Here", status)
-		trayStatusItem.Label = status
-		// time.Sleep(1 * time.Second)
-		trayMenu.Refresh()
-	})
+	// fyne.DoAndWait(func() {
+	// 	log.Println("Here", status)
+	// 	trayStatusItem.Label = status
+	// 	// time.Sleep(1 * time.Second)
+	// 	trayMenu.Refresh()
+	// })
 }
 
 // ////////////////////////////////////////////////////
@@ -476,10 +481,7 @@ func main() {
 	mainWindow = window
 
 	// embedded icon
-	iconResource, err := fyne.LoadResourceFromPath("icon.png")
-	if err == nil {
-		window.SetIcon(iconResource)
-	}
+	window.SetIcon(resourceIconPng)
 	// window.SetIcon(icon)
 
 	//////////////////////////////////////////////////
@@ -488,7 +490,7 @@ func main() {
 
 	if desk, ok := a.(desktop.App); ok {
 
-		trayStatusItem = fyne.NewMenuItem("🟡 Starting...", nil)
+		// trayStatusItem = fyne.NewMenuItem("🟡 Starting...", nil)
 
 		showItem := fyne.NewMenuItem("Open Config", func() {
 			window.Show()
@@ -503,15 +505,15 @@ func main() {
 		})
 
 		trayMenu := fyne.NewMenu("WABOT Utility",
-			trayStatusItem,
-			fyne.NewMenuItemSeparator(),
+			// trayStatusItem,
+			// fyne.NewMenuItemSeparator(),
 			showItem,
 			restartItem,
 			fyne.NewMenuItemSeparator(),
 			quitItem,
 		)
 		desk.SetSystemTrayMenu(trayMenu)
-		desk.SetSystemTrayIcon(iconResource)
+		desk.SetSystemTrayIcon(resourceIconPng)
 	}
 
 	window.SetCloseIntercept(func() {

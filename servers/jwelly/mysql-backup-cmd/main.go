@@ -74,12 +74,12 @@ func DoBackupAndUpload(c *interfaces.ConfigWithConnection) {
 	gzipWriter.Write([]byte("SET foreign_key_checks = 0;\n"))
 	var err error
 	cmdArray := []string{"mysqldump",
-		"-h", c.ServerConfig.MysqlConfig.MYSQL_HOST}
+		"-h ", c.ServerConfig.MysqlConfig.MYSQL_HOST}
 	if c.ServerConfig.MysqlConfig.MYSQL_PORT != 3306 {
 		cmdArray = append(cmdArray, fmt.Sprintf("--port=%d", c.ServerConfig.MysqlConfig.MYSQL_PORT))
 	}
 	if c.ServerConfig.MysqlConfig.MYSQL_USERNAME != "" {
-		cmdArray = append(cmdArray, "-u", c.ServerConfig.MysqlConfig.MYSQL_USERNAME)
+		cmdArray = append(cmdArray, "-u ", c.ServerConfig.MysqlConfig.MYSQL_USERNAME)
 	}
 	if c.ServerConfig.MysqlConfig.MYSQL_PASSWORD != "" {
 		cmdArray = append(cmdArray, "-p"+c.ServerConfig.MysqlConfig.MYSQL_PASSWORD)
