@@ -14,3 +14,4 @@ GOOS=linux GOARCH=amd64 go build -o "dist/linux-amd64/mysql-to-mysql.o" -ldflags
 GOOS=linux GOARCH=amd64 go build -o "dist/linux-amd64/mysql-backup-cmd.o" -v -ldflags="-s -w" ./servers/jwelly/mysql-backup-cmd/main.go
 GOOS=linux GOARCH=amd64 go build -o "dist/linux-amd64/soham/whatsapp-server.o" -v -ldflags="-s -w" ./servers/soham/whatsapp-server/main.go
 GOOS=linux GOARCH=amd64 go build -o "dist/linux-amd64/soham/whatsapp-client.o" -v -ldflags="-s -w" ./servers/soham/whatsapp-client/main.go
+GOOS=linux GOARCH=amd64 go build -o "dist/linux-amd64/file-server.o" -v -ldflags="-s -w" ./servers/file-server-middleware/main.go
