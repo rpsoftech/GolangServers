@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
+	whatsapp_core "github.com/rpsoftech/golang-servers/functions/whatsapp/core"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	whatsapp_functions "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/functions"
 	whatsapp_server_middleware "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/middleware"
-	"github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/whatsapp"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 	"github.com/skip2/go-qrcode"
 )
@@ -40,9 +40,9 @@ func AddApis(app fiber.Router) {
 	}
 }
 
-func SendMediaFile(c *fiber.Ctx) error {
+func SendMediaFile(c fiber.Ctx) error {
 	body := new(apiSendMessage)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	number, err := whatsapp_functions.ExtractNumberFromCtx(c)
 	if err != nil {
 		return err
@@ -71,7 +71,7 @@ func SendMediaFile(c *fiber.Ctx) error {
 			Name:       "ERROR_INVALID_INPUT",
 		}
 	}
-	connection, ok := whatsapp.ConnectionMap[number]
+	connection, ok := whatsapp_core.ConnectionMap[number]
 	if !ok || connection == nil {
 		return &interfaces.RequestError{
 			StatusCode: http.StatusNotFound,
@@ -108,9 +108,9 @@ func SendMediaFile(c *fiber.Ctx) error {
 		return c.JSON(connection.SendMediaFileWithPath(body.To, destination, file.Filename, body.Msg))
 	}
 }
-func SendMediaFileWithBase64(c *fiber.Ctx) error {
+func SendMediaFileWithBase64(c fiber.Ctx) error {
 	body := new(apiSendMediaMsgWithBase64)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
@@ -129,7 +129,7 @@ func SendMediaFileWithBase64(c *fiber.Ctx) error {
 		return err
 	}
 
-	connection, ok := whatsapp.ConnectionMap[number]
+	connection, ok := whatsapp_core.ConnectionMap[number]
 	if !ok || connection == nil {
 		return &interfaces.RequestError{
 			StatusCode: http.StatusNotFound,
@@ -155,9 +155,9 @@ func SendMediaFileWithBase64(c *fiber.Ctx) error {
 		return c.JSON(connection.SendMediaFileBase64(body.To, body.Base64, body.FileName, body.Msg))
 	}
 }
-func SendMessage(c *fiber.Ctx) error {
+func SendMessage(c fiber.Ctx) error {
 	body := new(apiSendMessage)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
@@ -182,7 +182,7 @@ func SendMessage(c *fiber.Ctx) error {
 			Name:       "ERROR_INVALID_INPUT",
 		}
 	}
-	connection, ok := whatsapp.ConnectionMap[token]
+	connection, ok := whatsapp_core.ConnectionMap[token]
 	if !ok || connection == nil {
 		return &interfaces.RequestError{
 			StatusCode: http.StatusNotFound,
@@ -221,13 +221,13 @@ func SendMessage(c *fiber.Ctx) error {
 // @Failure 404 {object} interfaces.RequestError
 // @Failure 500 {object} interfaces.RequestError
 // @Router /connections/{number}/qrcode [get]
-func GetQrCode(c *fiber.Ctx) error {
+func GetQrCode(c fiber.Ctx) error {
 	number, err := whatsapp_functions.ExtractNumberFromCtx(c)
 	if err != nil {
 		return err
 	}
 
-	connection, ok := whatsapp.ConnectionMap[number]
+	connection, ok := whatsapp_core.ConnectionMap[number]
 	if !ok || connection == nil {
 		return &interfaces.RequestError{
 			StatusCode: http.StatusNotFound,

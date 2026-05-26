@@ -3,6 +3,7 @@ package whatsapp_core
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -114,11 +115,9 @@ func (connection *WhatsappConnection) closeTheConnection() {
 	delete(ConnectionMap, connection.Token)
 	delete(whatsapp_config.WhatsappNumberConfigMap.JID, connection.Token)
 	whatsapp_config.WhatsappNumberConfigMap.Save()
+	connection.Client.Logout(ctx)
+	connection.Client.Store.DeleteAllSessions(ctx)
 	connection.ConnectionStatus = -1
-	// deviceStore = sqlContainer.NewDevice()
-	// if deviceStore == nil {
-	// deviceStore = types.DEv(number, types.DefaultUserServer)
-	// }
 	connection.ParentData.SqlContainer.DeleteDevice(ctx, connection.ParentData.DeviceStore)
 	deviceStore := connection.ParentData.SqlContainer.NewDevice()
 	client := whatsmeow.NewClient(deviceStore, waLog.Stdout("Client", "ERROR", true))
@@ -147,6 +146,14 @@ func (connection *WhatsappConnection) eventHandler(evt interface{}) {
 		connection.SyncFinished = false
 	case *events.OfflineSyncCompleted:
 		connection.SyncFinished = true
+	case *events.Receipt:
+		evt := evt.(*events.Receipt)
+		// print whole struct
+		log.Println(evt.Chat.User)
+		// log.Println(evt.)
+
+		b, _ := json.Marshal(evt)
+		log.Println(string(b))
 	default:
 		fmt.Printf("Event Occurred%s\n", reflect.TypeOf(v))
 	}
