@@ -5,6 +5,14 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Tunnel Client",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "args": ["--dev"],
+      "program": "${workspaceFolder}/servers/tunnel-client/main.go"
+    },
+    {
       "name": "Soham Client Release Server",
       "type": "go",
       "request": "launch",
