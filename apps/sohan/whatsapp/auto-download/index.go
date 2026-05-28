@@ -9,12 +9,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
-	soham_whatsapp_gui_config "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/config"
+	sohan_whatsapp_keys "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/keys"
+	utility_functions_gzip "github.com/rpsoftech/golang-servers/utility/functions/gzip"
 )
 
 const VersionFileName = "client-version.json"
@@ -112,6 +114,7 @@ func CheckAndDownload(progress *widget.ProgressBar, win fyne.Window) string {
 	if runtime.GOOS == "windows" {
 		serverBinary = "whatsapp-client.exe"
 	}
+	serverBinary = filepath.Join(sohan_whatsapp_keys.ConfigDir, serverBinary)
 	if checkAndRunCalled {
 		return serverBinary
 	}
@@ -135,7 +138,7 @@ func CheckAndDownload(progress *widget.ProgressBar, win fyne.Window) string {
 		json.Unmarshal(data, &local)
 	}
 
-	tmpFile := serverBinary + ".tmp"
+	gzipFile := serverBinary + ".gz"
 
 	needDownload := false
 
@@ -148,11 +151,11 @@ func CheckAndDownload(progress *widget.ProgressBar, win fyne.Window) string {
 	}
 
 	if needDownload {
-		os.Remove(tmpFile)
+		os.Remove(gzipFile)
 		fyne.DoAndWait(func() {
 			win.Show()
 		})
-		err := downloadFileWithProgress(cloud.URL, tmpFile, progress)
+		err := downloadFileWithProgress(cloud.URL, gzipFile, progress)
 		if err != nil {
 			if _, err := os.Stat(serverBinary); os.IsNotExist(err) {
 				panic(fmt.Errorf("File Downloading Failed"))
@@ -161,16 +164,16 @@ func CheckAndDownload(progress *widget.ProgressBar, win fyne.Window) string {
 			return serverBinary
 		}
 
-		hash, err := sha256File(tmpFile)
+		hash, err := sha256File(gzipFile)
 		if err != nil {
 			return serverBinary
 		}
 
 		if hash != cloud.SHA256 {
-			os.Remove(tmpFile)
+			os.Remove(gzipFile)
 			return serverBinary
 		}
-		err = replaceBinarySafe(tmpFile, serverBinary)
+		err = replaceBinarySafe(gzipFile, serverBinary)
 		if err != nil {
 			log.Println("Binary replace failed:", err)
 			return serverBinary
@@ -219,9 +222,9 @@ func downloadFileWithProgress(url string, filepath string, progress *widget.Prog
 func replaceBinarySafe(tmpFile string, serverBinary string) error {
 
 	// stop server first
-	if soham_whatsapp_gui_config.ServerCmd != nil && soham_whatsapp_gui_config.ServerCmd.Process != nil {
-		soham_whatsapp_gui_config.ServerCmd.Process.Kill()
-		time.Sleep(1 * time.Second)
+	if sohan_whatsapp_keys.ServerCmd != nil && sohan_whatsapp_keys.ServerCmd.Process != nil {
+		sohan_whatsapp_keys.ServerCmd.Process.Kill()
+		time.Sleep(3 * time.Second)
 	}
 
 	// backup existing binary
@@ -234,7 +237,7 @@ func replaceBinarySafe(tmpFile string, serverBinary string) error {
 	}
 
 	// move new binary
-	err := os.Rename(tmpFile, serverBinary)
+	err := utility_functions_gzip.GzipDecompressFile(tmpFile, serverBinary)
 	if err != nil {
 		return err
 	}

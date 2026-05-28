@@ -5,15 +5,16 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/gofiber/contrib/v3/websocket"
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/log"
 	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
+	soham_common_req_keys "github.com/rpsoftech/golang-servers/servers/soham/common"
 	soham_whatsapp_server_api "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-server/api"
 	soham_whatsapp_server_env "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-server/env"
 	soham_whatsapp_server_middleware "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-server/middleware"
@@ -38,12 +39,26 @@ func main() {
 					Code:    interfaces.ERROR_INTERNAL_SERVER,
 					Message: "Some Internal Error",
 					Name:    "Global Error Handler Function",
+					Extra:   err,
 				})
 			}
 			return c.Status(mappedError.StatusCode).JSON(mappedError)
 		},
 	})
-	app.Use(logger.New())
+	app.Use(logger.New(
+		logger.Config{
+			Format: "${time} | ${status} | ${latency} | ${number} | ${ip} | ${path} | ${error}\n",
+			CustomTags: map[string]logger.LogFunc{
+				"number": func(output logger.Buffer, c fiber.Ctx, data *logger.Data, extraParam string) (int, error) {
+					val := c.Locals(soham_common_req_keys.WHATSAPP_CLIENT_NUM_KEY)
+					if val == nil {
+						return output.WriteString("N/A")
+					}
+					return fmt.Fprintf(output, "%v", val)
+				},
+			},
+		},
+	))
 	app.Use("/whatsapp-client", soham_whatsapp_server_middleware.ValidateWhatsAppClientToken)
 	app.Get("/whatsapp-client/ws", websocket.New(soham_whatsapp_server_websocket.WhatsappClientWebsocketHandler))
 	soham_whatsapp_server_api.AddApis(app.Group("/api"))
@@ -71,22 +86,22 @@ func main() {
 			panic(fmt.Errorf("SSL_CONFIG_ERROR %#v", errs))
 		}
 		if _, err := os.Stat(sslConfig.CertFilePath); os.IsNotExist(err) {
-			log.Printf("SSL Cert File Not Exist at %s", sslConfig.CertFilePath)
+			log.Errorf("SSL Cert File Not Exist at %s", sslConfig.CertFilePath)
 			return
 		}
 		if _, err := os.Stat(sslConfig.KeyFilePath); os.IsNotExist(err) {
-			log.Printf("SSL Key File Not Exist at %s", sslConfig.KeyFilePath)
+			log.Errorf("SSL Key File Not Exist at %s", sslConfig.KeyFilePath)
 			return
 		}
 		certificate, err := tls.LoadX509KeyPair(sslConfig.CertFilePath, sslConfig.KeyFilePath)
 		if err != nil {
-			log.Printf("Error Loading SSL Certificate, Error: %v", err)
+			log.Errorf("Error Loading SSL Certificate, Error: %v", err)
 			return
 		}
 		caCertPool := x509.NewCertPool()
 		caCert, err := os.ReadFile("/Users/keyurshah/Projects/GolangServers/ssl/fullchain.crt")
 		if err != nil {
-			log.Printf("Error Reading CA Certificate File, Error: %v", err)
+			log.Errorf("Error Reading CA Certificate File, Error: %v", err)
 			return
 		}
 		caCertPool.AppendCertsFromPEM(caCert)
@@ -98,7 +113,7 @@ func main() {
 		// tlsConfig.TLSConfig.Certificates =
 		// key := sslConfig.KeyFilePath
 	} else {
-		log.Printf("SSL File Path Not Exist at %s", sslPath)
+		log.Infof("SSL File Path Not Exist at %s", sslPath)
 	}
 	app.Listen(hostAndPort, tlsConfig)
 }

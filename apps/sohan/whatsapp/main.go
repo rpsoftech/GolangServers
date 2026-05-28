@@ -1,11 +1,14 @@
+//go:build windows
+
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
+	"runtime"
 	"strconv"
 	"syscall"
 	"time"
@@ -19,6 +22,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	sohan_whatsapp_auto_download "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/auto-download"
 	soham_whatsapp_gui_config "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/config"
+	sohan_whatsapp_keys "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/keys"
 	"github.com/rpsoftech/golang-servers/env"
 	whatsapp_interfaces "github.com/rpsoftech/golang-servers/interfaces/whatsapp"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
@@ -29,7 +33,10 @@ import (
 //////////////////////////////////////////////////////
 
 var mainWindow fyne.Window
-var trayStatusItem *fyne.MenuItem
+var trayMenu *fyne.Menu
+var qrContainer = container.NewCenter(
+	widget.NewLabel("Loading QR..."),
+)
 var version string
 var configFile = "config.json"
 var serverLock = "server.lock"
@@ -42,19 +49,6 @@ var guiLock = "gui.lock"
 type Config struct {
 	Token  string `json:"token"`
 	Number string `json:"number"`
-}
-
-//////////////////////////////////////////////////////
-// UUID VALIDATION
-//////////////////////////////////////////////////////
-
-func validUUID(uuid string) bool {
-
-	reg := regexp.MustCompile(
-		`^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[1-5][a-fA-F0-9]{3}-[89abAB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$`,
-	)
-
-	return reg.MatchString(uuid)
 }
 
 //////////////////////////////////////////////////////
@@ -131,9 +125,9 @@ func startServer(a fyne.App) {
 	if serverRunning() {
 		return
 	}
-	progressBar, progressWin := showDownloadProgress(a)
 
 	go func() {
+		progressBar, progressWin := showDownloadProgress(a)
 		serverBinary := sohan_whatsapp_auto_download.CheckAndDownload(progressBar, progressWin)
 		// start server
 		fyne.Do(func() {
@@ -141,8 +135,14 @@ func startServer(a fyne.App) {
 		})
 		for {
 			updateTrayStatus("🟡 Starting server...")
-			soham_whatsapp_gui_config.ServerCmd = exec.Command(filepath.Join(env.FindAndReturnCurrentDir(), serverBinary))
-			serverCmd := soham_whatsapp_gui_config.ServerCmd
+			sohan_whatsapp_keys.ServerCmd = exec.Command(serverBinary, "--dev")
+			serverCmd := sohan_whatsapp_keys.ServerCmd
+			if runtime.GOOS == "windows" {
+				serverCmd.SysProcAttr = &syscall.SysProcAttr{
+					HideWindow:    true,
+					CreationFlags: 0x08000000, // CREATE_NO_WINDOW
+				}
+			}
 			if env.IsDev {
 				stdout, err := serverCmd.StdoutPipe()
 				if err != nil {
@@ -160,7 +160,7 @@ func startServer(a fyne.App) {
 				go utility_functions.StreamLogs(stdout, "SERVER")
 				go utility_functions.StreamLogs(stderr, "SERVER")
 			}
-			err := soham_whatsapp_gui_config.ServerCmd.Start()
+			err := sohan_whatsapp_keys.ServerCmd.Start()
 			if err != nil {
 				updateTrayStatus("🔴 Server failed")
 				time.Sleep(50 * time.Second)
@@ -168,7 +168,8 @@ func startServer(a fyne.App) {
 			}
 
 			updateTrayStatus("🟢 Server running")
-			err = soham_whatsapp_gui_config.ServerCmd.Wait()
+			err = sohan_whatsapp_keys.ServerCmd.Wait()
+			println(err)
 			updateTrayStatus("🔴 Server stopped")
 			time.Sleep(3 * time.Second)
 
@@ -186,8 +187,8 @@ func startServer(a fyne.App) {
 
 func restartServer() {
 
-	if soham_whatsapp_gui_config.ServerCmd != nil && soham_whatsapp_gui_config.ServerCmd.Process != nil {
-		soham_whatsapp_gui_config.ServerCmd.Process.Kill()
+	if sohan_whatsapp_keys.ServerCmd != nil && sohan_whatsapp_keys.ServerCmd.Process != nil {
+		sohan_whatsapp_keys.ServerCmd.Process.Kill()
 	}
 
 }
@@ -201,7 +202,7 @@ func saveConfig(token, number string) {
 	config.Tokens = make(map[string]string)
 	config.JID = make(map[string]string)
 	config.Tokens[token] = number
-	config.SetConfigPath(soham_whatsapp_gui_config.ServerConfigFilePath)
+	config.SetConfigPath(sohan_whatsapp_keys.ServerConfigFilePath)
 	soham_whatsapp_gui_config.SaveConfig(config)
 }
 
@@ -210,8 +211,8 @@ func saveConfig(token, number string) {
 //////////////////////////////////////////////////////
 
 func loadConfig() bool {
-
-	return soham_whatsapp_gui_config.ValidateConfig()
+	ok, _ := soham_whatsapp_gui_config.ValidateConfig()
+	return ok
 }
 
 //////////////////////////////////////////////////////
@@ -219,7 +220,63 @@ func loadConfig() bool {
 //////////////////////////////////////////////////////
 
 func successScreen() fyne.CanvasObject {
+	ok, config := soham_whatsapp_gui_config.ValidateConfig()
+	if !ok {
+		panic("Config issue")
+	}
+	initialLoggedin := true
+	for token := range config.Tokens {
+		go func() {
+			time.Sleep(3 * time.Second)
+			for {
+				loggedin, err := soham_whatsapp_gui_config.LoginApiCall(token)
+				if err != nil {
+					fmt.Println(err)
+					time.Sleep(5 * time.Second)
+					continue
+				}
+				if loggedin {
+					if initialLoggedin {
+						fyne.Do(func() {
+							mainWindow.Hide()
+							initialLoggedin = false
+						})
+					}
+					if !qrContainer.Hidden {
+						fyne.Do(func() {
+							qrContainer.Hide()
+						})
+					}
+					time.Sleep(5 * time.Second)
+					continue
+				}
+				ok, qrcode := soham_whatsapp_gui_config.QrCodeApiCall(token)
+				if !ok {
+					time.Sleep(5 * time.Second)
+					continue
+				}
+				img, err := soham_whatsapp_gui_config.CreateQRFromBase64(qrcode)
+				if err != nil {
+					fmt.Println(err)
+					time.Sleep(5 * time.Second)
+					continue
+				}
+				fyne.DoAndWait(func() {
+					if qrContainer.Hidden {
+						qrContainer.Show()
+					}
+					// if mainWindow.
+					qrContainer.Objects = []fyne.CanvasObject{
+						container.NewCenter(img),
+					}
+					qrContainer.Refresh()
 
+				})
+				time.Sleep(10 * time.Second)
+				// break
+			}
+		}()
+	}
 	msg := widget.NewLabelWithStyle(
 		"Configuration Successful",
 		fyne.TextAlignCenter,
@@ -227,7 +284,6 @@ func successScreen() fyne.CanvasObject {
 	)
 
 	restartBtn := widget.NewButton("Restart Server", func() {
-
 		msg.SetText("Restarting Server...")
 		restartServer()
 	})
@@ -248,7 +304,7 @@ func successScreen() fyne.CanvasObject {
 	return container.NewVBox(
 		layout.NewSpacer(),
 		container.NewHBox(layout.NewSpacer(), msg, layout.NewSpacer()),
-		layout.NewSpacer(),
+		qrContainer,
 		buttons,
 		layout.NewSpacer(),
 	)
@@ -270,8 +326,8 @@ func configForm(a fyne.App) fyne.CanvasObject {
 
 	saveBtn := widget.NewButton("Save Config", func() {
 
-		if !validUUID(token.Text) {
-			status.SetText("Invalid UUID Token")
+		if ok, t := soham_whatsapp_gui_config.ValidUUID(token.Text); !ok {
+			status.SetText(t)
 			return
 		}
 
@@ -306,8 +362,7 @@ func configForm(a fyne.App) fyne.CanvasObject {
 	)
 
 	// embedded logo
-	logo := canvas.NewImageFromFile("icon.png")
-
+	logo := canvas.NewImageFromResource(resourceIconPng)
 	logo.FillMode = canvas.ImageFillContain
 	logo.SetMinSize(fyne.NewSize(120, 80))
 
@@ -361,14 +416,17 @@ func showDownloadProgress(a fyne.App) (*widget.ProgressBar, fyne.Window) {
 //////////////////////////////////////////////////////
 
 func updateTrayStatus(status string) {
+	return
+	// if trayStatusItem == nil {
+	// 	return
+	// }
 
-	if trayStatusItem == nil {
-		return
-	}
-
-	fyne.Do(func() {
-		trayStatusItem.Label = status
-	})
+	// fyne.DoAndWait(func() {
+	// 	log.Println("Here", status)
+	// 	trayStatusItem.Label = status
+	// 	// time.Sleep(1 * time.Second)
+	// 	trayMenu.Refresh()
+	// })
 }
 
 // ////////////////////////////////////////////////////
@@ -394,7 +452,7 @@ func SetEnv() {
 		os.Setenv("AUTO_CONNECT_TO_WHATSAPP", "true")
 	}
 	if os.Getenv("OPEN_BROWSER_FOR_SCAN") == "" {
-		os.Setenv("OPEN_BROWSER_FOR_SCAN", "true")
+		os.Setenv("OPEN_BROWSER_FOR_SCAN", "false")
 	}
 }
 
@@ -418,17 +476,14 @@ func main() {
 	a := app.New()
 	// a.Settings().SetTheme(theme.)
 
-	window := a.NewWindow("RP Softech Config Tool")
+	window := a.NewWindow("WABOT Config Tool")
 	window.Resize(fyne.NewSize(520, 380))
 	window.CenterOnScreen()
 
 	mainWindow = window
 
 	// embedded icon
-	iconResource, err := fyne.LoadResourceFromPath("icon.png")
-	if err == nil {
-		window.SetIcon(iconResource)
-	}
+	window.SetIcon(resourceIconPng)
 	// window.SetIcon(icon)
 
 	//////////////////////////////////////////////////
@@ -437,8 +492,7 @@ func main() {
 
 	if desk, ok := a.(desktop.App); ok {
 
-		trayStatusItem = fyne.NewMenuItem("🟡 Starting...", nil)
-		trayStatusItem.Disabled = true
+		// trayStatusItem = fyne.NewMenuItem("🟡 Starting...", nil)
 
 		showItem := fyne.NewMenuItem("Open Config", func() {
 			window.Show()
@@ -452,17 +506,16 @@ func main() {
 			a.Quit()
 		})
 
-		menu := fyne.NewMenu("WABOT Utility",
-			trayStatusItem,
-			fyne.NewMenuItemSeparator(),
+		trayMenu := fyne.NewMenu("WABOT Utility",
+			// trayStatusItem,
+			// fyne.NewMenuItemSeparator(),
 			showItem,
 			restartItem,
 			fyne.NewMenuItemSeparator(),
 			quitItem,
 		)
-
-		desk.SetSystemTrayMenu(menu)
-		desk.SetSystemTrayIcon(iconResource)
+		desk.SetSystemTrayMenu(trayMenu)
+		desk.SetSystemTrayIcon(resourceIconPng)
 	}
 
 	window.SetCloseIntercept(func() {
@@ -476,11 +529,10 @@ func main() {
 	if loadConfig() {
 		window.SetContent(successScreen())
 		go func() {
-			time.Sleep(3 * time.Second)
 			startServer(a)
 			time.Sleep(3 * time.Second)
 			fyne.Do(func() {
-				window.Hide()
+				// window.Hide()
 			})
 		}()
 	} else {

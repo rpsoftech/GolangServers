@@ -1,6 +1,7 @@
 package soham_whatsapp_server_services
 
 import (
+	"github.com/gofiber/fiber/v3/log"
 	jwtv5 "github.com/golang-jwt/jwt/v5"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	soham_common_req_keys "github.com/rpsoftech/golang-servers/servers/soham/common"
@@ -17,7 +18,7 @@ func GetAccessTokenService() *jwt.TokenService {
 			SigningKey: []byte(soham_whatsapp_server_env.Env.ACCESS_TOKEN_KEY),
 			Parser:     jwtv5.NewParser(jwtv5.WithValidMethods([]string{"HS256"})),
 		}
-		println("Token Service Initialized")
+		log.Info("Token Service Initialized")
 	}
 	return AccessTokenService
 }

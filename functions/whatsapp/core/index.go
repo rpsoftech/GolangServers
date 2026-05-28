@@ -46,6 +46,7 @@ func ConnectToNumber(jidString string, token string, sqlContainer *sqlstore.Cont
 	var deviceStore *store.Device
 	if !JID.IsEmpty() {
 		var err error
+		// sqlContainer.DeleteDevice()
 		deviceStore, err = sqlContainer.GetDevice(ctx, JID)
 		if err != nil {
 			println(err.Error())
@@ -55,11 +56,20 @@ func ConnectToNumber(jidString string, token string, sqlContainer *sqlstore.Cont
 		deviceStore = sqlContainer.NewDevice()
 		// deviceStore = types.DEv(number, types.DefaultUserServer)
 	}
+
 	clientLog := waLog.Stdout("Client", "ERROR", true)
 	client := whatsmeow.NewClient(deviceStore, clientLog)
 	client.EnableAutoReconnect = true
 	println(client.LastSuccessfulConnect.String())
-	connection := &WhatsappConnection{Client: client, ConnectionStatus: 0, SyncFinished: false, Token: token}
+	connection := &WhatsappConnection{
+		Client:           client,
+		ConnectionStatus: 0,
+		SyncFinished:     false,
+		Token:            token,
+		ParentData: &ParentData{
+			DeviceStore:  deviceStore,
+			SqlContainer: sqlContainer,
+		}}
 	client.AddEventHandler(connection.eventHandler)
 	connection.ConnectAndGetQRCode()
 }

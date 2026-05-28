@@ -1,9 +1,9 @@
 package soham_whatsapp_server_services
 
 import (
-	"log"
 	"net/http"
 
+	"github.com/gofiber/fiber/v3/log"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	soham_common_req_keys "github.com/rpsoftech/golang-servers/servers/soham/common"
 	soham_whatsapp_server_env "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-server/env"
@@ -22,7 +22,7 @@ func InialiseWhatsappService(reqIdMap *map[string]chan any, websocketConnectionM
 		ReqIdMap:               reqIdMap,
 		WebsocketConnectionMap: websocketConnectionMap,
 	}
-	log.Println("Whatsapp Service Intialised")
+	log.Info("Whatsapp Service Intialised")
 	return WhatsappService
 }
 

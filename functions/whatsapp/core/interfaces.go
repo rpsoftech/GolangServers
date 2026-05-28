@@ -3,6 +3,7 @@ package whatsapp_core
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,12 +19,20 @@ import (
 	whatsapp_utility "github.com/rpsoftech/golang-servers/utility/whatsapp/utility"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
+	"go.mau.fi/whatsmeow/store"
+	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types/events"
+	waLog "go.mau.fi/whatsmeow/util/log"
 	"google.golang.org/protobuf/proto"
 )
 
 type (
+	ParentData struct {
+		DeviceStore  *store.Device
+		SqlContainer *sqlstore.Container
+	}
 	WhatsappConnection struct {
+		*ParentData
 		Client           *whatsmeow.Client
 		Number           string
 		Token            string
@@ -85,7 +94,6 @@ func (connection *WhatsappConnection) ConnectAndGetQRCode() {
 					qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
 				}
 			} else {
-
 				fmt.Println("Login event:", evt.Event)
 			}
 		}
@@ -98,21 +106,32 @@ func (connection *WhatsappConnection) ConnectAndGetQRCode() {
 		}
 	}
 }
+func (connection *WhatsappConnection) closeTheConnection() {
+	if err := connection.Client.Logout(ctx); err != nil {
+		connection.Client.Disconnect()
+		connection.Client.Store.Delete(ctx)
+	}
+	println(connection.Number, " Logged Out")
+	delete(ConnectionMap, connection.Token)
+	delete(whatsapp_config.WhatsappNumberConfigMap.JID, connection.Token)
+	whatsapp_config.WhatsappNumberConfigMap.Save()
+	connection.Client.Logout(ctx)
+	connection.Client.Store.DeleteAllSessions(ctx)
+	connection.ConnectionStatus = -1
+	connection.ParentData.SqlContainer.DeleteDevice(ctx, connection.ParentData.DeviceStore)
+	deviceStore := connection.ParentData.SqlContainer.NewDevice()
+	client := whatsmeow.NewClient(deviceStore, waLog.Stdout("Client", "ERROR", true))
+	client.EnableAutoReconnect = true
+	println(client.LastSuccessfulConnect.String())
+	connection.Client = client
+	connection.ParentData.DeviceStore = deviceStore
+	go connection.ConnectAndGetQRCode()
+
+}
 func (connection *WhatsappConnection) eventHandler(evt interface{}) {
 	switch v := evt.(type) {
 	case *events.LoggedOut:
-		// Send Status
-		// connection.ConnectionStatus = -1
-		// connection.Client.Disconnect()
-		if err := connection.Client.Logout(ctx); err != nil {
-			connection.Client.Disconnect()
-			connection.Client.Store.Delete(ctx)
-		}
-		println(connection.Number, " Logged Out")
-		delete(ConnectionMap, connection.Token)
-		delete(whatsapp_config.WhatsappNumberConfigMap.JID, connection.Token)
-		whatsapp_config.WhatsappNumberConfigMap.Save()
-		go connection.ConnectAndGetQRCode()
+		connection.closeTheConnection()
 	case *events.Connected:
 		// Send Status
 		connection.Client.Store.Save(ctx)
@@ -127,12 +146,20 @@ func (connection *WhatsappConnection) eventHandler(evt interface{}) {
 		connection.SyncFinished = false
 	case *events.OfflineSyncCompleted:
 		connection.SyncFinished = true
+	case *events.Receipt:
+		evt := evt.(*events.Receipt)
+		// print whole struct
+		log.Println(evt.Chat.User)
+		// log.Println(evt.)
+
+		b, _ := json.Marshal(evt)
+		log.Println(string(b))
 	default:
 		fmt.Printf("Event Occurred%s\n", reflect.TypeOf(v))
 	}
 }
-func (connection *WhatsappConnection) SendTextMessage(to []string, msg string) *map[string]interface{} {
-	response := make(map[string]interface{})
+func (connection *WhatsappConnection) SendTextMessage(to []string, msg string) *map[string]bool {
+	response := make(map[string]bool)
 	for _, number := range to {
 		IsOnWhatsappCheck, err := connection.Client.IsOnWhatsApp(ctx, []string{"+" + number})
 		if err != nil {
@@ -157,11 +184,11 @@ func (connection *WhatsappConnection) SendTextMessage(to []string, msg string) *
 		fmt.Printf("sending Text To %s\n", number)
 		response[number] = false
 		if len(msg) > 0 {
-			resp, err := connection.Client.SendMessage(context.Background(), targetJID, &waE2E.Message{
+			_, err := connection.Client.SendMessage(context.Background(), targetJID, &waE2E.Message{
 				Conversation: proto.String(msg),
 			})
 			if err == nil {
-				response[number] = resp
+				response[number] = true
 			}
 		}
 	}

@@ -1,0 +1,579 @@
+CREATE DATABASE  IF NOT EXISTS `@datbasename@`;
+USE `@datbasename@`;
+/*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ 
+/*!80016 DEFAULT ENCRYPTION='N' */;
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!50503 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Table structure for table `AdminLogins`
+--
+
+DROP TABLE IF EXISTS `AdminLogins`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `AdminLogins` (
+  `al_id` int NOT NULL AUTO_INCREMENT,
+  `al_user_id` varchar(50) NOT NULL,
+  `al_user_email` varchar(256) NOT NULL,
+  `al_password` varchar(256) NOT NULL,
+  `al_extra` json NOT NULL,
+  `al_edited_on` int NOT NULL,
+  PRIMARY KEY (`al_id`),
+  UNIQUE KEY `al_user_id` (`al_user_id`),
+  UNIQUE KEY `al_user_email` (`al_user_email`),
+  KEY `al_password` (`al_password`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `CalcBase`
+--
+
+DROP TABLE IF EXISTS `CalcBase`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `CalcBase` (
+  `calc_base_id` int NOT NULL AUTO_INCREMENT,
+  `calc_base_name` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `calc_base_variables` json NOT NULL,
+  `calc_base_string` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `calc_base_created_at` int NOT NULL,
+  PRIMARY KEY (`calc_base_id`),
+  UNIQUE KEY `name_UNIQUE` (`calc_base_name`),
+  KEY `calc_base_created_at` (`calc_base_created_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `CalcStringsHistory`
+--
+
+DROP TABLE IF EXISTS `CalcStringsHistory`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `CalcStringsHistory` (
+  `csh_id` int NOT NULL AUTO_INCREMENT,
+  `csh_calc_base_id` int NOT NULL,
+  `csh_variable_snapshot` json NOT NULL,
+  `csh_gen_strings` json NOT NULL,
+  `csh_created_on` int NOT NULL,
+  PRIMARY KEY (`csh_id`),
+  KEY `csh_calc_base_id` (`csh_calc_base_id`),
+  KEY `csh_created_on` (`csh_created_on`),
+  CONSTRAINT `CalcStringsHistory_ibfk_1` FOREIGN KEY (`csh_calc_base_id`) REFERENCES `CalcBase` (`calc_base_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=6357 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `FeedsAndUpdates`
+--
+
+DROP TABLE IF EXISTS `FeedsAndUpdates`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `FeedsAndUpdates` (
+  `fau_id` int NOT NULL AUTO_INCREMENT,
+  `fau_title` varchar(100) NOT NULL,
+  `fau_is_html` enum('Y','N') NOT NULL DEFAULT 'N',
+  `fau_desc` text NOT NULL,
+  `fau_created_at` int NOT NULL,
+  PRIMARY KEY (`fau_id`),
+  KEY `fau_is_html` (`fau_is_html`),
+  KEY `fau_created_at` (`fau_created_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `MetaTradesBooking`
+--
+
+DROP TABLE IF EXISTS `MetaTradesBooking`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `MetaTradesBooking` (
+  `meta_deal` int NOT NULL,
+  `meta_base_symbole` varchar(50) NOT NULL,
+  `meta_machine_id` varchar(45) DEFAULT 'machineid1',
+  `meta_buy_sell` enum('buy','sell') NOT NULL,
+  `meta_price` decimal(12,2) NOT NULL,
+  `meta_comment` text NOT NULL,
+  `meta_volume` decimal(6,1) NOT NULL,
+  `meta_extra` json NOT NULL,
+  `meta_time` int NOT NULL,
+  PRIMARY KEY (`meta_deal`),
+  KEY `meta_base_symbole` (`meta_base_symbole`),
+  KEY `meta_buy_sell` (`meta_buy_sell`),
+  KEY `meta_price` (`meta_price`),
+  KEY `meta_volume` (`meta_volume`),
+  KEY `meta_time` (`meta_time`),
+  KEY `machineid2` (`meta_machine_id`),
+  CONSTRAINT `MetaTradesBooking_ibfk_1` FOREIGN KEY (`meta_deal`) REFERENCES `OrderIdSummerys` (`ois_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `NotificationTokens`
+--
+
+DROP TABLE IF EXISTS `NotificationTokens`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `NotificationTokens` (
+  `noti_token_id` int NOT NULL AUTO_INCREMENT,
+  `noti_uuid` varchar(256) NOT NULL,
+  `noti_token` varchar(256) NOT NULL,
+  `noti_otr_id` int NOT NULL,
+  `noti_edited_on` int NOT NULL,
+  PRIMARY KEY (`noti_token_id`),
+  UNIQUE KEY `noti_uuid` (`noti_uuid`),
+  UNIQUE KEY `noti_token` (`noti_token`),
+  KEY `noti_edited_on` (`noti_edited_on`),
+  KEY `noti_otr_id` (`noti_otr_id`),
+  CONSTRAINT `NotificationTokens_ibfk_1` FOREIGN KEY (`noti_otr_id`) REFERENCES `OneTimeRegistration` (`otr_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=73039 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `OneTimeRegistration`
+--
+
+DROP TABLE IF EXISTS `OneTimeRegistration`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `OneTimeRegistration` (
+  `otr_id` int NOT NULL AUTO_INCREMENT,
+  `otr_name` varchar(256) NOT NULL,
+  `otr_number` varchar(10) NOT NULL,
+  `otr_firmname` varchar(256) NOT NULL,
+  `is_auto_reg` enum('Y','N') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'N',
+  `otr_device` enum('A','I','DW','MW') NOT NULL,
+  `otr_extra` json DEFAULT NULL,
+  `otr_created_on` int NOT NULL,
+  PRIMARY KEY (`otr_id`),
+  KEY `otr_created_on` (`otr_created_on`),
+  KEY `otr_name` (`otr_name`),
+  KEY `otr_number` (`otr_number`),
+  KEY `otr_firmname` (`otr_firmname`),
+  KEY `otr_device` (`otr_device`),
+  KEY `is_auto_reg` (`is_auto_reg`)
+) ENGINE=InnoDB AUTO_INCREMENT=117757 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `OrderHistory`
+--
+
+DROP TABLE IF EXISTS `OrderHistory`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `OrderHistory` (
+  `oh_id` int NOT NULL AUTO_INCREMENT,
+  `oh_second_id` varchar(40) NOT NULL,
+  `oh_user_id` int NOT NULL,
+  `oh_product_name` varchar(100) NOT NULL,
+  `oh_order_type` enum('market','limit') NOT NULL,
+  `oh_buy_sell` enum('B','S') NOT NULL,
+  `oh_pgm_id` int NOT NULL,
+  `oh_orders_status` int NOT NULL,
+  `oh_volume` decimal(6,2) NOT NULL,
+  `oh_weight` int NOT NULL,
+  `oh_weight_delivered` int DEFAULT NULL,
+  `oh_price` decimal(10,2) NOT NULL,
+  `oh_mcx_price` decimal(10,2) DEFAULT NULL,
+  `oh_calc_id` int DEFAULT NULL,
+  `oh_extra` json DEFAULT NULL,
+  `oh_machineid` varchar(10) NOT NULL,
+  `oh_executed_on` int DEFAULT NULL,
+  `oh_created_at` int NOT NULL,
+  `oh_edited_on` int NOT NULL,
+  PRIMARY KEY (`oh_id`),
+  UNIQUE KEY `oh_second_id` (`oh_second_id`),
+  KEY `oh_order_type` (`oh_order_type`),
+  KEY `oh_buy_sell` (`oh_buy_sell`),
+  KEY `oh_volume` (`oh_volume`),
+  KEY `oh_weight` (`oh_weight`),
+  KEY `oh_price` (`oh_price`),
+  KEY `oh_mcx_price` (`oh_mcx_price`),
+  KEY `oh_executed_on` (`oh_executed_on`),
+  KEY `oh_created_at` (`oh_created_at`),
+  KEY `oh_edited_on` (`oh_edited_on`),
+  KEY `oh_pgm_id` (`oh_pgm_id`),
+  KEY `oh_calc_id` (`oh_calc_id`),
+  KEY `oh_orders_status` (`oh_orders_status`),
+  KEY `oh_machineid` (`oh_machineid`),
+  KEY `oh_product_name` (`oh_product_name`),
+  KEY `OrderHistory_ibfk_1` (`oh_user_id`),
+  CONSTRAINT `OrderHistory_ibfk_1` FOREIGN KEY (`oh_user_id`) REFERENCES `Users` (`user_id`) ON DELETE CASCADE,
+  CONSTRAINT `OrderHistory_ibfk_2` FOREIGN KEY (`oh_pgm_id`) REFERENCES `ProductGroupsMap` (`pgm_id`),
+  CONSTRAINT `OrderHistory_ibfk_3` FOREIGN KEY (`oh_calc_id`) REFERENCES `CalcStringsHistory` (`csh_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `OrderHistory_ibfk_4` FOREIGN KEY (`oh_orders_status`) REFERENCES `OrderStatus` (`os_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `OrderHistory_ibfk_5` FOREIGN KEY (`oh_id`) REFERENCES `OrderIdSummerys` (`ois_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE=InnoDB AUTO_INCREMENT=19562 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `OrderIdSummerys`
+--
+
+DROP TABLE IF EXISTS `OrderIdSummerys`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `OrderIdSummerys` (
+  `ois_id` int NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`ois_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=19563 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `OrderStatus`
+--
+
+DROP TABLE IF EXISTS `OrderStatus`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `OrderStatus` (
+  `os_id` int NOT NULL AUTO_INCREMENT,
+  `os_status_name` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `os_name_display` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `os_color_code` varchar(9) DEFAULT NULL,
+  PRIMARY KEY (`os_id`),
+  UNIQUE KEY `status_name_UNIQUE` (`os_status_name`)
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `Popups`
+--
+
+DROP TABLE IF EXISTS `Popups`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Popups` (
+  `pop_id` int NOT NULL AUTO_INCREMENT,
+  `pop_starts_at` int NOT NULL,
+  `pop_ends_at` int NOT NULL,
+  `pop_url` text NOT NULL,
+  `pop_type` enum('O','E','D') NOT NULL,
+  `pop_is_active` enum('A','I') NOT NULL,
+  `pop_created_at` int NOT NULL,
+  PRIMARY KEY (`pop_id`),
+  KEY `pop_starts_at` (`pop_starts_at`),
+  KEY `pop_ends_at` (`pop_ends_at`),
+  KEY `pop_type` (`pop_type`),
+  KEY `pop_is_active` (`pop_is_active`),
+  KEY `pop_created_at` (`pop_created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ProductGroupsMap`
+--
+
+DROP TABLE IF EXISTS `ProductGroupsMap`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ProductGroupsMap` (
+  `pgm_id` int NOT NULL AUTO_INCREMENT,
+  `pgm_pid` int NOT NULL,
+  `pgm_gid` int NOT NULL,
+  `p_is_active` tinyint NOT NULL DEFAULT '0',
+  `p_is_trading_available` tinyint NOT NULL DEFAULT '0',
+  `p_extra` json DEFAULT NULL,
+  `pgm_edited_on` int NOT NULL,
+  PRIMARY KEY (`pgm_id`),
+  UNIQUE KEY `pgm_pid` (`pgm_pid`,`pgm_gid`),
+  KEY `pgm_gid` (`pgm_gid`),
+  KEY `p_is_active` (`p_is_active`),
+  KEY `p_is_trading_available` (`p_is_trading_available`),
+  KEY `pgm_edited_on` (`pgm_edited_on`),
+  CONSTRAINT `ProductGroupsMap_ibfk_1` FOREIGN KEY (`pgm_pid`) REFERENCES `ProductList` (`pid`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `ProductGroupsMap_ibfk_2` FOREIGN KEY (`pgm_gid`) REFERENCES `UserGroups` (`user_groups_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=115 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ProductList`
+--
+
+DROP TABLE IF EXISTS `ProductList`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ProductList` (
+  `pid` int NOT NULL AUTO_INCREMENT,
+  `pl_name` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `pl_name_alias` varchar(50) DEFAULT NULL,
+  `pl_base_symbole` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `pl_calculated_on` varchar(45) DEFAULT NULL,
+  `pl_is_calculated` tinyint NOT NULL DEFAULT '1',
+  `pl_is_active` tinyint NOT NULL DEFAULT '0',
+  `pl_hedging` int NOT NULL DEFAULT '0',
+  `pl_csh_id` int NOT NULL,
+  `pl_show_in` enum('comex','product','base') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `pl_number_tofix` int NOT NULL DEFAULT '0',
+  `pl_created_at` int NOT NULL,
+  PRIMARY KEY (`pid`),
+  UNIQUE KEY `name_UNIQUE` (`pl_name`),
+  UNIQUE KEY `pl_name_alias` (`pl_name_alias`),
+  KEY `p_base_symbole` (`pl_base_symbole`),
+  KEY `pl_show_in` (`pl_show_in`),
+  KEY `pl_is_active` (`pl_is_active`),
+  KEY `pl_is_calculated` (`pl_is_calculated`),
+  KEY `pl_csh_id` (`pl_csh_id`),
+  KEY `pl_number_tofix` (`pl_number_tofix`),
+  KEY `pl_calculated_on` (`pl_calculated_on`),
+  KEY `pl_hedging` (`pl_hedging`),
+  CONSTRAINT `ProductList_ibfk_1` FOREIGN KEY (`pl_csh_id`) REFERENCES `CalcStringsHistory` (`csh_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=85 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='	';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `RateAlerts`
+--
+
+DROP TABLE IF EXISTS `RateAlerts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `RateAlerts` (
+  `alert_id` int NOT NULL AUTO_INCREMENT,
+  `alert_pid` int NOT NULL,
+  `alert_price_type` enum('B','S') NOT NULL,
+  `alert_price` decimal(10,2) NOT NULL,
+  `alert_is_active` enum('Y','N') NOT NULL,
+  `alert_placed_by` int NOT NULL,
+  `alert_passed_by` int DEFAULT NULL,
+  `alert_created_at` int NOT NULL,
+  PRIMARY KEY (`alert_id`),
+  KEY `alert_created_at` (`alert_created_at`),
+  KEY `alert_passed_by` (`alert_passed_by`),
+  KEY `alert_is_active` (`alert_is_active`),
+  KEY `alert_price` (`alert_price`),
+  KEY `alert_price_type` (`alert_price_type`),
+  KEY `alert_placed_by` (`alert_placed_by`),
+  CONSTRAINT `RateAlerts_ibfk_1` FOREIGN KEY (`alert_placed_by`) REFERENCES `OneTimeRegistration` (`otr_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `SiteBasicDetails`
+--
+
+DROP TABLE IF EXISTS `SiteBasicDetails`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `SiteBasicDetails` (
+  `sbd_id` int NOT NULL AUTO_INCREMENT,
+  `sbd_key` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `sbd_value` json NOT NULL,
+  `sbd_created_at` int NOT NULL,
+  `sbd_edited_on` int NOT NULL,
+  PRIMARY KEY (`sbd_id`),
+  UNIQUE KEY `key_UNIQUE` (`sbd_key`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `UserGroups`
+--
+
+DROP TABLE IF EXISTS `UserGroups`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `UserGroups` (
+  `user_groups_id` int NOT NULL AUTO_INCREMENT,
+  `user_group_name` varchar(60) NOT NULL,
+  `user_group_login_active` tinyint(1) NOT NULL DEFAULT '0',
+  `user_group_trade_active` tinyint(1) NOT NULL DEFAULT '0',
+  `user_group_extra` json DEFAULT NULL,
+  PRIMARY KEY (`user_groups_id`),
+  UNIQUE KEY `user_group_name` (`user_group_name`),
+  KEY `user_group_login_active` (`user_group_login_active`),
+  KEY `user_group_trade_active` (`user_group_trade_active`)
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `Users`
+--
+
+DROP TABLE IF EXISTS `Users`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Users` (
+  `user_id` int NOT NULL AUTO_INCREMENT,
+  `user_uniq_id` varchar(40) DEFAULT NULL,
+  `user_name` varchar(50) NOT NULL,
+  `user_password` text NOT NULL,
+  `user_number` varchar(10) DEFAULT NULL,
+  `user_email` varchar(100) DEFAULT NULL,
+  `user_active` enum('A','I') NOT NULL,
+  `user_groupid` int NOT NULL DEFAULT '1',
+  `user_extra` json NOT NULL,
+  `user_margins` json DEFAULT NULL,
+  `user_edited_on` int NOT NULL,
+  PRIMARY KEY (`user_id`),
+  UNIQUE KEY `user_uniq_id` (`user_uniq_id`),
+  UNIQUE KEY `user_email` (`user_email`),
+  KEY `user_name` (`user_name`),
+  KEY `user_groups` (`user_groupid`),
+  KEY `user_edited_on` (`user_edited_on`),
+  KEY `user_active` (`user_active`),
+  CONSTRAINT `Users_ibfk_1` FOREIGN KEY (`user_groupid`) REFERENCES `UserGroups` (`user_groups_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE=InnoDB AUTO_INCREMENT=1859 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Temporary view structure for view `meta_summary`
+--
+
+DROP TABLE IF EXISTS `meta_summary`;
+/*!50001 DROP VIEW IF EXISTS `meta_summary`*/;
+SET @saved_cs_client     = @@character_set_client;
+/*!50503 SET character_set_client = utf8mb4 */;
+/*!50001 CREATE VIEW `meta_summary` AS SELECT 
+ 1 AS `symbole`,
+ 1 AS `machineid`,
+ 1 AS `buy_sell`,
+ 1 AS `volume`,
+ 1 AS `avg_price`,
+ 1 AS `total_orders`,
+ 1 AS `date`,
+ 1 AS `meta_time`*/;
+SET character_set_client = @saved_cs_client;
+
+--
+-- Temporary view structure for view `order_summary`
+--
+
+DROP TABLE IF EXISTS `order_summary`;
+/*!50001 DROP VIEW IF EXISTS `order_summary`*/;
+SET @saved_cs_client     = @@character_set_client;
+/*!50503 SET character_set_client = utf8mb4 */;
+/*!50001 CREATE VIEW `order_summary` AS SELECT 
+ 1 AS `product`,
+ 1 AS `pid`,
+ 1 AS `base_symbole`,
+ 1 AS `buy_sell`,
+ 1 AS `weight`,
+ 1 AS `avg_price`,
+ 1 AS `mcx_avg_price`,
+ 1 AS `total_orders`,
+ 1 AS `date`,
+ 1 AS `time`*/;
+SET character_set_client = @saved_cs_client;
+
+--
+-- Final view structure for view `meta_summary`
+--
+
+/*!50001 DROP VIEW IF EXISTS `meta_summary`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8mb4 */;
+/*!50001 SET character_set_results     = utf8mb4 */;
+/*!50001 SET collation_connection      = utf8mb4_0900_ai_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`keyur`@`%` SQL SECURITY DEFINER */
+/*!50001 VIEW `meta_summary` AS select `MetaTradesBooking`.`meta_base_symbole` AS `symbole`,`MetaTradesBooking`.`meta_machine_id` AS `machineid`,`MetaTradesBooking`.`meta_buy_sell` AS `buy_sell`,sum(`MetaTradesBooking`.`meta_volume`) AS `volume`,(sum((`MetaTradesBooking`.`meta_price` * `MetaTradesBooking`.`meta_volume`)) / sum(`MetaTradesBooking`.`meta_volume`)) AS `avg_price`,count(0) AS `total_orders`,date_format(from_unixtime(`MetaTradesBooking`.`meta_time`),'%D-%M-%Y') AS `date`,max(`MetaTradesBooking`.`meta_time`) AS `meta_time` from `MetaTradesBooking` group by `MetaTradesBooking`.`meta_machine_id`,date_format(from_unixtime(`MetaTradesBooking`.`meta_time`),'%D-%M-%Y'),`MetaTradesBooking`.`meta_base_symbole`,`MetaTradesBooking`.`meta_buy_sell` */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
+
+--
+-- Final view structure for view `order_summary`
+--
+
+/*!50001 DROP VIEW IF EXISTS `order_summary`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8mb4 */;
+/*!50001 SET character_set_results     = utf8mb4 */;
+/*!50001 SET collation_connection      = utf8mb4_0900_ai_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`keyur`@`%` SQL SECURITY DEFINER */
+/*!50001 VIEW `order_summary` AS select `OrderHistory`.`oh_product_name` AS `product`,`ProductGroupsMap`.`pgm_pid` AS `pid`,`ProductList`.`pl_base_symbole` AS `base_symbole`,`OrderHistory`.`oh_buy_sell` AS `buy_sell`,sum(`OrderHistory`.`oh_weight`) AS `weight`,(sum((`OrderHistory`.`oh_price` * `OrderHistory`.`oh_weight`)) / sum(`OrderHistory`.`oh_weight`)) AS `avg_price`,(sum((`OrderHistory`.`oh_mcx_price` * `OrderHistory`.`oh_weight`)) / sum(`OrderHistory`.`oh_weight`)) AS `mcx_avg_price`,count(0) AS `total_orders`,date_format(from_unixtime(`OrderHistory`.`oh_created_at`),'%D-%M-%Y') AS `date`,max(`OrderHistory`.`oh_created_at`) AS `time` from ((`OrderHistory` join `ProductGroupsMap` on((`OrderHistory`.`oh_pgm_id` = `ProductGroupsMap`.`pgm_id`))) join `ProductList` on((`ProductGroupsMap`.`pgm_pid` = `ProductList`.`pid`))) where (`OrderHistory`.`oh_orders_status` in (1,4,6,7)) group by date_format(from_unixtime(`OrderHistory`.`oh_created_at`),'%D-%M-%Y'),`OrderHistory`.`oh_product_name`,`ProductList`.`pid`,`OrderHistory`.`oh_buy_sell` */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2026-04-04 10:46:15
+
+
+USE `@datbasename@`;
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!50503 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+
+LOCK TABLES `CalcBase` WRITE;
+/*!40000 ALTER TABLE `CalcBase` DISABLE KEYS */;
+INSERT INTO `CalcBase` VALUES (0,'without_calc','[]','{{symbole}}',1600440000),(1,'with_gst','[\"tax\", \"premium\"]','({{symbole}}+{{premium}})*(1+({{tax}}/100))',1600440044),(2,'fixed_rates','[\"price\"]','{{price}}',1600440044),(3,'import','[\"duty\", \"premium\", \"tax\"]','(((({{symbole}}+{{sprem}})*{{conv}}*{{INR}})+{{duty}}+{{margin}})*(1+({{tax}}/100))/{{div}}*{{mult}})',1600440044);
+/*!40000 ALTER TABLE `CalcBase` ENABLE KEYS */;
+UNLOCK TABLES;
+
+LOCK TABLES `CalcStringsHistory` WRITE;
+/*!40000 ALTER TABLE `CalcStringsHistory` DISABLE KEYS */;
+INSERT INTO `CalcStringsHistory` VALUES (0,0,'[]','{\"buy\": \"{{symbole}}\", \"sell\": \"{{symbole}}\"}',1212121212);
+/*!40000 ALTER TABLE `CalcStringsHistory` ENABLE KEYS */;
+UNLOCK TABLES;
+
+LOCK TABLES `FeedsAndUpdates` WRITE;
+/*!40000 ALTER TABLE `FeedsAndUpdates` DISABLE KEYS */;
+INSERT INTO `FeedsAndUpdates` VALUES (1,'Welcome','Y','<h1><b>Welcome</b> To Shiv Bullion</h1>',1658097566);
+/*!40000 ALTER TABLE `FeedsAndUpdates` ENABLE KEYS */;
+UNLOCK TABLES;
+
+LOCK TABLES `OrderStatus` WRITE;
+/*!40000 ALTER TABLE `OrderStatus` DISABLE KEYS */;
+INSERT INTO `OrderStatus` VALUES (1,'order_placed','Order Placed',NULL),(2,'limit_expired','Limit Expired',NULL),(3,'limit_placed','Limit Placed',NULL),(4,'limit_passed','Limit Passed',NULL),(5,'limit_canceled','Limit Cancelled',NULL),(6,'delivered','Order Delivered',NULL),(7,'partial_delivered','Partial Delivered',NULL);
+/*!40000 ALTER TABLE `OrderStatus` ENABLE KEYS */;
+UNLOCK TABLES;
+
+
+LOCK TABLES `ProductList` WRITE;
+/*!40000 ALTER TABLE `ProductList` DISABLE KEYS */;
+INSERT INTO `ProductList` VALUES (1,'GOLD SPOT',NULL,'GOLD_SPOT','GOLD_SPOT',0,1,0,0,'comex',2,1699191374),(2,'SILVER SPOT',NULL,'SILVER_SPOT','SILVER_SPOT',0,1,0,0,'comex',2,1655269254),(3,'INR SPOT',NULL,'INR','INR',0,1,0,0,'comex',4,1655821674),(4,'GOLD FUTURE',NULL,'GOLD_MCX','GOLD_MCX',0,1,0,0,'base',0,1756451981),(5,'SILVER FUTURE',NULL,'SILVER_MCX','SILVER_MCX',0,1,0,0,'base',0,1756451979),(6,'GOLD NEXT',NULL,'GOLD_NEXT','GOLD_NEXT',0,0,0,0,'base',0,1756444213),(7,'SILVER NEXT',NULL,'SILVER_NEXT','SILVER_NEXT',0,0,0,0,'base',0,1772168914);
+/*!40000 ALTER TABLE `ProductList` ENABLE KEYS */;
+UNLOCK TABLES;
+
+LOCK TABLES `UserGroups` WRITE;
+/*!40000 ALTER TABLE `UserGroups` DISABLE KEYS */;
+INSERT INTO `UserGroups` VALUES (1,'ALL',1,1,'{\"replace_strings\": {\"GOLD\": {\"buy\": 0, \"sell\": 0}, \"SILVER\": {\"buy\": 0, \"sell\": 0}}}');
+/*!40000 ALTER TABLE `UserGroups` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;

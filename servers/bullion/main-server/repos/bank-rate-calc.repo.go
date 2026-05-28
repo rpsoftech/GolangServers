@@ -11,8 +11,8 @@ import (
 	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	"github.com/rpsoftech/golang-servers/utility/mongodb"
 	"github.com/rpsoftech/golang-servers/utility/redis"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type BankRateCalcRepoStruct struct {

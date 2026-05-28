@@ -8,7 +8,7 @@ import (
 	"github.com/rpsoftech/golang-servers/interfaces"
 	bullion_main_server_events "github.com/rpsoftech/golang-servers/servers/bullion/main-server/events"
 	"github.com/rpsoftech/golang-servers/utility/mongodb"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type EventRepoStruct struct {

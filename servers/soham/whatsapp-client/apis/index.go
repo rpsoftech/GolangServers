@@ -6,4 +6,5 @@ import (
 
 func AddApis(app fiber.Router) {
 	app.Get("/qr_code", GetQrCode)
+	app.Get("/status", LoginStatus)
 }

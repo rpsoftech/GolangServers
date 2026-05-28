@@ -1,11 +1,11 @@
 package whatsapp_server_apis
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
 )
 
-func AppendTokenInConfigJSON(c *fiber.Ctx) error {
+func AppendTokenInConfigJSON(c fiber.Ctx) error {
 	token := c.Query("token")
 	if token == "" {
 		return c.JSON(fiber.Map{

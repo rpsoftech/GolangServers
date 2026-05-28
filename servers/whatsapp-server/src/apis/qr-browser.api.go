@@ -3,7 +3,7 @@ package whatsapp_server_apis
 import (
 	"fmt"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 const index = `<!DOCTYPE html>
@@ -57,8 +57,8 @@ const index = `<!DOCTYPE html>
   </body>
 </html>`
 
-func OpenBrowserWithQr(c *fiber.Ctx) error {
-	id := c.Params("id")
+func OpenBrowserWithQr(c fiber.Ctx) error {
+	id := c.Get("id")
 	// println(c.Hostname())
 	c.Set("Content-Type", "text/html; charset=utf-8")
 	return c.Send([]byte(fmt.Sprintf(index, id)))

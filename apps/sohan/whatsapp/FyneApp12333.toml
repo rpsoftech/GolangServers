@@ -1,0 +1,6 @@
+Website = "https://rpso.in"
+Details = "A description of your application"
+Name = "WABOT"
+ID = "in.rpso.wabot"
+Icon = "icon.ico"
+Version = "1.0.0"
