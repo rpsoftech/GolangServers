@@ -4,7 +4,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 	"github.com/rpsoftech/golang-servers/validator"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/debug"
@@ -110,7 +110,7 @@ func start() {
 	ThisConfig = &Config{}
 
 	fmt.Printf("Config path %s\n", configFilePAth)
-	if _, err := os.Stat(configFilePAth); errors.Is(err, os.ErrNotExist) {
+	if e, _ := utility_functions.Exist(configFilePAth); !e {
 		panic(fmt.Errorf("Config Not Exist on Path %s", configFilePAth))
 	}
 	dat, err := os.ReadFile(configFilePAth)

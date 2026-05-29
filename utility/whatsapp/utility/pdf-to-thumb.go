@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/gen2brain/go-fitz"
+	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 )
 
 func ExtractFirstPage(pdfBytes []byte) ([]byte, error) {
@@ -22,7 +23,7 @@ func ExtractFirstPage(pdfBytes []byte) ([]byte, error) {
 
 	outputDir := filepath.Join(".", "output_images")
 
-	if _, err := os.Stat(outputDir); os.IsNotExist(err) {
+	if exist, _ := utility_functions.Exist(outputDir); !exist {
 		err := os.Mkdir(outputDir, 0755)
 		if err != nil {
 			fmt.Println("Error creating output directory:", err)

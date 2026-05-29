@@ -79,7 +79,7 @@ func validateGUILOCK() bool {
 }
 func preventMultipleGUI() {
 
-	if _, err := os.Stat(guiLock); err == nil {
+	if exist, _ := utility_functions.Exist(guiLock); exist {
 		if validateGUILOCK() {
 			os.Exit(0)
 		}
