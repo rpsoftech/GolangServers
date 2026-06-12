@@ -56,6 +56,6 @@ func SyncItemUnitTable(serverDb *mysqldb.MysqlDBStruct, erpDb *mysqldb.MysqlDBSt
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Bulk upsert successful! Rows affected metric: %d\n", rowsAffected)
+	log.Printf("Bulk upsert successful! Rows affected metric: %d\n", rowsAffected)
 
 }

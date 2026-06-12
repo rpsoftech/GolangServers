@@ -40,11 +40,10 @@ func SyncItemGroupTable(serverDb *mysqldb.MysqlDBStruct, erpDb *mysqldb.MysqlDBS
 		results = append(results, row)
 	}
 	log.Printf("Fetched Total %d rows from ItemGroup in Duration of %s\n", len(results), time.Since(startTime))
-	numColumns := 3
 	valueStrings := make([]string, 0, len(results))
-	valueArgs := make([]interface{}, 0, len(results)*numColumns)
+	valueArgs := make([]interface{}, 0, len(results)*ServerItemGroupOfColums)
 	for _, group := range results {
-		valueStrings = append(valueStrings, "(?, ?, ?,?)")
+		valueStrings = append(valueStrings, "(?, ?, ? ,?)")
 		valueArgs = append(valueArgs, group.ItemGroupId, group.ItemGroup, group.ItemPrintName, group.ItemUnitId)
 	}
 	finalQuery := fmt.Sprintf(ItemGroupUpsertQuery, strings.Join(valueStrings, ", "))
@@ -58,6 +57,6 @@ func SyncItemGroupTable(serverDb *mysqldb.MysqlDBStruct, erpDb *mysqldb.MysqlDBS
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Bulk upsert for Item Group successful!  Rows affected metric: %d\n", rowsAffected)
+	log.Printf("Bulk upsert for Item Group successful!  Rows affected metric: %d\n", rowsAffected)
 
 }

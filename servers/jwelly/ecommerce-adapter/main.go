@@ -24,5 +24,6 @@ func main() {
 	}
 	ecommerece_functions.SyncItemUnitTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
 	ecommerece_functions.SyncItemGroupTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
+	ecommerece_functions.SyncItemMasterTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
 	log.Printf("DONE")
 }
