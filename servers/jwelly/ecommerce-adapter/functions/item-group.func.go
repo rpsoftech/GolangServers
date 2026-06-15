@@ -14,12 +14,12 @@ import (
 // const SelectItemGroupQuery
 const SelectItemGroupQuery = "select igroupid,IGROUP,PNAME,UNITID from igroup;"
 const ServerItemGroupTable = "ItemGroup"
-const ServerItemGroupOfColums = 4
+const ServerItemGroupOfColumns = 4
 const ItemGroupUpsertQuery = `INSERT INTO ItemGroup (itemGroupId, itemGroup, itemPrintName,itemGroupUnitId) VALUES %s AS new_row ON DUPLICATE KEY UPDATE itemGroup=new_row.itemGroup,itemPrintName=new_row.itemPrintName,itemGroupUnitId=new_row.itemGroupUnitId`
 
 func SyncItemGroupTable(serverDb *mysqldb.MysqlDBStruct, erpDb *mysqldb.MysqlDBStruct) {
-	initalTime := time.Now()
-	startTime := initalTime
+	initialTime := time.Now()
+	startTime := initialTime
 	rows, err := erpDb.Db.Query(SelectItemGroupQuery)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -41,7 +41,7 @@ func SyncItemGroupTable(serverDb *mysqldb.MysqlDBStruct, erpDb *mysqldb.MysqlDBS
 	}
 	log.Printf("Fetched Total %d rows from ItemGroup in Duration of %s\n", len(results), time.Since(startTime))
 	valueStrings := make([]string, 0, len(results))
-	valueArgs := make([]interface{}, 0, len(results)*ServerItemGroupOfColums)
+	valueArgs := make([]interface{}, 0, len(results)*ServerItemGroupOfColumns)
 	for _, group := range results {
 		valueStrings = append(valueStrings, "(?, ?, ? ,?)")
 		valueArgs = append(valueArgs, group.ItemGroupId, group.ItemGroup, group.ItemPrintName, group.ItemUnitId)

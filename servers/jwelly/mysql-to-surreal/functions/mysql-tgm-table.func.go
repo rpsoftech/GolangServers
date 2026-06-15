@@ -40,8 +40,8 @@ func init() {
 }
 func (c *ConfigWithConnection) ReadAndStoreTgm1Table() {
 	rows, err := c.DbConnections.MysqlDbConncetion.Db.Query(GetTgm1TableCommand)
-	initalTime := time.Now()
-	startTime := initalTime
+	initialTime := time.Now()
+	startTime := initialTime
 	if err != nil {
 		fmt.Printf("Error in ReadAndStoreTgm1Table For %s", c.ServerConfig.Name)
 		fmt.Println(err.Error())
@@ -270,5 +270,5 @@ func (c *ConfigWithConnection) ReadAndStoreTgm1Table() {
 	if dddd, err := surrealdb.Select[[]any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, models.Table(TgmTableName)); err == nil {
 		fmt.Printf("Select All %s from SurrealDB in Duration of %s with total rows %d\n", TgmTableName, time.Since(startTime), len(*dddd))
 	}
-	fmt.Printf("%s Operation Completed in Duration of %s\n", TgmTableName, time.Since(initalTime))
+	fmt.Printf("%s Operation Completed in Duration of %s\n", TgmTableName, time.Since(initialTime))
 }

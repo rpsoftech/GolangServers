@@ -29,8 +29,8 @@ func init() {
 }
 func (c *ConfigWithConnection) ReadAndStoreUnitTable() {
 	rows, err := c.DbConnections.MysqlDbConncetion.Db.Query(GetUnitTableCommand)
-	initalTime := time.Now()
-	startTime := initalTime
+	initialTime := time.Now()
+	startTime := initialTime
 	if err != nil {
 		fmt.Printf("Error in ReadAndStoreUnitTable For %s", c.ServerConfig.Name)
 		fmt.Println(err.Error())
@@ -79,5 +79,5 @@ func (c *ConfigWithConnection) ReadAndStoreUnitTable() {
 	if dddd, err := surrealdb.Select[[]any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, models.Table(UnitTableName)); err == nil {
 		fmt.Printf("Select All %s from SurrealDB in Duration of %s with total rows %d\n", UnitTableName, time.Since(startTime), len(*dddd))
 	}
-	fmt.Printf("%s Operation Completed in Duration of %s\n", UnitTableName, time.Since(initalTime))
+	fmt.Printf("%s Operation Completed in Duration of %s\n", UnitTableName, time.Since(initialTime))
 }

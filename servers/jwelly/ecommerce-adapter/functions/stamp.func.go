@@ -14,12 +14,12 @@ import (
 // const SelectStampQuery
 const SelectStampQuery = "select STAMPID,STAMP,STUNCH,STKTUNCH from stamp;"
 const ServerStampTable = "Stamp"
-const ServerStampOfColums = 4
+const ServerStampOfColumns = 4
 const StampUpsertQuery = `INSERT INTO Stamp (stampId,STAMP,tunch,stockTunch) VALUES %s AS new_row ON DUPLICATE KEY UPDATE stampId=new_row.stampId,STAMP=new_row.STAMP,tunch=new_row.tunch,stockTunch=new_row.stockTunch`
 
 func SyncStampTable(serverDb *mysqldb.MysqlDBStruct, erpDb *mysqldb.MysqlDBStruct) {
-	initalTime := time.Now()
-	startTime := initalTime
+	initialTime := time.Now()
+	startTime := initialTime
 	rows, err := erpDb.Db.Query(SelectStampQuery)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -41,7 +41,7 @@ func SyncStampTable(serverDb *mysqldb.MysqlDBStruct, erpDb *mysqldb.MysqlDBStruc
 	}
 	log.Printf("Fetched Total %d rows from Stamp in Duration of %s\n", len(results), time.Since(startTime))
 	valueStrings := make([]string, 0, len(results))
-	valueArgs := make([]interface{}, 0, len(results)*ServerStampOfColums)
+	valueArgs := make([]interface{}, 0, len(results)*ServerStampOfColumns)
 	for _, stamp := range results {
 		valueStrings = append(valueStrings, "(?, ?, ? ,?)")
 		valueArgs = append(valueArgs,

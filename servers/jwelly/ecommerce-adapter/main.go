@@ -26,5 +26,7 @@ func main() {
 	ecommerece_functions.SyncItemGroupTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
 	ecommerece_functions.SyncItemMasterTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
 	ecommerece_functions.SyncStampTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
+	ecommerece_functions.SyncItemTagTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
+	ecommerece_functions.SyncItemTagVariationTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
 	log.Printf("DONE")
 }

@@ -13,12 +13,12 @@ import (
 
 const SelectItemMasterQuery = "select ino,IDESC,IGROUPID,PNAME,UNITID,tpre from itemmast;"
 const ServerItemMasterTable = "ItemMaster"
-const ServerItemMasterOfColums = 4
+const ServerItemMasterOfColumns = 4
 const ItemMasterUpsertQuery = `INSERT INTO ItemMaster (itemId, itemName, iGroupId,itemPrintName,iUnitId,itemTagPrefix) VALUES %s AS new_row ON DUPLICATE KEY UPDATE itemName = new_row.itemName, iGroupId = new_row.iGroupId, itemPrintName = new_row.itemPrintName, iUnitId = new_row.iUnitId, itemTagPrefix = new_row.itemTagPrefix`
 
 func SyncItemMasterTable(serverDb *mysqldb.MysqlDBStruct, erpDb *mysqldb.MysqlDBStruct) {
-	initalTime := time.Now()
-	startTime := initalTime
+	initialTime := time.Now()
+	startTime := initialTime
 	rows, err := erpDb.Db.Query(SelectItemMasterQuery)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -42,7 +42,7 @@ func SyncItemMasterTable(serverDb *mysqldb.MysqlDBStruct, erpDb *mysqldb.MysqlDB
 	}
 	log.Printf("Fetched Total %d rows from Item Master in Duration of %s\n", len(results), time.Since(startTime))
 	valueStrings := make([]string, 0, len(results))
-	valueArgs := make([]interface{}, 0, len(results)*ServerItemMasterOfColums)
+	valueArgs := make([]interface{}, 0, len(results)*ServerItemMasterOfColumns)
 
 	for _, item := range results {
 		valueStrings = append(valueStrings, "(?,?,?,?,?,?)")
