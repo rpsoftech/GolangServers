@@ -12,6 +12,5 @@ type MysqlDateWithNull struct {
 }
 
 func (ns *MysqlDateWithNull) MarshalCBOR() ([]byte, error) {
-
 	return cbor.Marshal(ns.String)
 }

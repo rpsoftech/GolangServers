@@ -26,7 +26,7 @@ CREATE TABLE
         `itemName` VARCHAR(45) NULL,
         `iGroupId` INT (3) NULL,
         `itemPrintName` VARCHAR(45) NULL,
-        `iUnitId` INT(3) NULL,
+        `iUnitId` INT (3) NULL,
         `itemTagPrefix` VARCHAR(5) NULL,
         PRIMARY KEY (`itemId`),
         UNIQUE INDEX `itemName_UNIQUE` (`itemName` ASC) VISIBLE,
@@ -34,4 +34,14 @@ CREATE TABLE
         INDEX `ItemMast2_idx` (`iUnitId` ASC) VISIBLE,
         CONSTRAINT `ItemMast1` FOREIGN KEY (`iGroupId`) REFERENCES `ItemGroup` (`itemGroupId`) ON DELETE RESTRICT ON UPDATE CASCADE,
         CONSTRAINT `ItemMast2` FOREIGN KEY (`iUnitId`) REFERENCES `ItemUnit` (`itemUnitId`) ON DELETE RESTRICT ON UPDATE CASCADE
+    );
+
+CREATE TABLE
+    `Stamp` (
+        `stampId` INT NOT NULL,
+        `STAMP` VARCHAR(45) NULL,
+        `tunch` DECIMAL(8, 2) NULL,
+        `stockTunch` DECIMAL(8, 2) NULL,
+        `sellTunch` DECIMAL(8, 2) NULL DEFAULT 0,
+        PRIMARY KEY (`stampId`)
     );
