@@ -1,13 +1,4 @@
 CREATE TABLE
-    `ItemGroup` (
-        `itemGroupId` INT NOT NULL,
-        `itemGroup` VARCHAR(45) NOT NULL,
-        `itemPrintName` VARCHAR(45) NULL,
-        `itemGroupUnitId` INT NOT NULL,
-        PRIMARY KEY (`itemGroupId`)
-    );
-
-CREATE TABLE
     `ItemUnit` (
         `itemUnitId` INT NOT NULL,
         `itemUnit` VARCHAR(45) NOT NULL,
@@ -16,9 +7,16 @@ CREATE TABLE
         UNIQUE INDEX `itemUnit_UNIQUE` (`itemUnit` ASC) VISIBLE
     );
 
-ALTER TABLE `ItemGroup` ADD INDEX `IgroupUnitToUnitID_idx` (`itemGroupUnitId` ASC) VISIBLE;
-
-ALTER TABLE `ItemGroup` ADD CONSTRAINT `IgroupUnitToUnitID` FOREIGN KEY (`itemGroupUnitId`) REFERENCES `ItemUnit` (`itemUnitId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+CREATE TABLE
+    `ItemGroup` (
+        `itemGroupId` INT NOT NULL,
+        `itemGroup` VARCHAR(45) NOT NULL,
+        `itemPrintName` VARCHAR(45) NULL,
+        `itemGroupUnitId` INT NOT NULL,
+        PRIMARY KEY (`itemGroupId`),
+        INDEX `IgroupUnitToUnitID_idx` (`itemGroupUnitId` ASC) VISIBLE,
+        CONSTRAINT `IgroupUnitToUnitID` FOREIGN KEY (`itemGroupUnitId`) REFERENCES `ItemUnit` (`itemUnitId`) ON DELETE RESTRICT ON UPDATE CASCADE
+    );
 
 CREATE TABLE
     `ItemMaster` (
@@ -45,9 +43,10 @@ CREATE TABLE
         `sellTunch` DECIMAL(8, 2) NULL DEFAULT 0,
         PRIMARY KEY (`stampId`)
     );
+INSERT INTO `Stamp` (`stampId`, `STAMP`, `tunch`, `stockTunch`, `sellTunch`) VALUES ('0', '0', '0', '0', '0');
 
 CREATE TABLE
-    `rpg_jwelly_test`.`ItemsTag` (
+    `ItemsTag` (
         `itemTagId` INT NOT NULL,
         `itemTag` VARCHAR(45) NOT NULL,
         `itemVTagId` INT NULL,
@@ -57,11 +56,11 @@ CREATE TABLE
         UNIQUE INDEX `itemTag_UNIQUE` (`itemTag` ASC) VISIBLE,
         UNIQUE INDEX `combo_unique` (`itemVTagId` ASC, `tItemId` ASC) VISIBLE,
         INDEX `itemtag_item_idx` (`tItemId` ASC) VISIBLE,
-        CONSTRAINT `itemtag_item` FOREIGN KEY (`tItemId`) REFERENCES `rpg_jwelly_test`.`ItemMaster` (`itemId`) ON DELETE RESTRICT ON UPDATE CASCADE
+        CONSTRAINT `itemtag_item` FOREIGN KEY (`tItemId`) REFERENCES `ItemMaster` (`itemId`) ON DELETE RESTRICT ON UPDATE CASCADE
     );
 
 CREATE TABLE
-    `rpg_jwelly_test`.`ItemTagVariation` (
+    `ItemTagVariation` (
         `tagVariationId` INT NOT NULL AUTO_INCREMENT,
         `vTagId` INT NULL,
         `vStampId` INT NULL,
@@ -78,6 +77,31 @@ CREATE TABLE
         INDEX `TagVariation_1_idx` (`vTagId` ASC) INVISIBLE,
         INDEX `TagVariation_2_idx` (`vStampId` ASC) VISIBLE,
         UNIQUE INDEX `TagVariation_3` (`vTagId` ASC, `vStampId` ASC) INVISIBLE,
-        CONSTRAINT `TagVariation_1` FOREIGN KEY (`vTagId`) REFERENCES `rpg_jwelly_test`.`ItemsTag` (`itemTagId`) ON DELETE RESTRICT ON UPDATE CASCADE,
-        CONSTRAINT `TagVariation_2` FOREIGN KEY (`vStampId`) REFERENCES `rpg_jwelly_test`.`Stamp` (`stampId`) ON DELETE RESTRICT ON UPDATE CASCADE
+        CONSTRAINT `TagVariation_1` FOREIGN KEY (`vTagId`) REFERENCES `ItemsTag` (`itemTagId`) ON DELETE RESTRICT ON UPDATE CASCADE,
+        CONSTRAINT `TagVariation_2` FOREIGN KEY (`vStampId`) REFERENCES `Stamp` (`stampId`) ON DELETE RESTRICT ON UPDATE CASCADE
+    );
+
+CREATE TABLE
+    `ItemTagVariationDetails` (
+        `itemTagDetailsId` INT NOT NULL,
+        `dItemTagId` INT NOT NULL,
+        `dItemId` INT NOT NULL,
+        `dSTAMPID` INT NULL DEFAULT 0,
+        `dWeight` DECIMAL(10, 3) NULL DEFAULT 0.000,
+        `dExWeight` DECIMAL(10, 3) NULL DEFAULT 0.000,
+        `dFinalWeight` DECIMAL(10, 3) NULL DEFAULT 0.000,
+        `dRemarks` TINYTEXT NULL,
+        `dPcs` INT NULL DEFAULT 0,
+        `dRate` DECIMAL(12, 2) NULL DEFAULT 0.000,
+        `dSaleValue` DECIMAL(12, 2) NULL DEFAULT 0.000,
+        `dUnitId` INT NULL,
+        PRIMARY KEY (`itemTagDetailsId`),
+        INDEX `ItemTagVariationDetails_4_idx` (`dItemTagId` ASC) VISIBLE,
+        INDEX `ItemTagVariationDetails_1_idx` (`dSTAMPID` ASC) VISIBLE,
+        INDEX `ItemTagVariationDetails_2_idx` (`dItemId` ASC) VISIBLE,
+        INDEX `ItemTagVariationDetails_3_idx` (`dUnitId` ASC) VISIBLE,
+        CONSTRAINT `ItemTagVariationDetails_1` FOREIGN KEY (`dSTAMPID`) REFERENCES `Stamp` (`stampId`) ON DELETE RESTRICT ON UPDATE CASCADE,
+        CONSTRAINT `ItemTagVariationDetails_2` FOREIGN KEY (`dItemId`) REFERENCES `ItemMaster` (`itemId`) ON DELETE RESTRICT ON UPDATE CASCADE,
+        CONSTRAINT `ItemTagVariationDetails_4` FOREIGN KEY (`dItemTagId`) REFERENCES `ItemsTag` (`itemTagId`) ON DELETE RESTRICT ON UPDATE CASCADE,
+        CONSTRAINT `ItemTagVariationDetails_3` FOREIGN KEY (`dUnitId`) REFERENCES `ItemUnit` (`itemUnitId`) ON DELETE RESTRICT ON UPDATE CASCADE
     );

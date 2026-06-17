@@ -29,7 +29,7 @@ func Init() *IServverConfig {
 	}
 	MysqlConnections = &IServerMysqlConnection{}
 	ServerConfig = &IServverConfig{}
-	env.LoadEnv("ecommerece-adapter.env")
+	env.LoadEnv("ecommerce-adapter.env")
 	configFileName := "server.config.json"
 	if e := env.Env.GetEnv("CONFGI_FILE_NAME"); e != "" {
 		configFileName = e

@@ -1,4 +1,4 @@
-package ecommerece_functions
+package ecommerce_functions
 
 import (
 	"context"
