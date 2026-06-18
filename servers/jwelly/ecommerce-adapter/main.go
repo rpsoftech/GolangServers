@@ -22,6 +22,8 @@ func main() {
 	} else {
 		ecommerce_env.MysqlConnections.ERP = conn
 	}
+	ecommerce_functions.SyncAccountGroupTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
+	ecommerce_functions.SyncAccountMasterTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
 	ecommerce_functions.SyncItemUnitTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
 	ecommerce_functions.SyncItemGroupTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
 	ecommerce_functions.SyncItemMasterTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)

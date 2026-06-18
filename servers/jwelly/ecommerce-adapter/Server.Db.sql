@@ -43,7 +43,17 @@ CREATE TABLE
         `sellTunch` DECIMAL(8, 2) NULL DEFAULT 0,
         PRIMARY KEY (`stampId`)
     );
-INSERT INTO `Stamp` (`stampId`, `STAMP`, `tunch`, `stockTunch`, `sellTunch`) VALUES ('0', '0', '0', '0', '0');
+
+INSERT INTO
+    `Stamp` (
+        `stampId`,
+        `STAMP`,
+        `tunch`,
+        `stockTunch`,
+        `sellTunch`
+    )
+VALUES
+    ('0', '0', '0', '0', '0');
 
 CREATE TABLE
     `ItemsTag` (
@@ -104,4 +114,29 @@ CREATE TABLE
         CONSTRAINT `ItemTagVariationDetails_2` FOREIGN KEY (`dItemId`) REFERENCES `ItemMaster` (`itemId`) ON DELETE RESTRICT ON UPDATE CASCADE,
         CONSTRAINT `ItemTagVariationDetails_4` FOREIGN KEY (`dItemTagId`) REFERENCES `ItemsTag` (`itemTagId`) ON DELETE RESTRICT ON UPDATE CASCADE,
         CONSTRAINT `ItemTagVariationDetails_3` FOREIGN KEY (`dUnitId`) REFERENCES `ItemUnit` (`itemUnitId`) ON DELETE RESTRICT ON UPDATE CASCADE
+    );
+
+CREATE TABLE
+    `AccountGroup` (
+        `groupId` INT NOT NULL,
+        `groupName` VARCHAR(80) NOT NULL,
+        `underId` INT NOT NULL DEFAULT 0,
+        `gType` VARCHAR(45) NULL,
+        PRIMARY KEY (`groupId`)
+    );
+
+CREATE TABLE
+    `AccountMaster` (
+        `acno` INT NOT NULL,
+        `prefix` VARCHAR(5) DEFAULT "",
+        `Name` VARCHAR(60) NOT NULL,
+        `pName` VARCHAR(60) DEFAULT "",
+        `aGroupId` INT NOT NULL,
+        `city` VARCHAR(40) NULL DEFAULT "",
+        `location` VARCHAR(30) NULL DEFAULT "",
+        `mobile` VARCHAR(20) NULL DEFAULT "",
+        `phone` VARCHAR(20) NULL DEFAULT "",
+        PRIMARY KEY (`acno`),
+        INDEX `AccountMaster_1_idx` (`aGroupId` ASC) VISIBLE,
+        CONSTRAINT `AccountMaster_1` FOREIGN KEY (`aGroupId`) REFERENCES `AccountGroup` (`groupId`) ON DELETE RESTRICT ON UPDATE CASCADE
     );

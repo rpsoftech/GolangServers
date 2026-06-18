@@ -13,7 +13,7 @@ import (
 
 const SelectItemTagVariationDetailsQuery = "SELECT td.TGDID, td.TSNO, td.INO, td.STAMPID, td.WT,td.EXWT,td.remarks, td.PC, td.RATE, td.SPRICE, td.UNITID FROM tgd1 as td join tgm1 as tg on td.tsno = tg.tsno where tg.vtgno != 0 and tg.STATUS != 'ITM' and tg.TPRE !='REP' ORDER BY td.TSNO LIMIT ? OFFSET ?;"
 const ServerItemTagVariationDetailsOfColumns = 11
-const ItemTagVariationDetailsUpsertQuery = `INSERT INTO ItemTagVariationDetails (itemTagDetailsId,dItemTagId,dItemId,dSTAMPID,dWeight,dExWeight,dFinalWeight,dRemarks,dPcs,dRate,dSaleValue,dUnitId) VALUES %s AS new_row ON DUPLICATE KEY UPDATE dItemTagId = new_row.itemTagDetailsId,dItemId = new_row.itemTagDetailsId,dSTAMPID = new_row.itemTagDetailsId,dWeight = new_row.itemTagDetailsId,dExWeight = new_row.itemTagDetailsId,dFinalWeight = new_row.itemTagDetailsId,dRemarks = new_row.itemTagDetailsId,dPcs = new_row.itemTagDetailsId,dRate = new_row.itemTagDetailsId,dSaleValue = new_row.itemTagDetailsId,dUnitId = new_row.itemTagDetailsId`
+const ItemTagVariationDetailsUpsertQuery = `INSERT INTO ItemTagVariationDetails (itemTagDetailsId,dItemTagId,dItemId,dSTAMPID,dWeight,dExWeight,dFinalWeight,dRemarks,dPcs,dRate,dSaleValue,dUnitId) VALUES %s AS new_row ON DUPLICATE KEY UPDATE dItemTagId = new_row.dItemTagId,dItemId = new_row.dItemId,dSTAMPID = new_row.dSTAMPID,dWeight = new_row.dWeight,dExWeight = new_row.dExWeight,dFinalWeight = new_row.dFinalWeight,dRemarks = new_row.dRemarks,dPcs = new_row.dPcs,dRate = new_row.dRate,dSaleValue = new_row.dSaleValue,dUnitId = new_row.dUnitId;`
 
 func SyncItemTagVariationDetailsTable(serverDb *mysqldb.MysqlDBStruct, erpDb *mysqldb.MysqlDBStruct) {
 	initialTime := time.Now()
@@ -94,7 +94,7 @@ func processItemTagVariationDetailsBatch(serverDb *mysqldb.MysqlDBStruct, erpDb 
 
 	// 2. Prepare chunk for bulk upsert
 	valueStrings := make([]string, 0, fetchedCount)
-	valueArgs := make([]interface{}, 0, fetchedCount*ServerItemTagVariationDetailsOfColumns)
+	valueArgs := make([]any, 0, fetchedCount*ServerItemTagVariationDetailsOfColumns)
 
 	for _, detail := range results {
 		valueStrings = append(valueStrings, "(?,?,?,?,?,?,?,?,?,?,?,?)")

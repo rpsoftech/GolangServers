@@ -11,14 +11,14 @@ import (
 	mysqldb "github.com/rpsoftech/golang-servers/utility/mysql"
 )
 
-const SelectStampQuery = "select STAMPID,STAMP,STUNCH,STKTUNCH from stamp;"
-const ServerStampOfColumns = 4
-const StampUpsertQuery = `INSERT INTO Stamp (stampId,STAMP,tunch,stockTunch) VALUES %s AS new_row ON DUPLICATE KEY UPDATE stampId=new_row.stampId,STAMP=new_row.STAMP,tunch=new_row.tunch,stockTunch=new_row.stockTunch`
+const SelectAccountGroupQuery = "select GROUPID,GNAME,UNDERID,GRTYPE from `group`;"
+const ServerAccGrpOfColumns = 4
+const AccountGroupUpsertQuery = `INSERT INTO AccountGroup (groupId,groupName,underId,gType) VALUES %s AS new_row ON DUPLICATE KEY UPDATE groupName=new_row.groupId,underId=new_row.groupId,gType=new_row.groupId`
 
-func SyncStampTable(serverDb *mysqldb.MysqlDBStruct, erpDb *mysqldb.MysqlDBStruct) {
+func SyncAccountGroupTable(serverDb *mysqldb.MysqlDBStruct, erpDb *mysqldb.MysqlDBStruct) {
 	initialTime := time.Now()
 	startTime := initialTime
-	rows, err := erpDb.Db.Query(SelectStampQuery)
+	rows, err := erpDb.Db.Query(SelectAccountGroupQuery)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err != nil {
@@ -26,30 +26,30 @@ func SyncStampTable(serverDb *mysqldb.MysqlDBStruct, erpDb *mysqldb.MysqlDBStruc
 		log.Println(err.Error())
 		return
 	}
-	var results []*ecommerce_maintables.StampMainTable = []*ecommerce_maintables.StampMainTable{}
+	var results []*ecommerce_maintables.AccountGroupTable = []*ecommerce_maintables.AccountGroupTable{}
 	for rows.Next() {
-		row := &ecommerce_maintables.StampMainTable{}
+		row := &ecommerce_maintables.AccountGroupTable{}
 		err = rows.Scan(
-			&row.StampId,
-			&row.Stamp,
-			&row.Tunch,
-			&row.StockTunch,
+			&row.GroupId,
+			&row.GroupName,
+			&row.UnderId,
+			&row.GType,
 		)
 		results = append(results, row)
 	}
 	log.Printf("Fetched Total %d rows from Stamp in Duration of %s\n", len(results), time.Since(startTime))
 	valueStrings := make([]string, 0, len(results))
-	valueArgs := make([]interface{}, 0, len(results)*ServerStampOfColumns)
+	valueArgs := make([]interface{}, 0, len(results)*ServerAccGrpOfColumns)
 	for _, stamp := range results {
 		valueStrings = append(valueStrings, "(?, ?, ? ,?)")
 		valueArgs = append(valueArgs,
-			stamp.StampId,
-			stamp.Stamp,
-			stamp.Tunch,
-			stamp.StockTunch,
+			stamp.GroupId,
+			stamp.GroupName,
+			stamp.UnderId,
+			stamp.GType,
 		)
 	}
-	finalQuery := fmt.Sprintf(StampUpsertQuery, strings.Join(valueStrings, ", "))
+	finalQuery := fmt.Sprintf(AccountGroupUpsertQuery, strings.Join(valueStrings, ", "))
 	result, err := serverDb.Db.ExecContext(ctx, finalQuery, valueArgs...)
 	if err != nil {
 		log.Fatalf("Bulk upsert failed: %v", err)
