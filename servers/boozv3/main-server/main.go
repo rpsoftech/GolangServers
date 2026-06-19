@@ -71,7 +71,7 @@ func main() {
 		return c.Status(fiber.StatusNotFound).SendString("Sorry can't find that!")
 	})
 	hostAndPort := ""
-	if env.Env.APP_ENV == env.APP_ENV_LOCAL || env.Env.APP_ENV == env.APP_ENV_DEVELOPE {
+	if env.Env.APP_ENV == env.APP_ENV_LOCAL || env.Env.APP_ENV == env.APP_ENV_DEVELOP {
 		hostAndPort = "127.0.0.1"
 	}
 	// Print the router stack in JSON format

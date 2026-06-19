@@ -22,7 +22,7 @@ const bullionSiteInfoCollectionName = "BullionSiteInfo"
 var BullionSiteInfoRepo *BullionSiteInfoRepoStruct
 
 func init() {
-	if env.Env.APP_ENV == env.APP_ENV_DEVELOPE {
+	if env.Env.APP_ENV == env.APP_ENV_DEVELOP {
 		return
 	}
 	coll := mongodb.MongoDatabase.Collection(bullionSiteInfoCollectionName)
