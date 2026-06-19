@@ -15,8 +15,11 @@ type IServerMysqlConnection struct {
 	ERP    *mysqldb.MysqlDBStruct
 }
 type IServverConfig struct {
-	ServerDatabase *mysqldb.MysqldbConfig `json:"ServerDatabase"`
-	ErpDatabase    *mysqldb.MysqldbConfig `json:"ErpDatabase"`
+	ServerDatabase         *mysqldb.MysqldbConfig `json:"ServerDatabase" validate:"required"`
+	ErpDatabase            *mysqldb.MysqldbConfig `json:"ErpDatabase" validate:"required"`
+	AccountTableSyncCron   string                 `json:"AccountTableSyncCron" validate:"required"`
+	BasicDetailsSyncCron   string                 `json:"BasicDetailsSyncCron" validate:"required"`
+	ItemTagDetailsSyncCron string                 `json:"ItemTagDetailsSyncCron" validate:"required"`
 }
 
 var ServerConfig *IServverConfig
