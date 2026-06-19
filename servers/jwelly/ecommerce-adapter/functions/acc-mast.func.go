@@ -13,8 +13,8 @@ import (
 
 const SelectAccountMasterQuery = "select acno,PREFIX,CNAME,PNAME,GROUPID,CITY,LOCATION,MOBILE,PHONE from `accmast`;"
 const ServerAccMstOfColumns = 9
-const upsertPlaceHolder = "(?, ?, ?, ?, ?, ?, ?, ?, ?)"
-const AccountMasterUpsertQuery = `INSERT INTO AccountMaster (acno,prefix,Name,pName,aGroupId,city,location,mobile,phone) VALUES %s AS new_row ON DUPLICATE KEY UPDATE prefix = new_row.acno,Name = new_row.acno,pName = new_row.acno,aGroupId = new_row.acno,city = new_row.acno,location = new_row.acno,mobile = new_row.acno,phone = new_row.acno`
+const upsertAccountMasterPlaceHolder = "(?, ?, ?, ?, ?, ?, ?, ?, ?)"
+const AccountMasterUpsertQuery = `INSERT INTO AccountMaster (acno,prefix,Name,pName,aGroupId,city,location,mobile,phone) VALUES %s AS new_row ON DUPLICATE KEY UPDATE prefix = new_row.prefix,Name = new_row.Name,pName = new_row.pName,aGroupId = new_row.aGroupId,city = new_row.city,location = new_row.location,mobile = new_row.mobile,phone = new_row.phone`
 
 func SyncAccountMasterTable(serverDb *mysqldb.MysqlDBStruct, erpDb *mysqldb.MysqlDBStruct) {
 	initialTime := time.Now()
@@ -47,7 +47,7 @@ func SyncAccountMasterTable(serverDb *mysqldb.MysqlDBStruct, erpDb *mysqldb.Mysq
 	valueStrings := make([]string, 0, len(results))
 	valueArgs := make([]interface{}, 0, len(results)*ServerAccMstOfColumns)
 	for _, account := range results {
-		valueStrings = append(valueStrings, upsertPlaceHolder)
+		valueStrings = append(valueStrings, upsertAccountMasterPlaceHolder)
 		valueArgs = append(valueArgs,
 			account.Acno,
 			account.Prefix,

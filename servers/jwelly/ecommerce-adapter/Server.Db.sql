@@ -140,3 +140,61 @@ CREATE TABLE
         INDEX `AccountMaster_1_idx` (`aGroupId` ASC) VISIBLE,
         CONSTRAINT `AccountMaster_1` FOREIGN KEY (`aGroupId`) REFERENCES `AccountGroup` (`groupId`) ON DELETE RESTRICT ON UPDATE CASCADE
     );
+
+CREATE TABLE
+    ItemTransaction (
+        itransId INT AUTO_INCREMENT PRIMARY KEY,
+        trnId INT NOT NULL DEFAULT 0,
+        vono INT NOT NULL DEFAULT 0,
+        tno INT NOT NULL DEFAULT 0,
+        snTranId INT NOT NULL DEFAULT 0,
+        tdate DATE NOT NULL,
+        ino INT NOT NULL DEFAULT 0,
+        -- Updated to VARCHAR based on the 'string' struct type
+        remarks VARCHAR(255) NOT NULL DEFAULT '',
+        -- Weights (3 decimal places)
+        gwt DECIMAL(10, 3) NOT NULL DEFAULT 0.000,
+        wt DECIMAL(10, 3) NOT NULL DEFAULT 0.000,
+        lesswt DECIMAL(10, 3) NOT NULL DEFAULT 0.000,
+        metalwt DECIMAL(10, 3) NOT NULL DEFAULT 0.000,
+        orgGwt DECIMAL(10, 3) NOT NULL DEFAULT 0.000,
+        fine1 DECIMAL(10, 3) NOT NULL DEFAULT 0.000,
+        tunch DECIMAL(10, 3) NOT NULL DEFAULT 0.000,
+        wstg DECIMAL(10, 3) NOT NULL DEFAULT 0.000,
+        pc INT NOT NULL DEFAULT 0,
+        -- Rates and Amounts (2 decimal places)
+        rate DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+        mamt DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+        tValue DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+        damt DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+        samt DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+        lamt DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+        bamt DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+        others DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+        lbr DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+        orgRate DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+        orgTotal DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+        total DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+        -- Strings/Identifiers
+        type VARCHAR(50) NOT NULL DEFAULT '',
+        stock VARCHAR(50) NOT NULL DEFAULT '',
+        unitId INT NOT NULL DEFAULT 0,
+        stampId INT NOT NULL DEFAULT 0,
+        siteId INT NOT NULL DEFAULT 0,
+        size VARCHAR(50) NOT NULL DEFAULT '',
+        tgno VARCHAR(50) NOT NULL DEFAULT '',
+        tpre VARCHAR(50) NOT NULL DEFAULT '',
+        karigar VARCHAR(100) NOT NULL DEFAULT '',
+        vtgno INT NOT NULL DEFAULT 0,
+        tsno INT NOT NULL DEFAULT 0,
+        kacno INT NOT NULL DEFAULT 0,
+        INDEX `ItemTransaction_1_idx` (`ino` ASC) VISIBLE,
+        INDEX `ItemTransaction_2_idx` (`stampId` ASC) VISIBLE,
+        INDEX `ItemTransaction_3_idx` (`unitId` ASC) VISIBLE,
+        CONSTRAINT `ItemTransaction_1` FOREIGN KEY (`ino`) REFERENCES `ItemMaster` (`itemId`) ON DELETE RESTRICT
+        UPDATE CASCADE,
+        CONSTRAINT `ItemTransaction_2` FOREIGN KEY (`stampId`) REFERENCES `Stamp` (`stampId`) ON DELETE RESTRICT
+        UPDATE CASCADE,
+        CONSTRAINT `ItemTransaction_3` FOREIGN KEY (`unitId`) REFERENCES `ItemUnit` (`itemUnitId`) ON DELETE RESTRICT
+        UPDATE CASCADE
+    );

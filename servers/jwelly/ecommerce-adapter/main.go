@@ -22,6 +22,7 @@ func main() {
 	} else {
 		ecommerce_env.MysqlConnections.ERP = conn
 	}
+	ecommerce_functions.SyncSiteTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
 	ecommerce_functions.SyncAccountGroupTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
 	ecommerce_functions.SyncAccountMasterTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
 	ecommerce_functions.SyncItemUnitTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
@@ -31,5 +32,6 @@ func main() {
 	ecommerce_functions.SyncItemTagTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
 	ecommerce_functions.SyncItemTagVariationTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
 	ecommerce_functions.SyncItemTagVariationDetailsTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
+	ecommerce_functions.SyncItemTransTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
 	log.Printf("DONE")
 }
