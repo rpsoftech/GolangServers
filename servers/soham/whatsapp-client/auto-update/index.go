@@ -176,6 +176,7 @@ func CheckAndDownload() string {
 		vdata, _ := json.Marshal(cloud)
 		os.WriteFile(versionFilePath, vdata, 0644)
 		log.Println("Update deployed successfully to base execution folder.")
+		os.Exit(0)
 	}
 
 	checkAndRunCalled = true

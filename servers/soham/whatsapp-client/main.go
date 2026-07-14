@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -26,7 +27,7 @@ var version string
 
 func main() {
 	soham_whatsapp_client_env.InialiseSohamWhatsappClientEnv()
-	println(version)
+	log.Printf("Version File:- %s", version)
 	go func() {
 		os.RemoveAll("./tmp")
 		os.Mkdir("./tmp", 0777)
