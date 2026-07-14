@@ -15,6 +15,7 @@ import (
 	whatsapp_middleware "github.com/rpsoftech/golang-servers/functions/whatsapp/middleware"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	soham_whatsapp_client_apis "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/apis"
+	sohan_whatsapp_auto_download "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/auto-update"
 	whatsapp_client_core "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/core"
 	soham_whatsapp_client_env "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/env"
 	soham_whatsapp_client_websocket "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/websoceket"
@@ -29,6 +30,7 @@ func main() {
 	go func() {
 		os.RemoveAll("./tmp")
 		os.Mkdir("./tmp", 0777)
+		sohan_whatsapp_auto_download.CheckAndDownload()
 	}()
 	outputLogFolderDir := filepath.Join(env.FindAndReturnCurrentDir(), "whatsapp_server_logs")
 
