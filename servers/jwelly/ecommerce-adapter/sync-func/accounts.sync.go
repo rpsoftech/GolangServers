@@ -8,5 +8,4 @@ import (
 func AccountSync() {
 	ecommerce_functions.SyncAccountGroupTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
 	ecommerce_functions.SyncAccountMasterTable(ecommerce_env.MysqlConnections.Server, ecommerce_env.MysqlConnections.ERP)
-
 }
