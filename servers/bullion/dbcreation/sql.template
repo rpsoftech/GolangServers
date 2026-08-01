@@ -544,12 +544,6 @@ INSERT INTO `CalcStringsHistory` VALUES (0,0,'[]','{\"buy\": \"{{symbole}}\", \"
 /*!40000 ALTER TABLE `CalcStringsHistory` ENABLE KEYS */;
 UNLOCK TABLES;
 
-LOCK TABLES `FeedsAndUpdates` WRITE;
-/*!40000 ALTER TABLE `FeedsAndUpdates` DISABLE KEYS */;
-INSERT INTO `FeedsAndUpdates` VALUES (1,'Welcome','Y','<h1><b>Welcome</b> To Shiv Bullion</h1>',1658097566);
-/*!40000 ALTER TABLE `FeedsAndUpdates` ENABLE KEYS */;
-UNLOCK TABLES;
-
 LOCK TABLES `OrderStatus` WRITE;
 /*!40000 ALTER TABLE `OrderStatus` DISABLE KEYS */;
 INSERT INTO `OrderStatus` VALUES (1,'order_placed','Order Placed',NULL),(2,'limit_expired','Limit Expired',NULL),(3,'limit_placed','Limit Placed',NULL),(4,'limit_passed','Limit Passed',NULL),(5,'limit_canceled','Limit Cancelled',NULL),(6,'delivered','Order Delivered',NULL),(7,'partial_delivered','Partial Delivered',NULL);

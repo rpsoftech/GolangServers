@@ -17,10 +17,10 @@ type ConfigWithConnection struct {
 }
 
 func ValidateAllConnectionsAndAssign(c *ConfigWithConnection) error {
-	if mysqlDb, err := mysqldb.InitalizeMysqlDbWithConfig(&c.ServerConfig.MysqlConfig); err != nil {
+	if mysqlDb, err := mysqldb.InitializeMysqlDbWithConfig(&c.ServerConfig.MysqlConfig); err != nil {
 		return err
 	} else {
-		if mysqlRemoteDb, err := mysqldb.InitalizeMysqlDbWithConfig(&c.ServerConfig.MysqlConfig); err != nil {
+		if mysqlRemoteDb, err := mysqldb.InitializeMysqlDbWithConfig(&c.ServerConfig.MysqlConfig); err != nil {
 			mysqlDb.Db.Close()
 			return err
 		} else {

@@ -47,12 +47,3 @@ func (e TgMasterStatus) String() string {
 		return ""
 	}
 }
-
-// var (
-// 	appEnvMap = map[string]AppEnv{
-// 		"DEVELOPE":   APP_ENV_DEVELOPE,
-// 		"LOCAL":      APP_ENV_LOCAL,
-// 		"CI":         APP_ENV_CI,
-// 		"PRODUCTION": APP_ENV_PRODUCTION,
-// 	}
-// )

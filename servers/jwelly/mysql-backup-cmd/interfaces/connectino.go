@@ -24,7 +24,7 @@ type ConfigWithConnection struct {
 }
 
 func ValidateAllConnectionsAndAssign(c *ConfigWithConnection) error {
-	if mysqlDb, err := mysqldb.InitalizeMysqlDbWithConfig(&c.ServerConfig.MysqlConfig); err != nil {
+	if mysqlDb, err := mysqldb.InitializeMysqlDbWithConfig(&c.ServerConfig.MysqlConfig); err != nil {
 		return err
 	} else {
 		c.BaseDir = filepath.Join(coreEnv.FindAndReturnCurrentDir(), "backup", c.ServerConfig.Name)

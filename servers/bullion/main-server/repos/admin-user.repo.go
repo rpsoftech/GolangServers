@@ -22,7 +22,7 @@ const adminUserCollectionName = "AdminUser"
 var AdminUserRepo *AdminUserRepoStruct
 
 func init() {
-	if env.Env.APP_ENV == env.APP_ENV_DEVELOPE {
+	if env.Env.APP_ENV == env.APP_ENV_DEVELOP {
 		return
 	}
 	coll := mongodb.MongoDatabase.Collection(adminUserCollectionName)

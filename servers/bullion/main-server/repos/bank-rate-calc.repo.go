@@ -29,7 +29,7 @@ const bankRateRedisCollection = "bankRate"
 var BankRateCalcRepo *BankRateCalcRepoStruct
 
 func init() {
-	if env.Env.APP_ENV == env.APP_ENV_DEVELOPE {
+	if env.Env.APP_ENV == env.APP_ENV_DEVELOP {
 		return
 	}
 	coll := mongodb.MongoDatabase.Collection(bankRateCalcRepoCollectionName)

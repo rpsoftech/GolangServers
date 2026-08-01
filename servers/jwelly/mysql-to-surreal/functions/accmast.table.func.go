@@ -41,8 +41,8 @@ func init() {
 }
 func (c *ConfigWithConnection) ReadAndStoreAccMastTable() {
 	rows, err := c.DbConnections.MysqlDbConncetion.Db.Query(GetAccMastTableCommand)
-	initalTime := time.Now()
-	startTime := initalTime
+	initialTime := time.Now()
+	startTime := initialTime
 	if err != nil {
 		fmt.Printf("Error in ReadAndStoreAccMastTable For %s", c.ServerConfig.Name)
 		fmt.Println(err.Error())
@@ -273,5 +273,5 @@ func (c *ConfigWithConnection) ReadAndStoreAccMastTable() {
 	if dddd, err := surrealdb.Select[[]any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, models.Table(AccMastTableName)); err == nil {
 		fmt.Printf("Select All %s from SurrealDB in Duration of %s with total rows %d\n", AccMastTableName, time.Since(startTime), len(*dddd))
 	}
-	fmt.Printf("%s Operation Completed in Duration of %s\n", AccMastTableName, time.Since(initalTime))
+	fmt.Printf("%s Operation Completed in Duration of %s\n", AccMastTableName, time.Since(initialTime))
 }

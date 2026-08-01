@@ -12,7 +12,7 @@ func ValidateAllConnectionsAndAssign(c *ConfigWithConnection) error {
 	} else {
 		c.DbConnections.SurrealDbConncetion = surrealDb
 	}
-	if mysqlDb, err := mysqldb.InitalizeMysqlDbWithConfig(&c.ServerConfig.MysqlConfig); err != nil {
+	if mysqlDb, err := mysqldb.InitializeMysqlDbWithConfig(&c.ServerConfig.MysqlConfig); err != nil {
 		return err
 	} else {
 		c.DbConnections.MysqlDbConncetion = mysqlDb

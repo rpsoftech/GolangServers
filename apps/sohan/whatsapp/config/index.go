@@ -17,7 +17,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"github.com/google/uuid"
-	sohan_whatsapp_keys "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/keys"
+	soham_whatsapp_keys "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/keys"
 	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
 	whatsapp_interfaces "github.com/rpsoftech/golang-servers/interfaces/whatsapp"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
@@ -40,17 +40,17 @@ func init() {
 		log.Fatal(err)
 	}
 	// fmt.Println(dirname)
-	sohan_whatsapp_keys.HomeDir = dirname
-	sohan_whatsapp_keys.ConfigDir = filepath.Join(dirname, ".wabot_service")
-	sohan_whatsapp_keys.ServerConfigFilePath = filepath.Join(sohan_whatsapp_keys.ConfigDir, whatsapp_config.ServerConfigFileName)
+	soham_whatsapp_keys.HomeDir = dirname
+	soham_whatsapp_keys.ConfigDir = filepath.Join(dirname, ".wabot_service")
+	soham_whatsapp_keys.ServerConfigFilePath = filepath.Join(soham_whatsapp_keys.ConfigDir, whatsapp_config.ServerConfigFileName)
 }
 
 func ValidateConfig() (bool, *whatsapp_interfaces.IServerConfig) {
-	if _, err := utility_functions.Exist(sohan_whatsapp_keys.ServerConfigFilePath); errors.Is(err, os.ErrNotExist) {
-		// panic(fmt.Errorf("CONFIG_NOT_EXIST_ON_PATH %s", sohan_whatsapp_keys.ServerConfigFilePath))
+	if _, err := utility_functions.Exist(soham_whatsapp_keys.ServerConfigFilePath); errors.Is(err, os.ErrNotExist) {
+		// panic(fmt.Errorf("CONFIG_NOT_EXIST_ON_PATH %s", soham_whatsapp_keys.ServerConfigFilePath))
 		return false, nil
 	}
-	config, err := readConfigFileAndReturniserverConfig(sohan_whatsapp_keys.ServerConfigFilePath)
+	config, err := readConfigFileAndReturniserverConfig(soham_whatsapp_keys.ServerConfigFilePath)
 	if err != nil {
 		return false, nil
 		// panic(err)
@@ -141,7 +141,7 @@ func ValidUUID(uuidstring string) (bool, string) {
 }
 
 func QrCodeApiCall(token string) (bool, string) {
-	req, err := http.NewRequest("GET", sohan_whatsapp_keys.QRCODEURL, nil)
+	req, err := http.NewRequest("GET", soham_whatsapp_keys.QRCODEURL, nil)
 
 	if err != nil {
 		fmt.Println(err)
@@ -171,7 +171,7 @@ func QrCodeApiCall(token string) (bool, string) {
 	return true, qrcodeRespo.QrCode
 }
 func LoginApiCall(token string) (bool, error) {
-	req, err := http.NewRequest("GET", sohan_whatsapp_keys.LoginStatusURL, nil)
+	req, err := http.NewRequest("GET", soham_whatsapp_keys.LoginStatusURL, nil)
 
 	if err != nil {
 		fmt.Println(err)

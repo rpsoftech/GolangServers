@@ -39,8 +39,8 @@ func removeAndInsertTrans1Table(c *ConfigWithConnection) {
 }
 func (c *ConfigWithConnection) ReadAndStoreTrans1Table() {
 	rows, err := c.DbConnections.MysqlDbConncetion.Db.Query(GetTrans1TableCommand)
-	initalTime := time.Now()
-	startTime := initalTime
+	initialTime := time.Now()
+	startTime := initialTime
 	if err != nil {
 		fmt.Printf("Error in ReadAndStoreTrans1Table For %s", c.ServerConfig.Name)
 		fmt.Println(err.Error())
@@ -339,5 +339,5 @@ func (c *ConfigWithConnection) ReadAndStoreTrans1Table() {
 	if dddd, err := surrealdb.Select[[]any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, models.Table(TransactionTableName)); err == nil {
 		fmt.Printf("Select All %s from SurrealDB in Duration of %s with total rows %d\n", TransactionTableName, time.Since(startTime), len(*dddd))
 	}
-	fmt.Printf("%s Operation Completed in Duration of %s\n", TransactionTableName, time.Since(initalTime))
+	fmt.Printf("%s Operation Completed in Duration of %s\n", TransactionTableName, time.Since(initialTime))
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -14,6 +13,7 @@ import (
 	chclient "github.com/jpillora/chisel/client"
 	chshare "github.com/jpillora/chisel/share"
 	"github.com/jpillora/chisel/share/cos"
+	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 	"github.com/rpsoftech/golang-servers/validator"
 )
 
@@ -55,7 +55,7 @@ func start() {
 	ThisConfig := &Config{}
 
 	fmt.Printf("Config path %s\n", configFilePAth)
-	if _, err := os.Stat(configFilePAth); errors.Is(err, os.ErrNotExist) {
+	if exist, _ := utility_functions.Exist(configFilePAth); !exist {
 		panic(fmt.Errorf("Config Not Exist on Path %s", configFilePAth))
 	}
 	dat, err := os.ReadFile(configFilePAth)

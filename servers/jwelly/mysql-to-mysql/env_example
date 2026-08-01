@@ -1,2 +1,2 @@
 APP_ENV="LOCAL"
-CONFGI_FILE_NAME="server.config.json"
+CONFIG_FILE_NAME="server.config.json"

@@ -6,7 +6,7 @@ import (
 	"github.com/rpsoftech/golang-servers/interfaces"
 )
 
-var TokenDecrypterFunctinos func(*fiber.Ctx, *string) error
+var TokenDecrypterFunctions func(*fiber.Ctx, *string) error
 
 // fiber middleware for jwt
 func TokenDecrypter(c *fiber.Ctx) error {
@@ -22,7 +22,7 @@ func TokenDecrypter(c *fiber.Ctx) error {
 		return c.Next()
 	}
 	// userRolesCustomClaim, localErr := .VerifyToken(tokenString[0])
-	localErr := TokenDecrypterFunctinos(c, &tokenString[0])
+	localErr := TokenDecrypterFunctions(c, &tokenString[0])
 	if localErr != nil {
 		c.Locals(interfaces.REQ_LOCAL_ERROR_KEY, localErr)
 		return c.Next()

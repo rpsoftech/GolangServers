@@ -50,6 +50,7 @@ func main() {
 	} else {
 		version = os.Args[1]
 	}
+	fmt.Printf("Version: %s\n", version)
 	err := os.MkdirAll("build", 0755)
 	if err != nil {
 		panic(err)

@@ -28,8 +28,8 @@ func removeAndInsertStampTable(c *ConfigWithConnection) {
 }
 func (c *ConfigWithConnection) ReadAndStoreStampTable() {
 	rows, err := c.DbConnections.MysqlDbConncetion.Db.Query(GetStampTableCommand)
-	initalTime := time.Now()
-	startTime := initalTime
+	initialTime := time.Now()
+	startTime := initialTime
 	if err != nil {
 		fmt.Printf("Error in ReadAndStoreStampTable For %s", c.ServerConfig.Name)
 		fmt.Println(err.Error())
@@ -111,5 +111,5 @@ func (c *ConfigWithConnection) ReadAndStoreStampTable() {
 	if dddd, err := surrealdb.Select[[]any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, models.Table(StampTableName)); err == nil {
 		fmt.Printf("Select All %s from SurrealDB in Duration of %s with total rows %d\n", StampTableName, time.Since(startTime), len(*dddd))
 	}
-	fmt.Printf("%s Operation Completed in Duration of %s\n", StampTableName, time.Since(initalTime))
+	fmt.Printf("%s Operation Completed in Duration of %s\n", StampTableName, time.Since(initialTime))
 }

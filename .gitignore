@@ -10,3 +10,4 @@ main
 .DS_St*
 dist
 SSL
+*.config.json

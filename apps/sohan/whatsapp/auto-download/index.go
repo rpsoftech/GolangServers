@@ -1,4 +1,4 @@
-package sohan_whatsapp_auto_download
+package soham_whatsapp_auto_download
 
 import (
 	"crypto/sha256"
@@ -15,7 +15,8 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
-	sohan_whatsapp_keys "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/keys"
+	soham_whatsapp_keys "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/keys"
+	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 	utility_functions_gzip "github.com/rpsoftech/golang-servers/utility/functions/gzip"
 )
 
@@ -114,7 +115,7 @@ func CheckAndDownload(progress *widget.ProgressBar, win fyne.Window) string {
 	if runtime.GOOS == "windows" {
 		serverBinary = "whatsapp-client.exe"
 	}
-	serverBinary = filepath.Join(sohan_whatsapp_keys.ConfigDir, serverBinary)
+	serverBinary = filepath.Join(soham_whatsapp_keys.ConfigDir, serverBinary)
 	if checkAndRunCalled {
 		return serverBinary
 	}
@@ -142,7 +143,7 @@ func CheckAndDownload(progress *widget.ProgressBar, win fyne.Window) string {
 
 	needDownload := false
 
-	if _, err := os.Stat(serverBinary); os.IsNotExist(err) {
+	if exist, _ := utility_functions.Exist(serverBinary); !exist {
 		needDownload = true
 	}
 
@@ -157,7 +158,7 @@ func CheckAndDownload(progress *widget.ProgressBar, win fyne.Window) string {
 		})
 		err := downloadFileWithProgress(cloud.URL, gzipFile, progress)
 		if err != nil {
-			if _, err := os.Stat(serverBinary); os.IsNotExist(err) {
+			if exist, _ := utility_functions.Exist(serverBinary); !exist {
 				panic(fmt.Errorf("File Downloading Failed"))
 				// needDownload = true
 			}
@@ -222,8 +223,8 @@ func downloadFileWithProgress(url string, filepath string, progress *widget.Prog
 func replaceBinarySafe(tmpFile string, serverBinary string) error {
 
 	// stop server first
-	if sohan_whatsapp_keys.ServerCmd != nil && sohan_whatsapp_keys.ServerCmd.Process != nil {
-		sohan_whatsapp_keys.ServerCmd.Process.Kill()
+	if soham_whatsapp_keys.ServerCmd != nil && soham_whatsapp_keys.ServerCmd.Process != nil {
+		soham_whatsapp_keys.ServerCmd.Process.Kill()
 		time.Sleep(3 * time.Second)
 	}
 
@@ -232,7 +233,7 @@ func replaceBinarySafe(tmpFile string, serverBinary string) error {
 
 	os.Remove(backup)
 
-	if _, err := os.Stat(serverBinary); err == nil {
+	if exist, _ := utility_functions.Exist(serverBinary); exist {
 		os.Rename(serverBinary, backup)
 	}
 

@@ -1,4 +1,4 @@
-package sohan_whatsapp_keys
+package soham_whatsapp_keys
 
 import "os/exec"
 

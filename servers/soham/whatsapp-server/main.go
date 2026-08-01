@@ -66,7 +66,7 @@ func main() {
 		return c.Status(fiber.StatusNotFound).SendString("Sorry can't find that!")
 	})
 	hostAndPort := ""
-	if env.Env.APP_ENV == env.APP_ENV_LOCAL || env.Env.APP_ENV == env.APP_ENV_DEVELOPE {
+	if env.Env.APP_ENV == env.APP_ENV_LOCAL || env.Env.APP_ENV == env.APP_ENV_DEVELOP {
 		hostAndPort = "127.0.0.1"
 	}
 	hostAndPort = hostAndPort + ":" + env.GetServerPort(env.PORT_KEY)
@@ -85,11 +85,11 @@ func main() {
 		if errs := validator.Validator.Validate(sslConfig); len(errs) > 0 {
 			panic(fmt.Errorf("SSL_CONFIG_ERROR %#v", errs))
 		}
-		if _, err := os.Stat(sslConfig.CertFilePath); os.IsNotExist(err) {
+		if exist, _ := utility_functions.Exist(sslConfig.CertFilePath); !exist {
 			log.Errorf("SSL Cert File Not Exist at %s", sslConfig.CertFilePath)
 			return
 		}
-		if _, err := os.Stat(sslConfig.KeyFilePath); os.IsNotExist(err) {
+		if exist, _ := utility_functions.Exist(sslConfig.KeyFilePath); !exist {
 			log.Errorf("SSL Key File Not Exist at %s", sslConfig.KeyFilePath)
 			return
 		}

@@ -32,7 +32,7 @@ func main() {
 	for _, v := range env.ConnectionConfig.ServerConfig {
 		cccc := &interfaces.ConfigWithConnection{ServerConfig: &v}
 		if err := interfaces.ValidateAllConnectionsAndAssign(cccc); err != nil {
-			fmt.Printf("Error In Validating Connectino %s", v.Name)
+			fmt.Printf("Error In Validating Connection %s", v.Name)
 			println(err.Error())
 		}
 		if env.ServerEnv.IsDev && env.ServerEnv.Env.APP_ENV == coreEnv.APP_ENV_LOCAL {

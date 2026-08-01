@@ -30,8 +30,8 @@ func removeAndInsertItemGroupTable(c *ConfigWithConnection) {
 
 func (c *ConfigWithConnection) ReadAndStoreItemGroupTable() {
 	rows, err := c.DbConnections.MysqlDbConncetion.Db.Query(GetItemGroupTableCommand)
-	initalTime := time.Now()
-	startTime := initalTime
+	initialTime := time.Now()
+	startTime := initialTime
 	if err != nil {
 		fmt.Printf("Error in ReadAndStoreItemGroupTable For %s", c.ServerConfig.Name)
 		fmt.Println(err.Error())
@@ -152,5 +152,5 @@ func (c *ConfigWithConnection) ReadAndStoreItemGroupTable() {
 	if dddd, err := surrealdb.Select[[]any](localSurrealdb.SurrealCTX, c.DbConnections.SurrealDbConncetion.Db, models.Table(ItemGroupTableName)); err == nil {
 		fmt.Printf("Select All %s from SurrealDB in Duration of %s with total rows %d\n", ItemGroupTableName, time.Since(startTime), len(*dddd))
 	}
-	fmt.Printf("%s Operation Completed in Duration of %s\n", ItemGroupTableName, time.Since(initalTime))
+	fmt.Printf("%s Operation Completed in Duration of %s\n", ItemGroupTableName, time.Since(initialTime))
 }

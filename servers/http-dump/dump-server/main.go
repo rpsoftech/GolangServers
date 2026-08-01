@@ -49,7 +49,7 @@ func main() {
 	// entity.BaseEntity.ID = "56397cab-7246-4d1c-ac14-c3446317e67b"
 	// dump_server_repos.EndPointRepo.Save(entity)
 	hostAndPort := ""
-	if env.Env.APP_ENV == env.APP_ENV_LOCAL || env.Env.APP_ENV == env.APP_ENV_DEVELOPE {
+	if env.Env.APP_ENV == env.APP_ENV_LOCAL || env.Env.APP_ENV == env.APP_ENV_DEVELOP {
 		hostAndPort = "127.0.0.1"
 	}
 	hostAndPort = hostAndPort + ":" + env.GetServerPort(env.PORT_KEY)

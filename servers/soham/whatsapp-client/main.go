@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -15,6 +16,7 @@ import (
 	whatsapp_middleware "github.com/rpsoftech/golang-servers/functions/whatsapp/middleware"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	soham_whatsapp_client_apis "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/apis"
+	sohan_whatsapp_auto_download "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/auto-update"
 	whatsapp_client_core "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/core"
 	soham_whatsapp_client_env "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/env"
 	soham_whatsapp_client_websocket "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/websoceket"
@@ -25,10 +27,11 @@ var version string
 
 func main() {
 	soham_whatsapp_client_env.InialiseSohamWhatsappClientEnv()
-	println(version)
+	log.Printf("Version File:- %s", version)
 	go func() {
 		os.RemoveAll("./tmp")
 		os.Mkdir("./tmp", 0777)
+		sohan_whatsapp_auto_download.CheckAndDownload()
 	}()
 	outputLogFolderDir := filepath.Join(env.FindAndReturnCurrentDir(), "whatsapp_server_logs")
 
@@ -82,7 +85,7 @@ func InitFiberServer() {
 		return c.Status(fiber.StatusNotFound).SendString("Sorry can't find that!")
 	})
 	hostAndPort := ""
-	if env.Env.APP_ENV == env.APP_ENV_LOCAL || env.Env.APP_ENV == env.APP_ENV_DEVELOPE {
+	if env.Env.APP_ENV == env.APP_ENV_LOCAL || env.Env.APP_ENV == env.APP_ENV_DEVELOP {
 		hostAndPort = "127.0.0.1"
 	}
 	hostAndPort = hostAndPort + ":" + env.GetServerPort(env.PORT_KEY)
