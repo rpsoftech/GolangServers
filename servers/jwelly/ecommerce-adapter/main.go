@@ -1,7 +1,14 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
@@ -18,55 +25,79 @@ func deferMainFunc() {
 	redis.DeferFunction()
 }
 
-// main function is the entry point of the program
 func main() {
+	// Initialize configuration and databases
+	config := ecommerce_env.Init()
+	InitializeMysqlConnections(config)
 	defer deferMainFunc()
-	// Initialize the MySQL connections
-	InitializeMysqlConnections()
-	// Create a new cron scheduler
+
+	// 1. Initialize & Start Cron Scheduler
 	cronTab := cron.New()
-	// Add functions to the cron scheduler
-	// Account Sync function will be executed every 5 minutes
 	cronTab.AddFunc(ecommerce_env.ServerConfig.AccountTableSyncCron, ecommerce_sync.AccountSync)
-	// Basic Details Sync function will be executed every 10 minutes
 	cronTab.AddFunc(ecommerce_env.ServerConfig.BasicDetailsSyncCron, ecommerce_sync.BasicDetailsSync)
-	// Item Details and Tags Sync function will be executed every 15 minutes
 	cronTab.AddFunc(ecommerce_env.ServerConfig.ItemTagDetailsSyncCron, ecommerce_sync.ItemDetailsTagsSync)
 
-	// Start the cron scheduler
-	log.Printf("Starting the cron scheduler...")
+	log.Println("Starting background cron scheduler...")
 	cronTab.Start()
 
-	// Log a message when the cron scheduler is done starting
-	log.Printf("DONE")
+	// 2. Initialize Fiber App
+	app := BuildApiServer()
+
+	// 3. Start Fiber Server in a background Goroutine
+	port := ":8080" // Fetch from config if available (e.g., config.Port)
+	go func() {
+		log.Printf("API Server listening on port %s...\n", port)
+		if err := app.Listen(port); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("Fiber server failed to start: %v\n", err)
+		}
+	}()
+
+	// 4. Graceful Shutdown Listener
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit // Block main thread until an OS signal is received
+
+	log.Println("Shutdown signal received. Cleaning up...")
+
+	// Stop Cron Jobs gracefully
+	cronCtx := cronTab.Stop()
+	<-cronCtx.Done()
+	log.Println("Cron scheduler stopped.")
+
+	// Shutdown Fiber App with Timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := app.ShutdownWithContext(ctx); err != nil {
+		log.Printf("Fiber forced shutdown error: %v\n", err)
+	} else {
+		log.Println("Fiber API server shut down gracefully.")
+	}
 }
 
-// Initialize the MySQL connections
-func InitializeMysqlConnections() {
-	config := ecommerce_env.Init()
-
-	if conn, err := mysqldb.InitializeMysqlDbWithConfig(config.ServerDatabase); err != nil {
-		log.Fatal("Error initializing MySQL connection:", err)
-		panic(err)
-	} else {
-		ecommerce_env.MysqlConnections.Server = conn
+// InitializeMysqlConnections handles pool initialization
+func InitializeMysqlConnections(config *ecommerce_env.IServerConfig) {
+	connServer, err := mysqldb.InitializeMysqlDbWithConfig(config.ServerDatabase)
+	if err != nil {
+		log.Fatalf("Error initializing MySQL Server connection: %v", err)
 	}
+	ecommerce_env.MysqlConnections.Server = connServer
 
-	if conn, err := mysqldb.InitializeMysqlDbWithConfig(config.ErpDatabase); err != nil {
-		log.Fatal("Error initializing ERP MySQL connection:", err)
-		panic(err)
-	} else {
-		ecommerce_env.MysqlConnections.ERP = conn
+	connErp, err := mysqldb.InitializeMysqlDbWithConfig(config.ErpDatabase)
+	if err != nil {
+		log.Fatalf("Error initializing ERP MySQL connection: %v", err)
 	}
+	ecommerce_env.MysqlConnections.ERP = connErp
 }
 
-func ApiServer() {
+// BuildApiServer configures and returns the Fiber app instance
+func BuildApiServer() *fiber.App {
 	app := fiber.New(fiber.Config{
 		ServerHeader: "Bullion Server V1.0.0",
 		ErrorHandler: func(c fiber.Ctx, err error) error {
 			mappedError, ok := err.(*interfaces.RequestError)
 			if !ok {
-				println(err.Error())
+				log.Printf("Unhandled Internal Error: %v\n", err)
 				return c.Status(500).JSON(interfaces.RequestError{
 					Code:    interfaces.ERROR_INTERNAL_SERVER,
 					Message: "Some Internal Error",
@@ -74,10 +105,15 @@ func ApiServer() {
 				})
 			}
 			if mappedError.LogTheDetails {
-				//Todo: Store The Details Of the Error With Body And Other Extra Details Like AUTH KEY AND ETC
+				// TODO: Audit log error context
 			}
 			return c.Status(mappedError.StatusCode).JSON(mappedError)
 		},
 	})
+
 	app.Use(logger.New())
+
+	// TODO: Attach your API routes here (e.g., app.Get("/api/products", productHandler.GetProducts))
+
+	return app
 }
