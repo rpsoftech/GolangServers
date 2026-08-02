@@ -12,8 +12,7 @@ import (
 )
 
 type ProductRepository struct {
-	db                       *sql.DB
-	stmtGetAllProductCatalog *sql.Stmt
+	db *sql.DB
 }
 
 var (
@@ -23,90 +22,112 @@ var (
 
 func GetProductRepository() *ProductRepository {
 	productRepoOnce.Do(func() {
-		db := ecommerce_env.MysqlConnections.Server.Db
-		query := `
-			SELECT 
-				t.itemTagId, t.itemTag, m.itemName, g.itemGroupId, g.itemGroup,
-				v.tagVariationId, v.vGrossWt, v.vNetWt, v.vSellTunch, v.vSellWstg, v.vStatus
-			FROM ItemsTag t
-			JOIN ItemMaster m ON t.tItemId = m.itemId
-			JOIN ItemGroup g ON m.iGroupId = g.itemGroupId
-			JOIN ItemTagVariation v ON t.itemTagId = v.vTagId
-			WHERE v.vStatus = 1
-			LIMIT ? OFFSET ?;
-		`
-
-		stmt, err := db.Prepare(query)
-		if err != nil {
-			panic(fmt.Sprintf("Failed to pre-compile Product Catalog query: %v", err))
-		}
-
 		productRepoInstance = &ProductRepository{
-			db:                       db,
-			stmtGetAllProductCatalog: stmt,
+			db: ecommerce_env.MysqlConnections.Server.Db,
 		}
 	})
 	return productRepoInstance
 }
-func (r *ProductRepository) FetchAllProductCatalogRaw(ctx context.Context, limit, offset int) (*sql.Rows, error) {
-	return r.stmtGetAllProductCatalog.QueryContext(ctx, limit, offset)
-}
 
-// FetchFilteredProducts dynamically constructs a safe query based on Wirewings filter requirements
-func (r *ProductRepository) FetchFilteredProducts(ctx context.Context, req *ecommerce_dto.ProductSearchRequest) (*sql.Rows, error) {
-	baseQuery := `
+func (r *ProductRepository) FetchAllProductCatalogWithJSON(ctx context.Context, limit, offset int) (*sql.Rows, error) {
+	query := `
+		WITH PaginatedParents AS (
+			SELECT itemTagId
+			FROM ItemsTag
+			ORDER BY itemTagId ASC
+			LIMIT ? OFFSET ?
+		)
 		SELECT 
-			t.itemTagId, t.itemTag, m.itemName, g.itemGroupId, g.itemGroup,
-			v.tagVariationId, v.vGrossWt, v.vNetWt, v.vSellTunch, v.vSellWstg, v.vStatus
-		FROM ItemsTag t
+			t.itemTagId, 
+			t.itemTag, 
+			m.itemName, 
+			g.itemGroupId, 
+			g.itemGroup,
+			JSON_ARRAYAGG(
+				JSON_OBJECT(
+					'variant_id', v.tagVariationId,
+					'gross_weight', v.vGrossWt,
+					'net_weight', v.vNetWt,
+					'vSellTunch', v.vSellTunch,
+					'vSellWstg', v.vSellWstg,
+					'isActive', IF(v.vStatus = 1, true, false)
+				)
+			) AS variants
+		FROM PaginatedParents pp
+		JOIN ItemsTag t ON pp.itemTagId = t.itemTagId
 		JOIN ItemMaster m ON t.tItemId = m.itemId
 		JOIN ItemGroup g ON m.iGroupId = g.itemGroupId
 		JOIN ItemTagVariation v ON t.itemTagId = v.vTagId
 		WHERE v.vStatus = 1
+		GROUP BY t.itemTagId, t.itemTag, m.itemName, g.itemGroupId, g.itemGroup
+		ORDER BY t.itemTagId ASC;
 	`
+	return r.db.QueryContext(ctx, query, limit, offset)
+}
 
-	var conditions []string
+func (r *ProductRepository) FetchFilteredProductsWithJSON(ctx context.Context, req *ecommerce_dto.ProductSearchRequest) (*sql.Rows, error) {
+	var innerConditions []string
 	var args []interface{}
 
-	// Keyword Search filter
 	if req.Search != "" {
-		conditions = append(conditions, "(m.itemName LIKE ? OR t.itemTag LIKE ?)")
+		innerConditions = append(innerConditions, "(m.itemName LIKE ? OR t.itemTag LIKE ?)")
 		searchTerm := "%" + req.Search + "%"
 		args = append(args, searchTerm, searchTerm)
 	}
 
-	// Category IDs filter[cite: 1]
 	if len(req.CategoryIDs) > 0 {
 		placeholders := make([]string, len(req.CategoryIDs))
 		for i, id := range req.CategoryIDs {
 			placeholders[i] = "?"
 			args = append(args, id)
 		}
-		conditions = append(conditions, fmt.Sprintf("g.itemGroupId IN (%s)", strings.Join(placeholders, ",")))
+		innerConditions = append(innerConditions, fmt.Sprintf("g.itemGroupId IN (%s)", strings.Join(placeholders, ",")))
 	}
 
-	// Weight Range filters[cite: 1]
+	if len(req.CollectionIDs) > 0 {
+		placeholders := make([]string, len(req.CollectionIDs))
+		for i, id := range req.CollectionIDs {
+			placeholders[i] = "?"
+			args = append(args, id)
+		}
+		innerConditions = append(innerConditions, fmt.Sprintf("g.itemGroupId IN (%s)", strings.Join(placeholders, ",")))
+	}
+
+	if len(req.Purities) > 0 {
+		placeholders := make([]string, len(req.Purities))
+		for i, purity := range req.Purities {
+			placeholders[i] = "?"
+			args = append(args, purity)
+		}
+		innerConditions = append(innerConditions, fmt.Sprintf("v.vStampId IN (%s)", strings.Join(placeholders, ",")))
+	}
+
 	if req.WeightMin != nil {
-		conditions = append(conditions, "v.vGrossWt >= ?")
+		innerConditions = append(innerConditions, "v.vGrossWt >= ?")
 		args = append(args, *req.WeightMin)
 	}
 	if req.WeightMax != nil {
-		conditions = append(conditions, "v.vGrossWt <= ?")
+		innerConditions = append(innerConditions, "v.vGrossWt <= ?")
 		args = append(args, *req.WeightMax)
 	}
 
-	if len(conditions) > 0 {
-		baseQuery += " AND " + strings.Join(conditions, " AND ")
+	whereClause := "WHERE v.vStatus = 1"
+	if len(innerConditions) > 0 {
+		whereClause += " AND " + strings.Join(innerConditions, " AND ")
 	}
 
-	// Sorting logic[cite: 1]
-	if req.SortBy == "latest" {
-		baseQuery += " ORDER BY t.tagCreatedDate DESC"
-	} else {
-		baseQuery += " ORDER BY t.itemTagId ASC"
+	orderClause := "ORDER BY t.itemTagId ASC"
+	switch req.SortBy {
+	case "latest":
+		orderClause = "ORDER BY t.tagCreatedDate DESC"
+	case "weight_asc":
+		orderClause = "ORDER BY MIN(v.vGrossWt) ASC"
+	case "weight_desc":
+		orderClause = "ORDER BY MAX(v.vGrossWt) DESC"
+	case "name_asc":
+		orderClause = "ORDER BY m.itemName ASC"
 	}
 
-	// Pagination[cite: 1]
 	limit := req.Limit
 	if limit <= 0 {
 		limit = 20
@@ -117,8 +138,73 @@ func (r *ProductRepository) FetchFilteredProducts(ctx context.Context, req *ecom
 	}
 	offset := (page - 1) * limit
 
-	baseQuery += " LIMIT ? OFFSET ?;"
+	baseQuery := fmt.Sprintf(`
+		WITH FilteredParents AS (
+			SELECT t.itemTagId
+			FROM ItemsTag t
+			JOIN ItemMaster m ON t.tItemId = m.itemId
+			JOIN ItemGroup g ON m.iGroupId = g.itemGroupId
+			JOIN ItemTagVariation v ON t.itemTagId = v.vTagId
+			%s
+			GROUP BY t.itemTagId
+			%s
+			LIMIT ? OFFSET ?
+		)
+		SELECT 
+			t.itemTagId, 
+			t.itemTag, 
+			m.itemName, 
+			g.itemGroupId, 
+			g.itemGroup,
+			JSON_ARRAYAGG(
+				JSON_OBJECT(
+					'variant_id', v.tagVariationId,
+					'gross_weight', v.vGrossWt,
+					'net_weight', v.vNetWt,
+					'vSellTunch', v.vSellTunch,
+					'vSellWstg', v.vSellWstg,
+					'isActive', IF(v.vStatus = 1, true, false)
+				)
+			) AS variants
+		FROM FilteredParents fp
+		JOIN ItemsTag t ON fp.itemTagId = t.itemTagId
+		JOIN ItemMaster m ON t.tItemId = m.itemId
+		JOIN ItemGroup g ON m.iGroupId = g.itemGroupId
+		JOIN ItemTagVariation v ON t.itemTagId = v.vTagId
+		WHERE v.vStatus = 1
+		GROUP BY t.itemTagId, t.itemTag, m.itemName, g.itemGroupId, g.itemGroup
+		%s;
+	`, whereClause, orderClause, orderClause)
+
 	args = append(args, limit, offset)
 
 	return r.db.QueryContext(ctx, baseQuery, args...)
+}
+
+func (r *ProductRepository) FetchProductBySKUWithJSON(ctx context.Context, sku string) *sql.Row {
+	query := `
+		SELECT 
+			t.itemTagId, 
+			t.itemTag, 
+			m.itemName, 
+			g.itemGroupId, 
+			g.itemGroup,
+			JSON_ARRAYAGG(
+				JSON_OBJECT(
+					'variant_id', v.tagVariationId,
+					'gross_weight', v.vGrossWt,
+					'net_weight', v.vNetWt,
+					'vSellTunch', v.vSellTunch,
+					'vSellWstg', v.vSellWstg,
+					'isActive', IF(v.vStatus = 1, true, false)
+				)
+			) AS variants
+		FROM ItemsTag t
+		JOIN ItemMaster m ON t.tItemId = m.itemId
+		JOIN ItemGroup g ON m.iGroupId = g.itemGroupId
+		JOIN ItemTagVariation v ON t.itemTagId = v.vTagId
+		WHERE v.vStatus = 1 AND t.itemTag = ?
+		GROUP BY t.itemTagId, t.itemTag, m.itemName, g.itemGroupId, g.itemGroup;
+	`
+	return r.db.QueryRowContext(ctx, query, sku)
 }

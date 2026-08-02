@@ -10,9 +10,8 @@ import (
 )
 
 func ProductSearchSearch(c fiber.Ctx) error {
-	// Bind incoming JSON body filters from Wirewings[cite: 1]
 	var searchReq ecommerce_dto.ProductSearchRequest
-	if err := c.Bind().JSON(&searchReq); err != nil {
+	if err := c.Bind().Query(&searchReq); err != nil {
 		return c.Status(400).JSON(fiber.Map{
 			"success": false,
 			"error":   "Invalid request payload",

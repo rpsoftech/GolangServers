@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -30,9 +31,11 @@ const (
 	TimeToLive_OneDay  time.Duration = time.Hour * 24
 )
 
-var RedisClient *RedisClientStruct
-
-var RedisCTX = context.Background()
+var (
+	RedisClient *RedisClientStruct
+	redisOnce   sync.Once
+	RedisCTX    = context.Background()
+)
 
 func init() {
 	if env.Env.APP_ENV == env.APP_ENV_DEVELOP {
@@ -41,45 +44,47 @@ func init() {
 	// RedisClient.redisClient.Subscribe()
 }
 
+func GetRedisClient() *RedisClientStruct {
+	return InitRedisAndRedisClient()
+}
 func InitRedisAndRedisClient() *RedisClientStruct {
-	if RedisClient != nil {
-		return RedisClient
-	}
-	redis_DB_DATABASE, err := strconv.Atoi(env.Env.GetEnv(env.REDIS_DB_DATABASE_KEY))
-	if err != nil {
-		// ... handle error
-		panic(err)
-	}
-	redis_DB_PORT, err := strconv.Atoi(env.Env.GetEnv(env.REDIS_DB_PORT_KEY))
-	if err != nil {
-		// ... handle error
-		panic(err)
-	}
-	config := &RedisClientConfig{
-		REDIS_DB_PORT:     redis_DB_PORT,
-		REDIS_DB_HOST:     env.Env.GetEnv(env.REDIS_DB_HOST_KEY),
-		REDIS_DB_PASSWORD: env.Env.GetEnv(env.REDIS_DB_PASSWORD_KEY),
-		REDIS_DB_DATABASE: redis_DB_DATABASE,
-		REDIS_DB_USERNAME: env.Env.GetEnv(env.REDIS_DB_USERNAME_KEY),
-	}
-	env.ValidateEnv(config)
-	client := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%v:%d", config.REDIS_DB_HOST, config.REDIS_DB_PORT),
-		Password: config.REDIS_DB_PASSWORD, // no password set
-		DB:       config.REDIS_DB_DATABASE, // use default DB,
-		Username: config.REDIS_DB_USERNAME,
+	redisOnce.Do(func() {
+		redis_DB_DATABASE, err := strconv.Atoi(env.Env.GetEnv(env.REDIS_DB_DATABASE_KEY))
+		if err != nil {
+			panic(err)
+		}
+		redis_DB_PORT, err := strconv.Atoi(env.Env.GetEnv(env.REDIS_DB_PORT_KEY))
+		if err != nil {
+			panic(err)
+		}
+
+		config := &RedisClientConfig{
+			REDIS_DB_PORT:     redis_DB_PORT,
+			REDIS_DB_HOST:     env.Env.GetEnv(env.REDIS_DB_HOST_KEY),
+			REDIS_DB_PASSWORD: env.Env.GetEnv(env.REDIS_DB_PASSWORD_KEY),
+			REDIS_DB_DATABASE: redis_DB_DATABASE,
+			REDIS_DB_USERNAME: env.Env.GetEnv(env.REDIS_DB_USERNAME_KEY),
+		}
+		env.ValidateEnv(config)
+
+		client := redis.NewClient(&redis.Options{
+			Addr:     fmt.Sprintf("%v:%d", config.REDIS_DB_HOST, config.REDIS_DB_PORT),
+			Password: config.REDIS_DB_PASSWORD,
+			DB:       config.REDIS_DB_DATABASE,
+			Username: config.REDIS_DB_USERNAME,
+		})
+
+		// Ping synchronously to guarantee the connection is alive
+		if err := client.Ping(RedisCTX).Err(); err != nil {
+			panic(fmt.Errorf("redis ping failed: %w", err))
+		}
+
+		RedisClient = &RedisClientStruct{
+			redisClient: client,
+		}
+		println("Redis Client Initialized via sync.Once")
 	})
 
-	RedisClient = &RedisClientStruct{
-		redisClient: client,
-	}
-	go func() {
-		res := RedisClient.redisClient.Ping(RedisCTX)
-		if res.Err() != nil {
-			panic(res.Err())
-		}
-	}()
-	println("Redis Client Initialized")
 	return RedisClient
 }
 
@@ -112,8 +117,11 @@ func (r *RedisClientStruct) PublishCustomEvent(event string, payload string) {
 func (r *RedisClientStruct) GetHashValue(key string) map[string]string {
 	return r.redisClient.HGetAll(RedisCTX, key).Val()
 }
+func (r *RedisClientStruct) GetStringDataCtx(ctx context.Context, key string) *redis.StringCmd {
+	return r.redisClient.Get(ctx, key)
+}
 func (r *RedisClientStruct) GetStringData(key string) string {
-	return r.redisClient.Get(RedisCTX, key).Val()
+	return r.GetStringDataCtx(RedisCTX, key).Val()
 }
 
 func (r *RedisClientStruct) RemoveKey(key ...string) {
@@ -123,5 +131,8 @@ func (r *RedisClientStruct) SetStringData(key string, value string, expiresIn in
 	r.SetStringDataWithExpiry(key, value, time.Duration(expiresIn)*time.Second)
 }
 func (r *RedisClientStruct) SetStringDataWithExpiry(key string, value string, expiresIn time.Duration) {
-	r.redisClient.Set(RedisCTX, key, value, expiresIn)
+	r.SetStringDataWithExpiryCtx(RedisCTX, key, value, expiresIn)
+}
+func (r *RedisClientStruct) SetStringDataWithExpiryCtx(ctx context.Context, key string, value string, expiresIn time.Duration) {
+	r.redisClient.Set(ctx, key, value, expiresIn)
 }

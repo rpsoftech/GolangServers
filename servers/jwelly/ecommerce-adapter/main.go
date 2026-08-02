@@ -15,6 +15,7 @@ import (
 	"github.com/robfig/cron/v3"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	ecommerce_env "github.com/rpsoftech/golang-servers/servers/jwelly/ecommerce-adapter/env"
+	ecommerce_api "github.com/rpsoftech/golang-servers/servers/jwelly/ecommerce-adapter/internal/api"
 	ecommerce_sync "github.com/rpsoftech/golang-servers/servers/jwelly/ecommerce-adapter/sync-func"
 	mysqldb "github.com/rpsoftech/golang-servers/utility/mysql"
 	"github.com/rpsoftech/golang-servers/utility/redis"
@@ -114,6 +115,6 @@ func BuildApiServer() *fiber.App {
 	app.Use(logger.New())
 
 	// TODO: Attach your API routes here (e.g., app.Get("/api/products", productHandler.GetProducts))
-
+	ecommerce_api.AddApiRoutes(app.Group("/api/v1"))
 	return app
 }
