@@ -13,6 +13,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/robfig/cron/v3"
+	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	ecommerce_env "github.com/rpsoftech/golang-servers/servers/jwelly/ecommerce-adapter/env"
 	ecommerce_api "github.com/rpsoftech/golang-servers/servers/jwelly/ecommerce-adapter/internal/api"
@@ -43,9 +44,9 @@ func main() {
 
 	// 2. Initialize Fiber App
 	app := BuildApiServer()
-
+	port := ":" + env.GetServerPort("PORT")
 	// 3. Start Fiber Server in a background Goroutine
-	port := ":8080" // Fetch from config if available (e.g., config.Port)
+	// port := ":8080" // Fetch from config if available (e.g., config.Port)
 	go func() {
 		log.Printf("API Server listening on port %s...\n", port)
 		if err := app.Listen(port); err != nil && !errors.Is(err, http.ErrServerClosed) {

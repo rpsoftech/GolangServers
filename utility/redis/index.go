@@ -37,13 +37,6 @@ var (
 	RedisCTX    = context.Background()
 )
 
-func init() {
-	if env.Env.APP_ENV == env.APP_ENV_DEVELOP {
-		return
-	}
-	// RedisClient.redisClient.Subscribe()
-}
-
 func GetRedisClient() *RedisClientStruct {
 	return InitRedisAndRedisClient()
 }
