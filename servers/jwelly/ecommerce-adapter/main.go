@@ -116,6 +116,6 @@ func BuildApiServer() *fiber.App {
 	app.Use(logger.New())
 
 	// TODO: Attach your API routes here (e.g., app.Get("/api/products", productHandler.GetProducts))
-	ecommerce_api.AddApiRoutes(app.Group("/api/v1"))
+	ecommerce_api.AddApiRoutes(app.Group("/v1/api"))
 	return app
 }

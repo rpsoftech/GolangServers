@@ -32,9 +32,12 @@ func GetProductRepository() *ProductRepository {
 func (r *ProductRepository) FetchAllProductCatalogWithJSON(ctx context.Context, limit, offset int) (*sql.Rows, error) {
 	query := `
 		WITH PaginatedParents AS (
-			SELECT itemTagId
-			FROM ItemsTag
-			ORDER BY itemTagId ASC
+			SELECT t.itemTagId
+			FROM ItemsTag t
+			JOIN ItemTagVariation v ON t.itemTagId = v.vTagId
+			WHERE v.vStatus = 1
+			GROUP BY t.itemTagId
+			ORDER BY t.itemTagId ASC
 			LIMIT ? OFFSET ?
 		)
 		SELECT 
@@ -43,6 +46,7 @@ func (r *ProductRepository) FetchAllProductCatalogWithJSON(ctx context.Context, 
 			m.itemName, 
 			g.itemGroupId, 
 			g.itemGroup,
+			t.tagCreatedDate,
 			JSON_ARRAYAGG(
 				JSON_OBJECT(
 					'variant_id', v.tagVariationId,
@@ -50,7 +54,7 @@ func (r *ProductRepository) FetchAllProductCatalogWithJSON(ctx context.Context, 
 					'net_weight', v.vNetWt,
 					'vSellTunch', v.vSellTunch,
 					'vSellWstg', v.vSellWstg,
-					'isActive', IF(v.vStatus = 1, true, false)
+					'isActive', CAST(v.vStatus AS UNSIGNED)
 				)
 			) AS variants
 		FROM PaginatedParents pp
@@ -64,7 +68,6 @@ func (r *ProductRepository) FetchAllProductCatalogWithJSON(ctx context.Context, 
 	`
 	return r.db.QueryContext(ctx, query, limit, offset)
 }
-
 func (r *ProductRepository) FetchFilteredProductsWithJSON(ctx context.Context, req *ecommerce_dto.ProductSearchRequest) (*sql.Rows, error) {
 	var innerConditions []string
 	var args []interface{}
@@ -156,6 +159,7 @@ func (r *ProductRepository) FetchFilteredProductsWithJSON(ctx context.Context, r
 			m.itemName, 
 			g.itemGroupId, 
 			g.itemGroup,
+			t.tagCreatedDate,
 			JSON_ARRAYAGG(
 				JSON_OBJECT(
 					'variant_id', v.tagVariationId,
@@ -163,7 +167,7 @@ func (r *ProductRepository) FetchFilteredProductsWithJSON(ctx context.Context, r
 					'net_weight', v.vNetWt,
 					'vSellTunch', v.vSellTunch,
 					'vSellWstg', v.vSellWstg,
-					'isActive', IF(v.vStatus = 1, true, false)
+					'isActive', CAST(v.vStatus AS UNSIGNED)
 				)
 			) AS variants
 		FROM FilteredParents fp
@@ -172,7 +176,7 @@ func (r *ProductRepository) FetchFilteredProductsWithJSON(ctx context.Context, r
 		JOIN ItemGroup g ON m.iGroupId = g.itemGroupId
 		JOIN ItemTagVariation v ON t.itemTagId = v.vTagId
 		WHERE v.vStatus = 1
-		GROUP BY t.itemTagId, t.itemTag, m.itemName, g.itemGroupId, g.itemGroup
+		GROUP BY t.itemTagId, t.itemTag, m.itemName, g.itemGroupId, g.itemGroup, t.tagCreatedDate
 		%s;
 	`, whereClause, orderClause, orderClause)
 
@@ -196,7 +200,7 @@ func (r *ProductRepository) FetchProductBySKUWithJSON(ctx context.Context, sku s
 					'net_weight', v.vNetWt,
 					'vSellTunch', v.vSellTunch,
 					'vSellWstg', v.vSellWstg,
-					'isActive', IF(v.vStatus = 1, true, false)
+					'isActive', CAST(v.vStatus AS UNSIGNED)
 				)
 			) AS variants
 		FROM ItemsTag t

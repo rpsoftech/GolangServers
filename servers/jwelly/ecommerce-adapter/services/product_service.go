@@ -64,8 +64,8 @@ func (s *ProductService) GetAllProductsForWirewings(ctx context.Context, limit, 
 		var tagId, groupId int
 		var tag, itemName, groupName string
 		var variantsJSON []byte
-
-		if err := rows.Scan(&tagId, &tag, &itemName, &groupId, &groupName, &variantsJSON); err != nil {
+		var cretaedOn time.Time
+		if err := rows.Scan(&tagId, &tag, &itemName, &groupId, &groupName, &cretaedOn, &variantsJSON); err != nil {
 			log.Printf("Error scanning product row: %v", err)
 			continue
 		}
@@ -121,8 +121,9 @@ func (s *ProductService) SearchAndFilterProducts(ctx context.Context, req *ecomm
 		var tagId, groupId int
 		var tag, itemName, groupName string
 		var variantsJSON []byte
+		var cretaedOn time.Time
 
-		if err := rows.Scan(&tagId, &tag, &itemName, &groupId, &groupName, &variantsJSON); err != nil {
+		if err := rows.Scan(&tagId, &tag, &itemName, &groupId, &groupName, &cretaedOn, &variantsJSON); err != nil {
 			log.Printf("Error scanning product filter row: %v", err)
 			continue
 		}

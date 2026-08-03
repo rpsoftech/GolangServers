@@ -19,7 +19,7 @@ func AddApiRoutes(app fiber.Router) {
 func RegisterProductRoutes(app fiber.Router) {
 	app.Get("/all", ecommerce_api_func.ProductSearchAll)
 	// FIXED: Changed from Get to Post to support JSON request bodies safely
-	app.Post("/search", ecommerce_api_func.ProductSearchSearch)
+	app.Get("/search", ecommerce_api_func.ProductSearchSearch)
 	app.Get("/sku/:sku", ecommerce_api_func.GetProductBySKU)
 	app.Get("filters", ecommerce_api_func.GetFilterOptions)
 }

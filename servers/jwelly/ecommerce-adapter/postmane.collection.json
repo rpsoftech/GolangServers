@@ -1,0 +1,264 @@
+{
+	"info": {
+		"name": "Digi Goal - Wirewings B2B Integration API",
+		"description": "API collection for the MySQL 8 middle-database serving the Wirewings React/NestJS frontend.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:4004",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Catalog & Products",
+			"item": [
+				{
+					"name": "Get All Products (Paginated)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/products/all?limit=20&offset=0",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"products",
+								"all"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Search & Filter Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/products/search?limit=20&page=1&search=&category_ids=1&category_ids=2&weight_min=5&weight_max=50&sort_by=latest",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"products",
+								"search"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Keyword search"
+								},
+								{
+									"key": "category_ids",
+									"value": "1",
+									"description": "Repeat key for arrays"
+								},
+								{
+									"key": "category_ids",
+									"value": "2"
+								},
+								{
+									"key": "weight_min",
+									"value": "5"
+								},
+								{
+									"key": "weight_max",
+									"value": "50"
+								},
+								{
+									"key": "sort_by",
+									"value": "latest",
+									"description": "latest | weight_asc | weight_desc | name_asc"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Single Product by SKU (Tag)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/products/sku/:sku",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"products",
+								"sku",
+								":sku"
+							],
+							"variable": [
+								{
+									"key": "sku",
+									"value": "BT001",
+									"description": "The unique item tag"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get All Variants (Paginated)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/product-variants?limit=20&offset=0",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"product-variants"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Categories & Master Data",
+			"item": [
+				{
+					"name": "Get All Categories",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/categories",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"categories"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Collections",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/collections",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"collections"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Purities (Stamps)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/purities",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"purities"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Stone Types",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/stone-types",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"stone-types"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Metal Colors",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/metal-colors",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"metal-colors"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Occasions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/occasions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"occasions"
+							]
+						}
+					}
+				}
+			]
+		}
+	]
+}

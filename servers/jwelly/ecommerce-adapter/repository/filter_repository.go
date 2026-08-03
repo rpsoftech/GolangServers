@@ -24,7 +24,7 @@ var (
 func GetFilterRepository() *FilterRepository {
 	filterRepoOnce.Do(func() {
 		db := ecommerce_env.MysqlConnections.Server.Db
-		queryPurities := `SELECT stampId, stampName FROM Stamps ORDER BY stampName ASC;`
+		queryPurities := `SELECT stampId, STAMP FROM Stamp ORDER BY STAMP ASC;`
 		stmtPurities, err := db.Prepare(queryPurities)
 		if err != nil {
 			panic(fmt.Sprintf("Failed to pre-compile Purities query: %v", err))

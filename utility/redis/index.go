@@ -23,7 +23,9 @@ type RedisClientConfig struct {
 }
 
 type RedisClientStruct struct {
-	redisClient *redis.Client
+	redisClient           *redis.Client
+	REDIS_DEFAULT_KEY     string `json:"REDIS_DEFAULT_KEY"`
+	REDIS_DEFAULT_CHANNEL string `json:"REDIS_DEFAULT_CHANNEL"`
 }
 
 const (
@@ -71,9 +73,12 @@ func InitRedisAndRedisClient() *RedisClientStruct {
 		if err := client.Ping(RedisCTX).Err(); err != nil {
 			panic(fmt.Errorf("redis ping failed: %w", err))
 		}
-
+		defaultKey := env.Env.GetEnv(env.REDIS_DEFAULT_KEY_KEY)
+		defaultChannel := env.Env.GetEnv(env.REDIS_DEFAULT_CHANNEL_KEY)
 		RedisClient = &RedisClientStruct{
-			redisClient: client,
+			redisClient:           client,
+			REDIS_DEFAULT_KEY:     defaultKey,
+			REDIS_DEFAULT_CHANNEL: defaultChannel,
 		}
 		println("Redis Client Initialized via sync.Once")
 	})
@@ -98,26 +103,32 @@ func CacheDataToRedis[TData interfaces.BaseEntityInterface](client *RedisClientS
 }
 
 func (r *RedisClientStruct) SubscribeToChannels(channels ...string) *redis.PubSub {
+	for chanel := range channels {
+		channels[chanel] = r.GetRedisEventKey(channels[chanel])
+	}
 	return r.redisClient.Subscribe(RedisCTX, channels...)
 }
 
 func (r *RedisClientStruct) PublishEvent(event events.BaseEventInterface) {
-	r.redisClient.Publish(RedisCTX, event.GetEventName(), event.GetPayloadString())
+	r.redisClient.Publish(RedisCTX, r.GetRedisEventKey(event.GetEventName()), event.GetPayloadString())
 }
 func (r *RedisClientStruct) PublishCustomEvent(event string, payload string) {
-	r.redisClient.Publish(RedisCTX, event, payload)
+	r.redisClient.Publish(RedisCTX, r.GetRedisEventKey(event), payload)
 }
 func (r *RedisClientStruct) GetHashValue(key string) map[string]string {
-	return r.redisClient.HGetAll(RedisCTX, key).Val()
+	return r.redisClient.HGetAll(RedisCTX, r.GetRedisKey(key)).Val()
 }
 func (r *RedisClientStruct) GetStringDataCtx(ctx context.Context, key string) *redis.StringCmd {
-	return r.redisClient.Get(ctx, key)
+	return r.redisClient.Get(ctx, r.GetRedisKey(key))
 }
 func (r *RedisClientStruct) GetStringData(key string) string {
-	return r.GetStringDataCtx(RedisCTX, key).Val()
+	return r.GetStringDataCtx(RedisCTX, r.GetRedisKey(key)).Val()
 }
 
 func (r *RedisClientStruct) RemoveKey(key ...string) {
+	for keyIndex := range key {
+		key[keyIndex] = r.GetRedisKey(key[keyIndex])
+	}
 	r.redisClient.Del(RedisCTX, key...)
 }
 func (r *RedisClientStruct) SetStringData(key string, value string, expiresIn int) {
@@ -127,5 +138,12 @@ func (r *RedisClientStruct) SetStringDataWithExpiry(key string, value string, ex
 	r.SetStringDataWithExpiryCtx(RedisCTX, key, value, expiresIn)
 }
 func (r *RedisClientStruct) SetStringDataWithExpiryCtx(ctx context.Context, key string, value string, expiresIn time.Duration) {
-	r.redisClient.Set(ctx, key, value, expiresIn)
+	r.redisClient.Set(ctx, r.GetRedisKey(key), value, expiresIn)
+}
+
+func (r *RedisClientStruct) GetRedisKey(key string) string {
+	return r.REDIS_DEFAULT_KEY + key
+}
+func (r *RedisClientStruct) GetRedisEventKey(key string) string {
+	return r.REDIS_DEFAULT_CHANNEL + key
 }

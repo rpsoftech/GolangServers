@@ -66,7 +66,7 @@ func (s *VariantService) GetPaginatedVariants(ctx context.Context, limit, offset
 		var variantId, productId int
 		var purity sql.NullString
 		var gWt, nWt, tunch, wstg float64
-		var status bool
+		var status ecommerce_dto.JSONBool
 
 		if err := rows.Scan(&variantId, &productId, &purity, &gWt, &nWt, &tunch, &wstg, &status); err != nil {
 			log.Printf("Error scanning variant row: %v", err)

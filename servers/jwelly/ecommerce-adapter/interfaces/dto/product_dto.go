@@ -1,5 +1,9 @@
 package ecommerce_dto
 
+import (
+	"time"
+)
+
 type ProductSearchRequest struct {
 	Page   int    `query:"page" json:"page"`
 	Limit  int    `query:"limit" json:"limit"`
@@ -18,12 +22,12 @@ type ProductSearchRequest struct {
 	SortBy    string   `query:"sort_by" json:"sort_by"`
 }
 type VariantDTO struct {
-	VariantID   int     `json:"variant_id"`
-	GrossWeight float64 `json:"gross_weight"`
-	NetWeight   float64 `json:"net_weight"`
-	VSellTunch  float64 `json:"vSellTunch"`
-	VSellWstg   float64 `json:"vSellWstg"`
-	IsActive    bool    `json:"isActive"`
+	VariantID   int      `json:"variant_id"`
+	GrossWeight float64  `json:"gross_weight"`
+	NetWeight   float64  `json:"net_weight"`
+	VSellTunch  float64  `json:"vSellTunch"`
+	VSellWstg   float64  `json:"vSellWstg"`
+	IsActive    JSONBool `json:"isActive"`
 }
 
 type ProductDTO struct {
@@ -34,5 +38,6 @@ type ProductDTO struct {
 	CollectionName string        `json:"collection_name"`
 	ProductType    string        `json:"product_type"`
 	IsActive       bool          `json:"isActive"`
+	CreatedOn      time.Time     `json:"created_on"`
 	Variants       []*VariantDTO `json:"variants"`
 }
