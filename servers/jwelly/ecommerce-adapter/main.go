@@ -13,8 +13,10 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/robfig/cron/v3"
+	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	ecommerce_env "github.com/rpsoftech/golang-servers/servers/jwelly/ecommerce-adapter/env"
+	ecommerce_api "github.com/rpsoftech/golang-servers/servers/jwelly/ecommerce-adapter/internal/api"
 	ecommerce_sync "github.com/rpsoftech/golang-servers/servers/jwelly/ecommerce-adapter/sync-func"
 	mysqldb "github.com/rpsoftech/golang-servers/utility/mysql"
 	"github.com/rpsoftech/golang-servers/utility/redis"
@@ -36,15 +38,20 @@ func main() {
 	cronTab.AddFunc(ecommerce_env.ServerConfig.AccountTableSyncCron, ecommerce_sync.AccountSync)
 	cronTab.AddFunc(ecommerce_env.ServerConfig.BasicDetailsSyncCron, ecommerce_sync.BasicDetailsSync)
 	cronTab.AddFunc(ecommerce_env.ServerConfig.ItemTagDetailsSyncCron, ecommerce_sync.ItemDetailsTagsSync)
-
+	// go func() {
+	// 	go ecommerce_sync.AccountSync()
+	// 	go ecommerce_sync.BasicDetailsSync()
+	// 	go ecommerce_sync.ItemDetailsTagsSync()
+	// }()
 	log.Println("Starting background cron scheduler...")
 	cronTab.Start()
 
 	// 2. Initialize Fiber App
 	app := BuildApiServer()
-
+	redis.InitRedisAndRedisClient()
+	port := ":" + env.GetServerPort("PORT")
 	// 3. Start Fiber Server in a background Goroutine
-	port := ":8080" // Fetch from config if available (e.g., config.Port)
+	// port := ":8080" // Fetch from config if available (e.g., config.Port)
 	go func() {
 		log.Printf("API Server listening on port %s...\n", port)
 		if err := app.Listen(port); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -114,6 +121,6 @@ func BuildApiServer() *fiber.App {
 	app.Use(logger.New())
 
 	// TODO: Attach your API routes here (e.g., app.Get("/api/products", productHandler.GetProducts))
-
+	ecommerce_api.AddApiRoutes(app.Group("/v1/api"))
 	return app
 }
