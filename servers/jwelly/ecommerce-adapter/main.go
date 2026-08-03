@@ -38,12 +38,17 @@ func main() {
 	cronTab.AddFunc(ecommerce_env.ServerConfig.AccountTableSyncCron, ecommerce_sync.AccountSync)
 	cronTab.AddFunc(ecommerce_env.ServerConfig.BasicDetailsSyncCron, ecommerce_sync.BasicDetailsSync)
 	cronTab.AddFunc(ecommerce_env.ServerConfig.ItemTagDetailsSyncCron, ecommerce_sync.ItemDetailsTagsSync)
-
+	// go func() {
+	// 	go ecommerce_sync.AccountSync()
+	// 	go ecommerce_sync.BasicDetailsSync()
+	// 	go ecommerce_sync.ItemDetailsTagsSync()
+	// }()
 	log.Println("Starting background cron scheduler...")
 	cronTab.Start()
 
 	// 2. Initialize Fiber App
 	app := BuildApiServer()
+	redis.InitRedisAndRedisClient()
 	port := ":" + env.GetServerPort("PORT")
 	// 3. Start Fiber Server in a background Goroutine
 	// port := ":8080" // Fetch from config if available (e.g., config.Port)

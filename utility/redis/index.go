@@ -87,6 +87,9 @@ func InitRedisAndRedisClient() *RedisClientStruct {
 }
 
 func DeferFunction() {
+	if RedisClient == nil {
+		return
+	}
 	if err := RedisClient.redisClient.Close(); err != nil {
 		panic(err)
 	}
