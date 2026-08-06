@@ -10,9 +10,11 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/mdp/qrterminal/v3"
 	"github.com/rpsoftech/golang-servers/env"
+	whatsapp_functions "github.com/rpsoftech/golang-servers/functions/whatsapp"
 	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
@@ -73,7 +75,6 @@ func (connection *WhatsappConnection) ReturnStatusError() error {
 func (connection *WhatsappConnection) ConnectAndGetQRCode() {
 	ConnectionMap[connection.Token] = connection
 	if connection.Client.Store.ID == nil {
-		// No ID stored, new login
 		if whatsapp_config.Env.OPEN_BROWSER_FOR_SCAN {
 			go func(token string) {
 				log.Printf("Opening Browser for Token %s", token)
@@ -89,7 +90,6 @@ func (connection *WhatsappConnection) ConnectAndGetQRCode() {
 			if evt.Event == "code" {
 				fmt.Printf("QR code for %s\n", connection.Token)
 				connection.QrCodeString = evt.Code
-				// whatsapp_config.WhatsappNumberConfigMap.Tokens[connection.Token] = "Something"
 				if !whatsapp_config.Env.OPEN_BROWSER_FOR_SCAN {
 					qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
 				}
@@ -98,7 +98,6 @@ func (connection *WhatsappConnection) ConnectAndGetQRCode() {
 			}
 		}
 	} else {
-		// Already logged in, just connect
 		println("Connected")
 		err := connection.Client.Connect()
 		if err != nil {
@@ -106,7 +105,9 @@ func (connection *WhatsappConnection) ConnectAndGetQRCode() {
 		}
 	}
 }
+
 func (connection *WhatsappConnection) closeTheConnection() {
+	ctx := context.Background()
 	if err := connection.Client.Logout(ctx); err != nil {
 		connection.Client.Disconnect()
 		connection.Client.Store.Delete(ctx)
@@ -115,7 +116,7 @@ func (connection *WhatsappConnection) closeTheConnection() {
 	delete(ConnectionMap, connection.Token)
 	delete(whatsapp_config.WhatsappNumberConfigMap.JID, connection.Token)
 	whatsapp_config.WhatsappNumberConfigMap.Save()
-	connection.Client.Logout(ctx)
+
 	connection.Client.Store.DeleteAllSessions(ctx)
 	connection.ConnectionStatus = -1
 	connection.ParentData.SqlContainer.DeleteDevice(ctx, connection.ParentData.DeviceStore)
@@ -126,14 +127,14 @@ func (connection *WhatsappConnection) closeTheConnection() {
 	connection.Client = client
 	connection.ParentData.DeviceStore = deviceStore
 	go connection.ConnectAndGetQRCode()
-
 }
+
 func (connection *WhatsappConnection) eventHandler(evt interface{}) {
+	ctx := context.Background()
 	switch v := evt.(type) {
 	case *events.LoggedOut:
 		connection.closeTheConnection()
 	case *events.Connected:
-		// Send Status
 		connection.Client.Store.Save(ctx)
 		connection.Number = connection.Client.Store.ID.User
 		go func() {
@@ -148,28 +149,20 @@ func (connection *WhatsappConnection) eventHandler(evt interface{}) {
 		connection.SyncFinished = true
 	case *events.Receipt:
 		evt := evt.(*events.Receipt)
-		// print whole struct
 		log.Println(evt.Chat.User)
-		// log.Println(evt.)
-
 		b, _ := json.Marshal(evt)
 		log.Println(string(b))
 	default:
-		fmt.Printf("Event Occurred%s\n", reflect.TypeOf(v))
+		fmt.Printf("Event Occurred %s\n", reflect.TypeOf(v))
 	}
 }
-func (connection *WhatsappConnection) SendTextMessage(to []string, msg string) *map[string]bool {
+
+func (connection *WhatsappConnection) SendTextMessage(ctx context.Context, to []string, msg string) *map[string]bool {
 	response := make(map[string]bool)
 	for _, number := range to {
 		IsOnWhatsappCheck, err := connection.Client.IsOnWhatsApp(ctx, []string{"+" + number})
-		if err != nil {
-			AppendToOutPutFile(fmt.Sprintf("%s,false,Something Went Wrong %#v\n", number, err))
-			// return
-			response[number] = false
-			continue
-		}
-		if len(IsOnWhatsappCheck) == 0 {
-			AppendToOutPutFile(fmt.Sprintf("%s,false,Number %s Not On Whatsapp\n", number, number))
+		if err != nil || len(IsOnWhatsappCheck) == 0 {
+			AppendToOutPutFile(fmt.Sprintf("%s,false,Something Went Wrong or Number Not On Whatsapp %#v\n", number, err))
 			response[number] = false
 			continue
 		}
@@ -178,13 +171,12 @@ func (connection *WhatsappConnection) SendTextMessage(to []string, msg string) *
 			AppendToOutPutFile(fmt.Sprintf("%s,false,Number %s Not On Whatsapp\n", number, number))
 			response[number] = false
 			continue
-			// return
 		}
 		targetJID := NumberOnWhatsapp.JID
 		fmt.Printf("sending Text To %s\n", number)
 		response[number] = false
 		if len(msg) > 0 {
-			_, err := connection.Client.SendMessage(context.Background(), targetJID, &waE2E.Message{
+			_, err := connection.Client.SendMessage(ctx, targetJID, &waE2E.Message{
 				Conversation: proto.String(msg),
 			})
 			if err == nil {
@@ -194,31 +186,55 @@ func (connection *WhatsappConnection) SendTextMessage(to []string, msg string) *
 	}
 	return &response
 }
-func (connection *WhatsappConnection) SendMediaFileBase64(to []string, base64Data string, fileName string, msg string) *map[string]bool {
-	// pdfBytes, err := os.ReadFile(filePath)
+func (connection *WhatsappConnection) SendMediaFileFromURLs(ctx context.Context, to []string, mediaURL []string, fileName string, msg string) {
+	for _, url := range mediaURL {
+		connection.SendMediaFileFromURL(ctx, to, url, fileName, msg)
+		time.Sleep(time.Second * 2)
+	}
+}
+
+// SendMediaFileFromURL fetches a media file from a HTTP/HTTPS URL and sends it.
+func (connection *WhatsappConnection) SendMediaFileFromURL(ctx context.Context, to []string, mediaURL string, fileName string, msg string) *map[string]bool {
+	bytesData, extractedFileName, err := whatsapp_functions.FetchFileFromURL(mediaURL)
+	if err != nil {
+		AppendToOutPutFile(fmt.Sprintf("false,Error While Downloading File From Web URL %#v\n", err))
+		return nil
+	}
+	if fileName == "" {
+		fileName = extractedFileName
+	}
+	if fileName == "" {
+		fileName = "file"
+	}
+	return connection.sendMediaFile(ctx, to, bytesData, fileName, msg)
+}
+
+func (connection *WhatsappConnection) SendMediaFileBase64(ctx context.Context, to []string, base64Data string, fileName string, msg string) *map[string]bool {
 	bytesData, err := base64.StdEncoding.DecodeString(base64Data)
 	if err != nil {
 		AppendToOutPutFile(fmt.Sprintf("false,Error While Reading File %#v\n", err))
 		return nil
 	}
-	return connection.sendMediaFile(to, bytesData, fileName, msg)
+	return connection.sendMediaFile(ctx, to, bytesData, fileName, msg)
 }
-func (connection *WhatsappConnection) SendMediaFileWithPath(to []string, filePath string, fileName string, msg string) *map[string]bool {
+
+func (connection *WhatsappConnection) SendMediaFileWithPath(ctx context.Context, to []string, filePath string, fileName string, msg string) *map[string]bool {
 	pdfBytes, err := os.ReadFile(filePath)
 	if err != nil {
 		AppendToOutPutFile(fmt.Sprintf("false,Error While Reading File %#v\n", err))
 		return nil
 	}
-	return connection.sendMediaFile(to, pdfBytes, fileName, msg)
+	return connection.sendMediaFile(ctx, to, pdfBytes, fileName, msg)
 }
-func (connection *WhatsappConnection) sendMediaFile(to []string, fileByte []byte, fileName string, msg string) *map[string]bool {
+
+func (connection *WhatsappConnection) sendMediaFile(ctx context.Context, to []string, fileByte []byte, fileName string, msg string) *map[string]bool {
 	response := make(map[string]bool)
 	var docProto *waE2E.Message
+
 	for _, number := range to {
 		IsOnWhatsappCheck, err := connection.Client.IsOnWhatsApp(ctx, []string{"+" + number})
-		if err != nil {
+		if err != nil || len(IsOnWhatsappCheck) == 0 {
 			AppendToOutPutFile(fmt.Sprintf("%s,false,Something Went Wrong %#v\n", number, err))
-			// return
 			response[number] = false
 			continue
 		}
@@ -227,14 +243,14 @@ func (connection *WhatsappConnection) sendMediaFile(to []string, fileByte []byte
 			AppendToOutPutFile(fmt.Sprintf("%s,false,Number %s Not On Whatsapp\n", number, number))
 			response[number] = false
 			continue
-			// return
 		}
 		targetJID := NumberOnWhatsapp.JID
 		fmt.Printf("sending File To %s\n", number)
+
 		if docProto == nil {
 			extensionName := utility_functions.GetMime(fileName)
 			if strings.Contains(extensionName, "image") {
-				resp, err := connection.Client.Upload(context.Background(), fileByte, whatsmeow.MediaImage)
+				resp, err := connection.Client.Upload(ctx, fileByte, whatsmeow.MediaImage)
 				if err != nil {
 					AppendToOutPutFile(fmt.Sprintf("%s,false,Error While Uploading %#v\n", number, err))
 					continue
@@ -245,10 +261,9 @@ func (connection *WhatsappConnection) sendMediaFile(to []string, fileByte []byte
 				}
 				docProto = &waE2E.Message{
 					ImageMessage: &waE2E.ImageMessage{
-						Caption:  proto.String(msg),
-						URL:      &resp.URL,
-						Mimetype: proto.String(extensionName),
-						// FileName:      &fileName,
+						Caption:       proto.String(msg),
+						URL:           &resp.URL,
+						Mimetype:      proto.String(extensionName),
 						DirectPath:    &resp.DirectPath,
 						JPEGThumbnail: jpegThumbnail,
 						MediaKey:      resp.MediaKey,
@@ -258,17 +273,15 @@ func (connection *WhatsappConnection) sendMediaFile(to []string, fileByte []byte
 					},
 				}
 			} else if strings.Contains(extensionName, "audio") {
-				resp, err := connection.Client.Upload(context.Background(), fileByte, whatsmeow.MediaAudio)
+				resp, err := connection.Client.Upload(ctx, fileByte, whatsmeow.MediaAudio)
 				if err != nil {
 					AppendToOutPutFile(fmt.Sprintf("%s,false,Error While Uploading %#v\n", number, err))
 					continue
 				}
 				docProto = &waE2E.Message{
 					AudioMessage: &waE2E.AudioMessage{
-						// Caption:       proto.String(msg),
-						URL:      &resp.URL,
-						Mimetype: proto.String(extensionName),
-						// FileName:      &fileName,
+						URL:           &resp.URL,
+						Mimetype:      proto.String(extensionName),
 						DirectPath:    &resp.DirectPath,
 						MediaKey:      resp.MediaKey,
 						FileEncSHA256: resp.FileEncSHA256,
@@ -277,46 +290,29 @@ func (connection *WhatsappConnection) sendMediaFile(to []string, fileByte []byte
 					},
 				}
 			} else if strings.Contains(extensionName, "video") {
-				// var thumbResp *whatsmeow.UploadResponse
-
 				thumbBytes, _ := utility_functions.GenerateVideoThumbnail(fileByte, fileName)
-				// thumbResp, _ := connection.Client.Upload(context.Background(), thumbBytes, whatsmeow.MediaImage)
-				// }
-				resp, err := connection.Client.Upload(context.Background(), fileByte, whatsmeow.MediaVideo)
+				resp, err := connection.Client.Upload(ctx, fileByte, whatsmeow.MediaVideo)
 				if err != nil {
 					AppendToOutPutFile(fmt.Sprintf("%s,false,Error While Uploading %#v\n", number, err))
 					continue
 				}
+				docProto = &waE2E.Message{
+					VideoMessage: &waE2E.VideoMessage{
+						Caption:       proto.String(msg),
+						URL:           &resp.URL,
+						Mimetype:      proto.String(extensionName),
+						DirectPath:    &resp.DirectPath,
+						MediaKey:      resp.MediaKey,
+						FileEncSHA256: resp.FileEncSHA256,
+						FileSHA256:    resp.FileSHA256,
+						FileLength:    &resp.FileLength,
+					},
+				}
 				if len(thumbBytes) > 0 {
-					docProto = &waE2E.Message{
-						VideoMessage: &waE2E.VideoMessage{
-							Caption:       proto.String(msg),
-							URL:           &resp.URL,
-							Mimetype:      proto.String(extensionName),
-							JPEGThumbnail: thumbBytes,
-							DirectPath:    &resp.DirectPath,
-							MediaKey:      resp.MediaKey,
-							FileEncSHA256: resp.FileEncSHA256,
-							FileSHA256:    resp.FileSHA256,
-							FileLength:    &resp.FileLength,
-						},
-					}
-				} else {
-					docProto = &waE2E.Message{
-						VideoMessage: &waE2E.VideoMessage{
-							Caption:       proto.String(msg),
-							URL:           &resp.URL,
-							Mimetype:      proto.String(extensionName),
-							DirectPath:    &resp.DirectPath,
-							MediaKey:      resp.MediaKey,
-							FileEncSHA256: resp.FileEncSHA256,
-							FileSHA256:    resp.FileSHA256,
-							FileLength:    &resp.FileLength,
-						},
-					}
+					docProto.VideoMessage.JPEGThumbnail = thumbBytes
 				}
 			} else {
-				resp, err := connection.Client.Upload(context.Background(), fileByte, whatsmeow.MediaDocument)
+				resp, err := connection.Client.Upload(ctx, fileByte, whatsmeow.MediaDocument)
 				if err != nil {
 					AppendToOutPutFile(fmt.Sprintf("%s,false,Error While Uploading %#v\n", number, err))
 					continue
@@ -334,21 +330,18 @@ func (connection *WhatsappConnection) sendMediaFile(to []string, fileByte []byte
 						FileLength:    &resp.FileLength,
 					},
 				}
-				println("finished uploading")
 				if strings.Contains(extensionName, "pdf") {
-					println("PDF to thumb")
 					thumb, err := whatsapp_utility.ExtractFirstPage(fileByte)
 					if err == nil && len(thumb) > 0 {
 						docProto.DocumentMessage.JPEGThumbnail = thumb
-					} else {
-						println(err.Error())
 					}
 				}
 			}
 		}
+
 		response[number] = false
 		if docProto != nil {
-			_, err := connection.Client.SendMessage(context.Background(), targetJID, docProto)
+			_, err := connection.Client.SendMessage(ctx, targetJID, docProto)
 			if err == nil {
 				response[number] = true
 			}
@@ -362,7 +355,6 @@ func AppendToOutPutFile(text string) {
 	if err != nil {
 		panic(err)
 	}
-
 	defer f.Close()
 
 	if _, err = f.WriteString(text); err != nil {

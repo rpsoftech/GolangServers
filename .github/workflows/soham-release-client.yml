@@ -47,3 +47,4 @@ jobs:
           KV_TOKEN: ${{ secrets.KEYVALUETOKEN }}
         run: |
           go run release/soham/whatsapp-client.go ${{ env.VERSION }}
+          go run release/whatsapp/whatsapp-client.go ${{ env.VERSION }}

@@ -16,7 +16,7 @@ import (
 )
 
 var sqlContainer *sqlstore.Container
-var ctx = context.Background()
+var globalBackground = context.Background()
 
 func InitSqlContainer() *sqlstore.Container {
 	if sqlContainer == nil {
@@ -24,7 +24,7 @@ func InitSqlContainer() *sqlstore.Container {
 		dbLog := waLog.Stdout("Database", "WARN", true)
 		// Make sure you add appropriate DB connector imports, e.g. github.com/mattn/go-sqlite3 for SQLite
 		var err error
-		sqlContainer, err = sqlstore.New(ctx, "sqlite3", fmt.Sprintf("file:%s?_foreign_keys=on", filepath.Join(env.FindAndReturnCurrentDir(), "WhatsappSuperSecrete.db")), dbLog)
+		sqlContainer, err = sqlstore.New(globalBackground, "sqlite3", fmt.Sprintf("file:%s?_foreign_keys=on", filepath.Join(env.FindAndReturnCurrentDir(), "WhatsappSuperSecrete.db")), dbLog)
 		if err != nil {
 			panic(err)
 		}
@@ -34,7 +34,7 @@ func InitSqlContainer() *sqlstore.Container {
 
 func ConnectToNumber(jidString string, token string, sqlContainer *sqlstore.Container) {
 	// SqlContainer.PutDevice()
-	if deviceStores, _ := sqlContainer.GetAllDevices(ctx); true {
+	if deviceStores, _ := sqlContainer.GetAllDevices(globalBackground); true {
 		for _, deviceStore := range deviceStores {
 			println(deviceStore.ID.User)
 		}
@@ -47,7 +47,7 @@ func ConnectToNumber(jidString string, token string, sqlContainer *sqlstore.Cont
 	if !JID.IsEmpty() {
 		var err error
 		// sqlContainer.DeleteDevice()
-		deviceStore, err = sqlContainer.GetDevice(ctx, JID)
+		deviceStore, err = sqlContainer.GetDevice(globalBackground, JID)
 		if err != nil {
 			println(err.Error())
 		}

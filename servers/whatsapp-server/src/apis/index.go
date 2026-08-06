@@ -1,11 +1,13 @@
 package whatsapp_server_apis
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	whatsapp_core "github.com/rpsoftech/golang-servers/functions/whatsapp/core"
@@ -26,6 +28,15 @@ type (
 		FileName string `json:"fileName" validate:"required,min=3"`
 		Base64   string `json:"base64" validate:"required,min=3"`
 	}
+	apiSendMediaMsgWithWebLinks struct {
+		apiSendMediaMsgWithWebLink
+		URL []string `json:"urls" validate:"required,url"`
+	}
+	apiSendMediaMsgWithWebLink struct {
+		apiSendMessage
+		URL      string `json:"url" validate:"required,url"`
+		FileName string `json:"fileName"` // Optional, fallback extracted from URL if empty
+	}
 )
 
 func AddApis(app fiber.Router) {
@@ -37,6 +48,120 @@ func AddApis(app fiber.Router) {
 		authenticated.Post("/send_message", SendMessage)
 		authenticated.Post("/send_media", SendMediaFile)
 		authenticated.Post("/send_media_64", SendMediaFileWithBase64)
+		authenticated.Post("/send_media_url", SendMediaFileWithWebLink)           // NEW Endpoint
+		authenticated.Post("/send_media_url_multiple", SendMediaFileWithWebLinks) // NEW Endpoint
+	}
+}
+
+func SendMediaFileWithWebLinks(c fiber.Ctx) error {
+	body := new(apiSendMediaMsgWithWebLinks)
+	if err := c.Bind().Body(body); err != nil {
+		return &interfaces.RequestError{
+			StatusCode: http.StatusBadRequest,
+			Code:       interfaces.ERROR_INVALID_INPUT,
+			Message:    "Invalid Request Body",
+			Name:       "ERROR_INVALID_INPUT",
+			Extra:      err,
+		}
+	}
+
+	if err := utility_functions.ValidateReqInput(body); err != nil {
+		return err
+	}
+
+	if len(body.To) == 0 || len(body.To[0]) < 7 {
+		return &interfaces.RequestError{
+			StatusCode: http.StatusBadRequest,
+			Code:       interfaces.ERROR_INVALID_INPUT,
+			Message:    "Number Not Found",
+			Name:       "ERROR_INVALID_INPUT",
+		}
+	}
+
+	number, err := whatsapp_functions.ExtractNumberFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	connection, ok := whatsapp_core.ConnectionMap[number]
+	if !ok || connection == nil {
+		return &interfaces.RequestError{
+			StatusCode: http.StatusNotFound,
+			Code:       interfaces.ERROR_CONNECTION_NOT_FOUND,
+			Message:    fmt.Sprintf("Number %s Not Found", number),
+			Name:       "ERROR_CONNECTION_NOT_FOUND",
+		}
+	}
+
+	if err := connection.ReturnStatusError(); err != nil {
+		return err
+	}
+
+	go connection.SendMediaFileFromURLs(context.Background(), body.To, body.URL, body.FileName, body.Msg)
+	return c.JSON(fiber.Map{
+		"success": true,
+		"msg":     "Media are queued for sending",
+	})
+
+}
+func SendMediaFileWithWebLink(c fiber.Ctx) error {
+	body := new(apiSendMediaMsgWithWebLink)
+	if err := c.Bind().Body(body); err != nil {
+		return &interfaces.RequestError{
+			StatusCode: http.StatusBadRequest,
+			Code:       interfaces.ERROR_INVALID_INPUT,
+			Message:    "Invalid Request Body",
+			Name:       "ERROR_INVALID_INPUT",
+			Extra:      err,
+		}
+	}
+
+	if err := utility_functions.ValidateReqInput(body); err != nil {
+		return err
+	}
+
+	if len(body.To) == 0 || len(body.To[0]) < 7 {
+		return &interfaces.RequestError{
+			StatusCode: http.StatusBadRequest,
+			Code:       interfaces.ERROR_INVALID_INPUT,
+			Message:    "Number Not Found",
+			Name:       "ERROR_INVALID_INPUT",
+		}
+	}
+
+	number, err := whatsapp_functions.ExtractNumberFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	connection, ok := whatsapp_core.ConnectionMap[number]
+	if !ok || connection == nil {
+		return &interfaces.RequestError{
+			StatusCode: http.StatusNotFound,
+			Code:       interfaces.ERROR_CONNECTION_NOT_FOUND,
+			Message:    fmt.Sprintf("Number %s Not Found", number),
+			Name:       "ERROR_CONNECTION_NOT_FOUND",
+		}
+	}
+
+	if err := connection.ReturnStatusError(); err != nil {
+		return err
+	}
+
+	runHeadLess, err := strconv.ParseBool(whatsapp_functions.ExtractKeyFromHeader(c, "Headless"))
+	if err != nil {
+		runHeadLess = false
+	}
+
+	if runHeadLess {
+		go connection.SendMediaFileFromURL(context.Background(), body.To, body.URL, body.FileName, body.Msg)
+		return c.JSON(fiber.Map{
+			"success": true,
+		})
+	} else {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+		defer cancel()
+		return c.JSON(connection.SendMediaFileFromURL(ctx, body.To, body.URL, body.FileName, body.Msg))
 	}
 }
 
@@ -100,12 +225,15 @@ func SendMediaFile(c fiber.Ctx) error {
 		runHeadLess = false
 	}
 	if runHeadLess {
-		go connection.SendMediaFileWithPath(body.To, destination, file.Filename, body.Msg)
+
+		go connection.SendMediaFileWithPath(context.Background(), body.To, destination, file.Filename, body.Msg)
 		return c.JSON(fiber.Map{
 			"success": true,
 		})
 	} else {
-		return c.JSON(connection.SendMediaFileWithPath(body.To, destination, file.Filename, body.Msg))
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+		defer cancel()
+		return c.JSON(connection.SendMediaFileWithPath(ctx, body.To, destination, file.Filename, body.Msg))
 	}
 }
 func SendMediaFileWithBase64(c fiber.Ctx) error {
@@ -147,12 +275,14 @@ func SendMediaFileWithBase64(c fiber.Ctx) error {
 		runHeadLess = false
 	}
 	if runHeadLess {
-		go connection.SendMediaFileBase64(body.To, body.Base64, body.FileName, body.Msg)
+		go connection.SendMediaFileBase64(context.Background(), body.To, body.Base64, body.FileName, body.Msg)
 		return c.JSON(fiber.Map{
 			"success": true,
 		})
 	} else {
-		return c.JSON(connection.SendMediaFileBase64(body.To, body.Base64, body.FileName, body.Msg))
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+		defer cancel()
+		return c.JSON(connection.SendMediaFileBase64(ctx, body.To, body.Base64, body.FileName, body.Msg))
 	}
 }
 func SendMessage(c fiber.Ctx) error {
@@ -200,12 +330,16 @@ func SendMessage(c fiber.Ctx) error {
 		runHeadLess = false
 	}
 	if runHeadLess {
-		go connection.SendTextMessage(body.To, body.Msg)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+		defer cancel()
+		go connection.SendTextMessage(ctx, body.To, body.Msg)
 		return c.JSON(fiber.Map{
 			"success": true,
 		})
 	} else {
-		return c.JSON(connection.SendTextMessage(body.To, body.Msg))
+		ctx, cancel := context.WithTimeout(c.Context(), time.Second*30)
+		defer cancel()
+		return c.JSON(connection.SendTextMessage(ctx, body.To, body.Msg))
 	}
 }
 
