@@ -61,5 +61,5 @@ func OpenBrowserWithQr(c fiber.Ctx) error {
 	id := c.Get("id")
 	// println(c.Hostname())
 	c.Set("Content-Type", "text/html; charset=utf-8")
-	return c.Send([]byte(fmt.Sprintf(index, id)))
+	return c.Send(fmt.Appendf(nil, index, id))
 }

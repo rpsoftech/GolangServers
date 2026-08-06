@@ -1,7 +1,11 @@
 package whatsapp_functions
 
 import (
+	"fmt"
+	"io"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rpsoftech/golang-servers/interfaces"
@@ -27,4 +31,34 @@ func ExtractNumberFromCtx(c *fiber.Ctx) (string, error) {
 		}
 	}
 	return id, nil
+}
+
+// fetchFileFromURL downloads a file from the given HTTP/HTTPS URL.
+func FetchFileFromURL(urls string) ([]byte, string, error) {
+	resp, err := http.Get(urls)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to make HTTP request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", fmt.Errorf("failed to download file, HTTP status code: %d", resp.StatusCode)
+	}
+
+	bytesData, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Try to extract filename from URL path if not explicitly provided
+	fileName := ""
+	parsedURL, err := url.Parse(urls)
+	if err == nil {
+		parts := strings.Split(parsedURL.Path, "/")
+		if len(parts) > 0 {
+			fileName = parts[len(parts)-1]
+		}
+	}
+
+	return bytesData, fileName, nil
 }

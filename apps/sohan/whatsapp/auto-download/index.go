@@ -72,27 +72,6 @@ func sha256File(path string) (string, error) {
 
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
-
-// OLD Function
-// func downloadFile(url string, path string) error {
-
-// 	resp, err := http.Get(url)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer resp.Body.Close()
-
-// 	out, err := os.Create(path)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer out.Close()
-
-// 	_, err = io.Copy(out, resp.Body)
-
-// 	return err
-// }
-
 func GetVersionEndpoint() string {
 
 	switch fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH) {
