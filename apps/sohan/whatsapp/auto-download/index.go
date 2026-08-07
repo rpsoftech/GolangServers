@@ -1,8 +1,6 @@
 package soham_whatsapp_auto_download
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,6 +14,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
 	soham_whatsapp_keys "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/keys"
+	"github.com/rpsoftech/golang-servers/functions"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 	utility_functions_gzip "github.com/rpsoftech/golang-servers/utility/functions/gzip"
 )
@@ -36,42 +35,19 @@ type progressReader struct {
 }
 
 func (p *progressReader) Read(buf []byte) (int, error) {
-
 	n, err := p.reader.Read(buf)
-
 	p.read += int64(n)
-
 	if p.total > 0 {
-
 		value := float64(p.read) / float64(p.total)
-
 		fyne.Do(func() {
 			p.progress.SetValue(value)
 		})
 	}
-
 	return n, err
 }
 
 var checkAndRunCalled = false
 
-func sha256File(path string) (string, error) {
-
-	file, err := os.Open(path)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
-	hash := sha256.New()
-
-	_, err = io.Copy(hash, file)
-	if err != nil {
-		return "", err
-	}
-
-	return hex.EncodeToString(hash.Sum(nil)), nil
-}
 func GetVersionEndpoint() string {
 
 	switch fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH) {
@@ -144,7 +120,7 @@ func CheckAndDownload(progress *widget.ProgressBar, win fyne.Window) string {
 			return serverBinary
 		}
 
-		hash, err := sha256File(gzipFile)
+		hash, err := functions.Sha256File(gzipFile)
 		if err != nil {
 			return serverBinary
 		}

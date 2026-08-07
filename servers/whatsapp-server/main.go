@@ -3,13 +3,16 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/rpsoftech/golang-servers/env"
+	"github.com/rpsoftech/golang-servers/functions"
 	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
 	whatsapp_core "github.com/rpsoftech/golang-servers/functions/whatsapp/core"
 	"github.com/rpsoftech/golang-servers/interfaces"
@@ -20,15 +23,14 @@ import (
 
 var version string
 
-// var app *fiber.App
-
 func main() {
 	env.LoadEnv("whatsapp-server.env")
 	whatsapp_config.InitaliseWhatsappEnvAndConfig()
-	println(version)
+	log.Printf("Version File:- %s", version)
 	go func() {
 		os.RemoveAll("./tmp")
 		os.Mkdir("./tmp", 0777)
+		functions.CheckAndDownload(GetVersionEndpoint)
 	}()
 	outputLogFolderDir := filepath.Join(env.FindAndReturnCurrentDir(), "whatsapp_server_logs")
 
@@ -84,4 +86,21 @@ func ReturnOutPutFilePath(currentDir string) string {
 	t := time.Now()
 	today := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, t.Nanosecond(), t.Location()).Unix()
 	return filepath.Join(currentDir, fmt.Sprintf("%d.log.csv", today))
+}
+
+func GetVersionEndpoint() string {
+	switch fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH) {
+	case "linux_amd64":
+		return "https://keyvalue.rpso.in/public/whatsapp_go_wbot_linux_amd64"
+	case "linux_arm64":
+		return "https://keyvalue.rpso.in/public/whatsapp_go_wbot_linux_arm64"
+	case "windows_amd64":
+		return "https://keyvalue.rpso.in/public/whatsapp_go_wbot_windows_amd64"
+	case "darwin_amd64":
+		return "https://keyvalue.rpso.in/public/whatsapp_go_wbot_darwin_amd64"
+	case "darwin_arm64":
+		return "https://keyvalue.rpso.in/public/whatsapp_go_wbot_darwin_arm64"
+	default:
+		return ""
+	}
 }
