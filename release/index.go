@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -81,7 +82,9 @@ func UploadFile(path string, filename string, uploadPath string, fileServerURL s
 
 	req.Header.Set("Authorization", "Bearer "+fileServerToken)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
@@ -89,6 +92,7 @@ func UploadFile(path string, filename string, uploadPath string, fileServerURL s
 
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
+		log.Printf("failed to upload file With Status Code: %s", resp.StatusCode)
 		return fmt.Errorf("failed to upload file: %s", resp.Status)
 	}
 	body, err := io.ReadAll(resp.Body)
