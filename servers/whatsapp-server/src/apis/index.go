@@ -30,7 +30,7 @@ type (
 	}
 	apiSendMediaMsgWithWebLinks struct {
 		apiSendMediaMsgWithWebLink
-		URL []string `json:"urls" validate:"required,,min=1,dive,http_url"`
+		URL []string `json:"urls" validate:"required,min=1,dive,http_url"`
 	}
 	apiSendMediaMsgWithWebLink struct {
 		apiSendMessage
