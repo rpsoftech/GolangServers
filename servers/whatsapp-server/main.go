@@ -30,7 +30,7 @@ func main() {
 	go func() {
 		os.RemoveAll("./tmp")
 		os.Mkdir("./tmp", 0777)
-		functions.CheckAndDownload(GetVersionEndpoint)
+		go functions.CheckAndDownload(GetVersionEndpoint)
 	}()
 	outputLogFolderDir := filepath.Join(env.FindAndReturnCurrentDir(), "whatsapp_server_logs")
 

@@ -29,7 +29,7 @@ type (
 		Base64   string `json:"base64" validate:"required,min=3"`
 	}
 	apiSendMediaMsgWithWebLinks struct {
-		apiSendMediaMsgWithWebLink
+		apiSendMessage
 		URL []string `json:"urls" validate:"required,min=1,dive,http_url"`
 	}
 	apiSendMediaMsgWithWebLink struct {
@@ -97,7 +97,7 @@ func SendMediaFileWithWebLinks(c fiber.Ctx) error {
 		return err
 	}
 
-	go connection.SendMediaFileFromURLs(context.Background(), body.To, body.URL, body.FileName, body.Msg)
+	go connection.SendMediaFileFromURLs(context.Background(), body.To, body.URL, body.Msg)
 	return c.JSON(fiber.Map{
 		"success": true,
 		"msg":     "Media are queued for sending",

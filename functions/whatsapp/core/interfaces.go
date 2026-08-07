@@ -186,9 +186,9 @@ func (connection *WhatsappConnection) SendTextMessage(ctx context.Context, to []
 	}
 	return &response
 }
-func (connection *WhatsappConnection) SendMediaFileFromURLs(ctx context.Context, to []string, mediaURL []string, fileName string, msg string) {
+func (connection *WhatsappConnection) SendMediaFileFromURLs(ctx context.Context, to []string, mediaURL []string, msg string) {
 	for _, url := range mediaURL {
-		connection.SendMediaFileFromURL(ctx, to, url, fileName, msg)
+		connection.SendMediaFileFromURL(ctx, to, url, "", msg)
 		time.Sleep(time.Second * 2)
 	}
 }
