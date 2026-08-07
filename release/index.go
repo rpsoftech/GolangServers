@@ -2,8 +2,6 @@ package release
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -23,24 +21,6 @@ type VersionInfo struct {
 	Version int    `json:"version"`
 	URL     string `json:"url"`
 	SHA256  string `json:"sha256"`
-}
-
-func Sha256File(path string) (string, error) {
-
-	file, err := os.Open(path)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
-	hash := sha256.New()
-
-	_, err = io.Copy(hash, file)
-	if err != nil {
-		return "", err
-	}
-
-	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 func UploadFile(path string, filename string, uploadPath string, fileServerURL string, fileServerToken string) error {
@@ -92,7 +72,7 @@ func UploadFile(path string, filename string, uploadPath string, fileServerURL s
 
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		log.Printf("failed to upload file With Status Code: %s", resp.StatusCode)
+		log.Printf("failed to upload file With Status Code: %d", resp.StatusCode)
 		return fmt.Errorf("failed to upload file: %s", resp.Status)
 	}
 	body, err := io.ReadAll(resp.Body)
@@ -119,7 +99,9 @@ func UpdateKeyValue(key string, data []byte, keyValueURL string, kvToken string)
 
 	req.Header.Set("Authorization", "Bearer "+kvToken)
 	req.Header.Set("Content-Type", "application/json")
-
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err

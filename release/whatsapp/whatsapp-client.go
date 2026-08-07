@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"slices"
 
+	"github.com/rpsoftech/golang-servers/functions"
 	"github.com/rpsoftech/golang-servers/release"
 	utility_functions_gzip "github.com/rpsoftech/golang-servers/utility/functions/gzip"
 )
@@ -76,7 +77,7 @@ func main() {
 		utility_functions_gzip.GzipCompressFile(serverBinaryPath, gzipFilePath)
 		fmt.Println("Calculating SHA256...")
 
-		hash, err := release.Sha256File(gzipFilePath)
+		hash, err := functions.Sha256File(gzipFilePath)
 		if err != nil {
 			panic(err)
 		}

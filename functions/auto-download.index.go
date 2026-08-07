@@ -1,6 +1,8 @@
-package sohan_whatsapp_auto_download
+package functions
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,11 +11,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"time"
 
-	sohan_whatsapp_keys "github.com/rpsoftech/golang-servers/apps/sohan/whatsapp/keys"
-	"github.com/rpsoftech/golang-servers/functions"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 	utility_functions_gzip "github.com/rpsoftech/golang-servers/utility/functions/gzip"
 )
@@ -25,7 +24,6 @@ type VersionInfo struct {
 	URL     string `json:"url"`
 	SHA256  string `json:"sha256"`
 }
-
 type progressReader struct {
 	reader io.Reader
 	total  int64
@@ -47,8 +45,23 @@ func (p *progressReader) Read(buf []byte) (int, error) {
 
 var checkAndRunCalled = false
 
-// getExeDir returns the absolute path of the directory where this executable is running
-func getExeDir() string {
+func Sha256File(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	hash := sha256.New()
+
+	_, err = io.Copy(hash, file)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func getExePath() string {
 	exePath, err := os.Executable()
 	if err != nil {
 		// Fallback to current working directory if execution lookup fails
@@ -58,33 +71,30 @@ func getExeDir() string {
 	// Evaluates symlinks cleanly to guarantee correct execution paths
 	realPath, err := filepath.EvalSymlinks(exePath)
 	if err == nil {
-		return filepath.Dir(realPath)
+		return realPath
 	}
-	return filepath.Dir(exePath)
+	return exePath
 }
 
-func GetVersionEndpoint() string {
-	switch fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH) {
-	case "windows_amd64":
-		return "https://keyvalue.rpso.in/public/soham_go_wbot_windows_amd64"
-	case "darwin_amd64":
-		return "https://keyvalue.rpso.in/public/soham_go_wbot_darwin_amd64"
-	case "darwin_arm64":
-		return "https://keyvalue.rpso.in/public/soham_go_wbot_darwin_arm64"
-	default:
-		return ""
-	}
+func getExeDir() string {
+	return filepath.Dir(getExePath())
 }
+func CheckAndDownload(versinoEndPoint func() string) string {
+	// 1. Get the absolute path of the running executable
+	// exePath, err := os.Executable()
+	// if err != nil {
+	// 	fmt.Printf("Error getting executable path: %v\n", err)
+	// 	return
+	// }
 
-func CheckAndDownload() string {
+	// // 2. Extract just the binary name from the full path
+	// binName := filepath.Base(exePath)
+
 	// 1. Resolve target file paths relative to where the current application is running
 	appDir := getExeDir()
 	versionFilePath := filepath.Join(appDir, VersionFileName)
 
-	serverBinaryName := "whatsapp-client.o"
-	if runtime.GOOS == "windows" {
-		serverBinaryName = "whatsapp-client.exe"
-	}
+	serverBinaryName := filepath.Base(getExePath())
 
 	// Anchor the target binary to the execution directory
 	serverBinary := filepath.Join(appDir, serverBinaryName)
@@ -93,7 +103,7 @@ func CheckAndDownload() string {
 		return serverBinary
 	}
 
-	endpoint := GetVersionEndpoint()
+	endpoint := versinoEndPoint()
 	if endpoint == "" {
 		log.Printf("Fatal: Endpoint Not Found For OS: %s, Arch: %s\n", runtime.GOOS, runtime.GOARCH)
 		return serverBinary
@@ -139,7 +149,7 @@ func CheckAndDownload() string {
 			return serverBinary
 		}
 
-		hash, err := functions.Sha256File(gzipFile)
+		hash, err := Sha256File(gzipFile)
 		if err != nil {
 			log.Println("Error hashing temporary file:", err)
 			return serverBinary
@@ -162,11 +172,9 @@ func CheckAndDownload() string {
 		log.Println("Update deployed successfully to base execution folder.")
 		os.Exit(0)
 	}
-
 	checkAndRunCalled = true
 	return serverBinary
 }
-
 func downloadFileWithProgress(url string, targetPath string) error {
 	client := &http.Client{
 		Timeout: 500 * time.Second,
@@ -193,37 +201,25 @@ func downloadFileWithProgress(url string, targetPath string) error {
 }
 
 func replaceBinarySafe(tmpFile string, serverBinary string) error {
-	if sohan_whatsapp_keys.ServerCmd != nil && sohan_whatsapp_keys.ServerCmd.Process != nil {
-		sohan_whatsapp_keys.ServerCmd.Process.Kill()
-		time.Sleep(2 * time.Second)
-	}
-
+	// backup existing binary
 	backup := serverBinary + ".old"
 	os.Remove(backup)
-
 	if exist, _ := utility_functions.Exist(serverBinary); exist {
-		err := os.Rename(serverBinary, backup)
-		if err != nil {
-			if !strings.Contains(err.Error(), "access is denied") {
-				return fmt.Errorf("failed to cycle target out of space: %w", err)
-			}
-		}
+		os.Rename(serverBinary, backup)
 	}
-
+	// move new binary
 	err := utility_functions_gzip.GzipDecompressFile(tmpFile, serverBinary)
 	if err != nil {
-		if exist, _ := utility_functions.Exist(backup); exist {
-			os.Rename(backup, serverBinary)
-		}
-		return fmt.Errorf("decompression step failure: %w", err)
+		return err
 	}
 
+	// macOS / Linux need execute permission
 	if runtime.GOOS != "windows" {
 		os.Chmod(serverBinary, 0755)
 	}
 
+	// cleanup backup
 	os.Remove(backup)
-	os.Remove(tmpFile)
 
 	return nil
 }

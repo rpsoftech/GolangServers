@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/rpsoftech/golang-servers/env"
+	"github.com/rpsoftech/golang-servers/functions"
 	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
 	whatsapp_core "github.com/rpsoftech/golang-servers/functions/whatsapp/core"
 	whatsapp_middleware "github.com/rpsoftech/golang-servers/functions/whatsapp/middleware"
@@ -31,7 +32,7 @@ func main() {
 	go func() {
 		os.RemoveAll("./tmp")
 		os.Mkdir("./tmp", 0777)
-		sohan_whatsapp_auto_download.CheckAndDownload()
+		functions.CheckAndDownload(sohan_whatsapp_auto_download.GetVersionEndpoint)
 	}()
 	outputLogFolderDir := filepath.Join(env.FindAndReturnCurrentDir(), "whatsapp_server_logs")
 
