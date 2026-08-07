@@ -24,6 +24,7 @@ type VersionInfo struct {
 	URL     string `json:"url"`
 	SHA256  string `json:"sha256"`
 }
+
 type progressReader struct {
 	reader io.Reader
 	total  int64
@@ -46,180 +47,252 @@ func (p *progressReader) Read(buf []byte) (int, error) {
 var checkAndRunCalled = false
 
 func Sha256File(path string) (string, error) {
+	log.Printf("[Updater] Calculating SHA256 checksum for file: %s", path)
 	file, err := os.Open(path)
 	if err != nil {
+		log.Printf("[Updater] Error opening file for hashing (%s): %v", path, err)
 		return "", err
 	}
 	defer file.Close()
 
 	hash := sha256.New()
-
-	_, err = io.Copy(hash, file)
-	if err != nil {
+	if _, err = io.Copy(hash, file); err != nil {
+		log.Printf("[Updater] Error copying file stream to hash writer (%s): %v", path, err)
 		return "", err
 	}
-	return hex.EncodeToString(hash.Sum(nil)), nil
+
+	checksum := hex.EncodeToString(hash.Sum(nil))
+	log.Printf("[Updater] Computed SHA256 (%s): %s", path, checksum)
+	return checksum, nil
 }
 
 func getExePath() string {
 	exePath, err := os.Executable()
 	if err != nil {
-		// Fallback to current working directory if execution lookup fails
 		cwd, _ := os.Getwd()
+		log.Printf("[Updater] Warning: Failed to look up executable path, falling back to CWD (%s): %v", cwd, err)
 		return cwd
 	}
-	// Evaluates symlinks cleanly to guarantee correct execution paths
+
 	realPath, err := filepath.EvalSymlinks(exePath)
 	if err == nil {
 		return realPath
 	}
+
+	log.Printf("[Updater] Warning: Failed to evaluate symlinks for executable (%s): %v", exePath, err)
 	return exePath
 }
 
 func getExeDir() string {
-	return filepath.Dir(getExePath())
+	dir := filepath.Dir(getExePath())
+	log.Printf("[Updater] Resolved execution directory: %s", dir)
+	return dir
 }
+
 func CheckAndDownload(versinoEndPoint func() string) string {
-	// 1. Get the absolute path of the running executable
-	// exePath, err := os.Executable()
-	// if err != nil {
-	// 	fmt.Printf("Error getting executable path: %v\n", err)
-	// 	return
-	// }
+	log.Printf("[Updater] Initializing update check on OS: %s, Arch: %s", runtime.GOOS, runtime.GOARCH)
 
-	// // 2. Extract just the binary name from the full path
-	// binName := filepath.Base(exePath)
-
-	// 1. Resolve target file paths relative to where the current application is running
 	appDir := getExeDir()
 	versionFilePath := filepath.Join(appDir, VersionFileName)
-
 	serverBinaryName := filepath.Base(getExePath())
-
-	// Anchor the target binary to the execution directory
 	serverBinary := filepath.Join(appDir, serverBinaryName)
 
+	log.Printf("[Updater] Binary target: %s", serverBinary)
+	log.Printf("[Updater] Local version file path: %s", versionFilePath)
+
 	if checkAndRunCalled {
+		log.Println("[Updater] Update check already executed in this process lifetime. Skipping.")
 		return serverBinary
 	}
 
 	endpoint := versinoEndPoint()
 	if endpoint == "" {
-		log.Printf("Fatal: Endpoint Not Found For OS: %s, Arch: %s\n", runtime.GOOS, runtime.GOARCH)
+		log.Printf("[Updater] Fatal: Update endpoint URL is empty for OS: %s, Arch: %s\n", runtime.GOOS, runtime.GOARCH)
 		return serverBinary
 	}
+	log.Printf("[Updater] Fetching update metadata from endpoint: %s", endpoint)
 
 	resp, err := http.Get(endpoint)
 	if err != nil {
-		log.Println("Error: Failed to poll client metadata version endpoint.")
+		log.Printf("[Updater] Error: Failed to poll update metadata endpoint (%s): %v", endpoint, err)
 		return serverBinary
 	}
 	defer resp.Body.Close()
 
-	var cloud VersionInfo
-	if err := json.NewDecoder(resp.Body).Decode(&cloud); err != nil {
-		log.Println("Error parsing remote version payload:", err)
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("[Updater] Error: Endpoint returned non-200 status code: %d %s", resp.StatusCode, resp.Status)
 		return serverBinary
 	}
+
+	var cloud VersionInfo
+	if err := json.NewDecoder(resp.Body).Decode(&cloud); err != nil {
+		log.Printf("[Updater] Error parsing remote version JSON response: %v", err)
+		return serverBinary
+	}
+	log.Printf("[Updater] Remote metadata received -> Version: %d, URL: %s, SHA256: %s", cloud.Version, cloud.URL, cloud.SHA256)
 
 	var local VersionInfo
 	data, err := os.ReadFile(versionFilePath)
 	if err == nil {
-		json.Unmarshal(data, &local)
+		if err := json.Unmarshal(data, &local); err != nil {
+			log.Printf("[Updater] Warning: Failed to parse local version file (%s): %v", versionFilePath, err)
+		} else {
+			log.Printf("[Updater] Local version metadata read successfully -> Version: %d", local.Version)
+		}
+	} else {
+		log.Printf("[Updater] Local version file not found or unreadable (%s). Assuming version 0. Error: %v", versionFilePath, err)
 	}
 
 	gzipFile := serverBinary + ".gz"
 	needDownload := false
 
-	if exist, _ := utility_functions.Exist(serverBinary); !exist {
+	binaryExists, _ := utility_functions.Exist(serverBinary)
+	if !binaryExists {
+		log.Printf("[Updater] Target binary does not exist at %s. Triggering download.", serverBinary)
 		needDownload = true
 	}
+
 	if local.Version != cloud.Version {
+		log.Printf("[Updater] Version mismatch detected (Local: %d, Remote: %d). Triggering download.", local.Version, cloud.Version)
 		needDownload = true
 	}
 
 	if needDownload {
+		log.Printf("[Updater] Removing stale temporary download file if present: %s", gzipFile)
 		os.Remove(gzipFile)
-		log.Printf("New version found (Local: %d, Cloud: %d). Initializing download...", local.Version, cloud.Version)
+
+		log.Printf("[Updater] New version required (Local: %d, Cloud: %d). Initializing download sequence...", local.Version, cloud.Version)
 
 		err := downloadFileWithProgress(cloud.URL, gzipFile)
-		fmt.Println()
+		fmt.Println() // Print newline to clear terminal progress bar line
 		if err != nil {
-			log.Println("Error: File download failed:", err)
+			log.Printf("[Updater] Error: Update package download failed: %v", err)
 			return serverBinary
 		}
 
 		hash, err := Sha256File(gzipFile)
 		if err != nil {
-			log.Println("Error hashing temporary file:", err)
+			log.Printf("[Updater] Error hashing downloaded update package (%s): %v", gzipFile, err)
 			return serverBinary
 		}
 
 		if hash != cloud.SHA256 {
-			log.Printf("Error: Checksum mismatch. Expected %s, got %s\n", cloud.SHA256, hash)
+			log.Printf("[Updater] Error: Checksum mismatch for downloaded package! Expected %s, calculated %s", cloud.SHA256, hash)
+			log.Printf("[Updater] Cleaning up corrupt download archive: %s", gzipFile)
 			os.Remove(gzipFile)
 			return serverBinary
 		}
+		log.Println("[Updater] Package SHA256 verification passed.")
 
 		err = replaceBinarySafe(gzipFile, serverBinary)
 		if err != nil {
-			log.Println("Binary unpack and replacement transaction failed:", err)
+			log.Printf("[Updater] Binary unpack and replacement transaction failed: %v", err)
 			return serverBinary
 		}
 
-		vdata, _ := json.Marshal(cloud)
-		os.WriteFile(versionFilePath, vdata, 0644)
-		log.Println("Update deployed successfully to base execution folder.")
+		vdata, err := json.Marshal(cloud)
+		if err != nil {
+			log.Printf("[Updater] Warning: Failed to marshal new version info to JSON: %v", err)
+		} else {
+			if err := os.WriteFile(versionFilePath, vdata, 0644); err != nil {
+				log.Printf("[Updater] Warning: Failed to write updated version file (%s): %v", versionFilePath, err)
+			} else {
+				log.Printf("[Updater] Successfully saved local version metadata file: %s", versionFilePath)
+			}
+		}
+
+		log.Println("[Updater] Update deployed successfully to base execution folder. Exiting process for restart...")
 		os.Exit(0)
 	}
+
+	log.Println("[Updater] Application is up to date. No update required.")
 	checkAndRunCalled = true
 	return serverBinary
 }
+
 func downloadFileWithProgress(url string, targetPath string) error {
+	log.Printf("[Updater] Initiating HTTP GET request to download package: %s", url)
 	client := &http.Client{
 		Timeout: 500 * time.Second,
 	}
+
 	resp, err := client.Get(url)
 	if err != nil {
+		log.Printf("[Updater] Download request failed for URL (%s): %v", url, err)
 		return err
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		err := fmt.Errorf("unexpected status code: %d %s", resp.StatusCode, resp.Status)
+		log.Printf("[Updater] Download failed for URL (%s): %v", url, err)
+		return err
+	}
+
+	log.Printf("[Updater] Creating local temporary destination file: %s", targetPath)
 	out, err := os.Create(targetPath)
 	if err != nil {
+		log.Printf("[Updater] Failed to create local target file (%s): %v", targetPath, err)
 		return err
 	}
 	defer out.Close()
 
+	log.Printf("[Updater] Downloading payload (Content Length: %d bytes)...", resp.ContentLength)
 	pr := &progressReader{
 		reader: resp.Body,
 		total:  resp.ContentLength,
 	}
 
-	_, err = io.Copy(out, pr)
-	return err
-}
-
-func replaceBinarySafe(tmpFile string, serverBinary string) error {
-	// backup existing binary
-	backup := serverBinary + ".old"
-	os.Remove(backup)
-	if exist, _ := utility_functions.Exist(serverBinary); exist {
-		os.Rename(serverBinary, backup)
-	}
-	// move new binary
-	err := utility_functions_gzip.GzipDecompressFile(tmpFile, serverBinary)
+	written, err := io.Copy(out, pr)
 	if err != nil {
+		log.Printf("\n[Updater] Error streaming download contents to file (%s): %v", targetPath, err)
 		return err
 	}
 
-	// macOS / Linux need execute permission
-	if runtime.GOOS != "windows" {
-		os.Chmod(serverBinary, 0755)
-	}
+	log.Printf("\n[Updater] Download completed successfully. Total bytes written: %d", written)
+	return nil
+}
 
-	// cleanup backup
+func replaceBinarySafe(tmpFile string, serverBinary string) error {
+	backup := serverBinary + ".old"
+	log.Printf("[Updater] Starting safe binary replacement process.")
+	log.Printf("[Updater] Cleaning up old backup file if it exists: %s", backup)
 	os.Remove(backup)
 
+	if exist, _ := utility_functions.Exist(serverBinary); exist {
+		log.Printf("[Updater] Backing up active binary (%s -> %s)", serverBinary, backup)
+		if err := os.Rename(serverBinary, backup); err != nil {
+			log.Printf("[Updater] Failed to rename active binary to backup (%s -> %s): %v", serverBinary, backup, err)
+			return err
+		}
+	} else {
+		log.Printf("[Updater] No existing binary found at %s to backup.", serverBinary)
+	}
+
+	log.Printf("[Updater] Decompressing update package (%s -> %s)", tmpFile, serverBinary)
+	err := utility_functions_gzip.GzipDecompressFile(tmpFile, serverBinary)
+	if err != nil {
+		log.Printf("[Updater] Error decompressing gzip archive (%s): %v", tmpFile, err)
+		if exist, _ := utility_functions.Exist(backup); exist {
+			log.Printf("[Updater] Attempting rollback: Restoring backup (%s -> %s)", backup, serverBinary)
+			os.Rename(backup, serverBinary)
+		}
+		return err
+	}
+
+	if runtime.GOOS != "windows" {
+		log.Printf("[Updater] Setting POSIX executable permissions (0755) on %s", serverBinary)
+		if err := os.Chmod(serverBinary, 0755); err != nil {
+			log.Printf("[Updater] Warning: Failed to set chmod 0755 permissions on %s: %v", serverBinary, err)
+		}
+	}
+
+	log.Printf("[Updater] Cleaning up backup file: %s", backup)
+	os.Remove(backup)
+
+	log.Printf("[Updater] Removing temporary update package: %s", tmpFile)
+	os.Remove(tmpFile)
+
+	log.Println("[Updater] Safe binary replacement completed successfully.")
 	return nil
 }
