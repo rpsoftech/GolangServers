@@ -147,6 +147,9 @@ func (connection *WhatsappConnection) eventHandler(evt interface{}) {
 		connection.SyncFinished = false
 	case *events.OfflineSyncCompleted:
 		connection.SyncFinished = true
+	// case *events.Message:
+	// evt := evt.(*events.Message)
+	// log.Println(evt.Info)
 	case *events.Receipt:
 		evt := evt.(*events.Receipt)
 		log.Println(evt.Chat.User)

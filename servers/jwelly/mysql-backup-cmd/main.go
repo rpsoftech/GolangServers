@@ -3,10 +3,11 @@ package main
 import (
 	"compress/gzip"
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
-	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
@@ -18,92 +19,89 @@ import (
 	interfaces "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-backup-cmd/interfaces"
 )
 
-var DeferFunctionSlice []func() = []func(){}
 var CRON *cron.Cron
 
-func deferFunc() {
-	println("deferFunc")
-	for _, v := range DeferFunctionSlice {
-		v()
-	}
-}
-
 func main() {
-	// env.LoadEnv("telegram-server.env")
 	CRON = cron.New()
-	var wg sync.WaitGroup // Declare a WaitGroup
+	var wg sync.WaitGroup
 
 	for _, v := range env.ConnectionConfig.ServerConfig {
-		cccc := &interfaces.ConfigWithConnection{ServerConfig: &v}
+		cfg := v // Fix loop variable pointer bug
+		cccc := &interfaces.ConfigWithConnection{ServerConfig: &cfg}
+
 		if err := interfaces.ValidateAllConnectionsAndAssign(cccc); err != nil {
-			fmt.Printf("Error In Validating Connection %s", v.Name)
-			println(err.Error())
+			log.Fatalf("Error In Validating Connection %s: %v", cfg.Name, err)
 		}
+
 		if env.ServerEnv.IsDev && env.ServerEnv.Env.APP_ENV == coreEnv.APP_ENV_LOCAL {
-			wg.Add(1) // Increment the WaitGroup counter
-			go func() {
-				defer wg.Done() // Decrement the WaitGroup counter when the goroutine completes
-				DoBackupAndUpload(cccc)
-			}()
+			wg.Go(func() {
+				if err := DoBackupAndUpload(cccc); err != nil {
+					log.Printf("Backup failed for %s: %v", cfg.Name, err)
+				}
+			})
 		} else {
-			CRON.AddFunc(v.Cron, func() {
-				DoBackupAndUpload(cccc)
+			CRON.AddFunc(cfg.Cron, func() {
+				if err := DoBackupAndUpload(cccc); err != nil {
+					log.Printf("Cron backup failed for %s: %v", cfg.Name, err)
+				}
 			})
 		}
 	}
+
 	if env.ServerEnv.IsDev && env.ServerEnv.Env.APP_ENV == coreEnv.APP_ENV_LOCAL {
 		wg.Wait()
 		os.Exit(0)
 	}
+
 	CRON.Start()
-	// defer deferFunc()
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
-	deferFunc()
 	os.Exit(1)
 }
 
-func DoBackupAndUpload(c *interfaces.ConfigWithConnection) {
-	timeStamoForFileName := time.Now().Unix()
-	filename := fmt.Sprintf("%s-%d.sql.gz", c.ServerConfig.Name, timeStamoForFileName)
-	f, _ := os.Create(filepath.Join(c.BaseDir, filename))
+func DoBackupAndUpload(c *interfaces.ConfigWithConnection) error {
+	filename := fmt.Sprintf("%s-%d.sql.gz", c.ServerConfig.Name, time.Now().Unix())
+	log.Printf("Starting backup for %s\n", c.ServerConfig.Name)
 
-	fmt.Printf("Starting backup for %s at %s \n", c.ServerConfig.Name, time.Now().Format(time.RFC3339))
-	gzipWriter := gzip.NewWriter(f)
-	gzipWriter.Write([]byte("SET foreign_key_checks = 0;\n"))
-	var err error
-	cmdArray := []string{"mysqldump",
-		"-h ", c.ServerConfig.MysqlConfig.MYSQL_HOST}
+	// Setup pipeline: mysqldump -> gzip -> pipeWriter | pipeReader -> HTTP Request
+	pr, pw := io.Pipe()
+	gzipWriter := gzip.NewWriter(pw)
+
+	cmdArray := []string{"-h", c.ServerConfig.MysqlConfig.MYSQL_HOST}
 	if c.ServerConfig.MysqlConfig.MYSQL_PORT != 3306 {
 		cmdArray = append(cmdArray, fmt.Sprintf("--port=%d", c.ServerConfig.MysqlConfig.MYSQL_PORT))
 	}
 	if c.ServerConfig.MysqlConfig.MYSQL_USERNAME != "" {
-		cmdArray = append(cmdArray, "-u ", c.ServerConfig.MysqlConfig.MYSQL_USERNAME)
+		cmdArray = append(cmdArray, "-u", c.ServerConfig.MysqlConfig.MYSQL_USERNAME)
 	}
 	if c.ServerConfig.MysqlConfig.MYSQL_PASSWORD != "" {
 		cmdArray = append(cmdArray, "-p"+c.ServerConfig.MysqlConfig.MYSQL_PASSWORD)
 	}
 	cmdArray = append(cmdArray, "--add-drop-table", "--single-transaction", c.ServerConfig.MysqlConfig.MYSQL_DATABASE)
-	// --add-drop-table --no-data --single-transaction
-	cmd := exec.Command(cmdArray[0], cmdArray[1:]...)
+
+	cmd := exec.Command("mysqldump", cmdArray...)
 	cmd.Stdout = gzipWriter
-	err = cmd.Run()
-	gzipWriter.Write([]byte("SET foreign_key_checks = 1;\n"))
+	cmd.Stderr = os.Stderr // Route stderr to capture mysqldump errors
+
+	// Run mysqldump in a goroutine so it streams concurrently with the upload
+	go func() {
+		defer pw.Close()
+		defer gzipWriter.Close()
+
+		gzipWriter.Write([]byte("SET foreign_key_checks = 0;\n"))
+		if err := cmd.Run(); err != nil {
+			log.Printf("mysqldump failed: %v", err)
+		}
+		gzipWriter.Write([]byte("SET foreign_key_checks = 1;\n"))
+	}()
+
+	log.Printf("Uploading %s...\n", filename)
+	err := c.SFileServerConfig.Upload(pr, filename, c)
 	if err != nil {
-		println(err.Error())
+		return fmt.Errorf("upload failed: %w", err)
 	}
-	fmt.Printf("backup for %s at %s Completed\n", c.ServerConfig.Name, time.Now().Format(time.RFC3339))
-	gzipWriter.Close()
-	f.Close()
-	if err != nil {
-		println(err.Error())
-	}
-	f, _ = os.Open(filepath.Join(c.BaseDir, filename))
-	defer f.Close()
-	fmt.Printf("Uploading Backup File for %s at %s \n", c.ServerConfig.Name, time.Now().Format(time.RFC3339))
-	c.SFileServerConfig.Upload(f, c, c.ServerConfig.Name)
-	if err != nil {
-		println(err.Error())
-	}
+
+	log.Printf("Backup & Upload for %s completed successfully\n", c.ServerConfig.Name)
+	return nil
 }
