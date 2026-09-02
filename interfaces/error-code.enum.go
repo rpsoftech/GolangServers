@@ -1,6 +1,7 @@
 package interfaces
 
 const (
+	ERROR_PATH_NOT_FOUND                        = 98
 	ERROR_INTERNAL_SERVER                       = 99
 	ERROR_ENTITY_NOT_FOUND                      = 100
 	ERROR_OTP_EXPIRED                           = 201
