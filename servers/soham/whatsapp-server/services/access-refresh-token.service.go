@@ -23,8 +23,8 @@ func GetAccessTokenService() *jwt.TokenService {
 	return AccessTokenService
 }
 
-func ValidateUserRequestToken(t *jwt.TokenService, token *string) (*soham_common_req_keys.ReqTokenType, error) {
-	claimRaw, err := t.Parser.ParseWithClaims(*token, &soham_common_req_keys.ReqTokenType{}, t.Keyfunc)
+func ValidateUserRequestToken(t *jwt.TokenService, token string) (*soham_common_req_keys.ReqTokenType, error) {
+	claimRaw, err := t.Parser.ParseWithClaims(token, &soham_common_req_keys.ReqTokenType{}, t.Keyfunc)
 	if err != nil {
 		return nil, err
 	}

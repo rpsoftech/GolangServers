@@ -16,19 +16,13 @@ import (
 	"github.com/rpsoftech/golang-servers/interfaces"
 	soham_common_req_keys "github.com/rpsoftech/golang-servers/servers/soham/common"
 	soham_whatsapp_server_api "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-server/api"
-	soham_whatsapp_server_env "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-server/env"
 	soham_whatsapp_server_middleware "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-server/middleware"
-	soham_whatsapp_server_services "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-server/services"
 	soham_whatsapp_server_websocket "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-server/websocket"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 	"github.com/rpsoftech/golang-servers/validator"
 )
 
 func main() {
-
-	soham_whatsapp_server_services.InialiseWhatsappService(&soham_whatsapp_server_env.ReqestIdMap,
-		&soham_whatsapp_server_env.WebsocketConnectionMap)
-
 	app := fiber.New(fiber.Config{
 		BodyLimit: 200 * 1024 * 1024,
 		ErrorHandler: func(c fiber.Ctx, err error) error {
@@ -60,7 +54,7 @@ func main() {
 		},
 	))
 	app.Use("/whatsapp-client", soham_whatsapp_server_middleware.ValidateWhatsAppClientToken)
-	app.Get("/whatsapp-client/ws", websocket.New(soham_whatsapp_server_websocket.WhatsappClientWebsocketHandler))
+	app.Get("/whatsapp-client/ws", websocket.New(soham_whatsapp_server_websocket.GetWhatsappClientWebsocketHandler().Handle))
 	soham_whatsapp_server_api.AddApis(app.Group("/api"))
 	app.Use(func(c fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).SendString("Sorry can't find that!")
