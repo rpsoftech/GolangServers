@@ -2,12 +2,14 @@ package main
 
 import (
 	"compress/gzip"
+	"context"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"os/exec"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -17,14 +19,62 @@ import (
 	coreEnv "github.com/rpsoftech/golang-servers/env"
 	env "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-backup-cmd/env"
 	interfaces "github.com/rpsoftech/golang-servers/servers/jwelly/mysql-backup-cmd/interfaces"
+	"github.com/rpsoftech/golang-servers/utility/updater"
 )
 
 var CRON *cron.Cron
+var version = "1" // Injected via -ldflags during build
 
 func main() {
 	CRON = cron.New()
 	var wg sync.WaitGroup
 
+	// 1. Create a cancellable context listening for OS termination signals (or OTA trigger)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	// 2. The 5-Minute OTA Updater Daemon
+	if !env.ServerEnv.IsDev || env.ServerEnv.Env.APP_ENV != coreEnv.APP_ENV_LOCAL {
+		go func(versionStr string, workerCtx context.Context, triggerRestart context.CancelFunc) {
+			currentVersion, _ := strconv.Atoi(versionStr)
+			envName := string(env.ServerEnv.Env.APP_ENV)
+			if envName == "" {
+				envName = "PRODUCTION"
+			}
+
+			runCheck := func() {
+				updated, err := updater.CheckAndUpdate(envName, "https://keyvalue.rpso.in/public/", "mysql_backup", currentVersion)
+				if err != nil {
+					log.Printf("⚠️ OTA Updater: %v\n", err)
+					return
+				}
+
+				if updated {
+					log.Println("🔄 OTA Update applied successfully! Triggering graceful restart...")
+					// Instantly alerts <-ctx.Done() on the main thread
+					triggerRestart()
+				}
+			}
+
+			// Run immediately on boot
+			runCheck()
+
+			// Schedule to run exactly every 5 minutes
+			ticker := time.NewTicker(5 * time.Minute)
+			defer ticker.Stop()
+
+			for {
+				select {
+				case <-workerCtx.Done(): // Stop checking for updates if shutting down
+					return
+				case <-ticker.C:
+					runCheck()
+				}
+			}
+		}(version, ctx, cancel)
+	}
+
+	// 3. Setup Connections and Cron Jobs
 	for _, v := range env.ConnectionConfig.ServerConfig {
 		cfg := v // Fix loop variable pointer bug
 		cccc := &interfaces.ConfigWithConnection{ServerConfig: &cfg}
@@ -35,6 +85,8 @@ func main() {
 
 		if env.ServerEnv.IsDev && env.ServerEnv.Env.APP_ENV == coreEnv.APP_ENV_LOCAL {
 			wg.Go(func() {
+
+				defer wg.Done()
 				if err := DoBackupAndUpload(cccc); err != nil {
 					log.Printf("Backup failed for %s: %v", cfg.Name, err)
 				}
@@ -48,23 +100,33 @@ func main() {
 		}
 	}
 
+	// 4. Handle Local Dev (One-off Execution)
 	if env.ServerEnv.IsDev && env.ServerEnv.Env.APP_ENV == coreEnv.APP_ENV_LOCAL {
 		wg.Wait()
-		os.Exit(0)
+		log.Println("✅ Local Dev backups completed. Exiting.")
+		return
 	}
 
 	CRON.Start()
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	<-c
-	os.Exit(1)
+	log.Println("🚀 Backup Cron Daemon Started...")
+
+	// 5. Block main thread until OS termination signal OR an OTA Update triggers `cancel()`
+	<-ctx.Done()
+	log.Println("🛑 Termination signal received. Initiating graceful shutdown...")
+
+	// 6. Graceful Shutdown
+	// CRON.Stop() stops accepting new jobs and returns a context that fires when running jobs finish.
+	// This prevents a backup database dump from being corrupted mid-flight if an OTA update triggers.
+	cronCtx := CRON.Stop()
+	<-cronCtx.Done()
+
+	log.Println("✅ mysql-backup-cmd shut down safely.")
 }
 
 func DoBackupAndUpload(c *interfaces.ConfigWithConnection) error {
 	filename := fmt.Sprintf("%s-%d.sql.gz", c.ServerConfig.Name, time.Now().Unix())
 	log.Printf("Starting backup for %s\n", c.ServerConfig.Name)
 
-	// Setup pipeline: mysqldump -> gzip -> pipeWriter | pipeReader -> HTTP Request
 	pr, pw := io.Pipe()
 	gzipWriter := gzip.NewWriter(pw)
 
@@ -82,9 +144,8 @@ func DoBackupAndUpload(c *interfaces.ConfigWithConnection) error {
 
 	cmd := exec.Command("mysqldump", cmdArray...)
 	cmd.Stdout = gzipWriter
-	cmd.Stderr = os.Stderr // Route stderr to capture mysqldump errors
+	cmd.Stderr = os.Stderr
 
-	// Run mysqldump in a goroutine so it streams concurrently with the upload
 	go func() {
 		defer pw.Close()
 		defer gzipWriter.Close()
