@@ -15,6 +15,7 @@ func AddApiRoutes(app fiber.Router) {
 	app.Get("/stone-types", ecommerce_api_func.GetStoneTypes)
 	app.Get("/metal-colors", ecommerce_api_func.GetMetalColors)
 	app.Get("/occasions", ecommerce_api_func.GetOccasions)
+	app.Post("/get-links",ecommerce_api_func.GetLinksFromString)
 }
 func RegisterProductRoutes(app fiber.Router) {
 	app.Get("/all", ecommerce_api_func.ProductSearchAll)
