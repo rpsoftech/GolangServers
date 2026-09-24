@@ -15,7 +15,7 @@ import (
 // then paste the public key here and keep the private key in the deploy
 // machine's UPDATE_SIGNING_KEY environment variable. While this is empty the
 // updater refuses every update and the deploy tool refuses to publish.
-const ReleasePublicKey = ""
+const ReleasePublicKey = "0Uu99qmXD7yROUkFxLjmcO/0Ml1biyyuH28Zk0YzczI="
 
 // releasePublicKeyB64 exists so tests can substitute a key.
 var releasePublicKeyB64 = ReleasePublicKey

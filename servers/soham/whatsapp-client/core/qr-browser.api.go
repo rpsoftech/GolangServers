@@ -1,7 +1,9 @@
 package whatsapp_client_core
 
 import (
+	"encoding/json"
 	"fmt"
+	"html"
 
 	"github.com/gofiber/fiber/v2"
 	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
@@ -20,7 +22,7 @@ const index = `<!DOCTYPE html>
     <img height="512" width="512" />
     <script>
       // get host url for api calling
-      const id = "%s";
+      const id = %s;
       // const url = window.location.href
       const url = ` + "`${window.location.protocol}//${window.location.host}/v1/qr_code/`;" +
 	`      function hexToBase64(str) {
@@ -65,6 +67,12 @@ func OpenBrowserWithQr(c *fiber.Ctx) error {
 	if !ok {
 		return c.Status(404).SendString("Invalid ID")
 	}
+	// Escape both values for where they land: number in HTML, id in a JS
+	// string literal (json.Marshal also escapes <, > and &).
+	idJSON, err := json.Marshal(id)
+	if err != nil {
+		return err
+	}
 	c.Set("Content-Type", "text/html; charset=utf-8")
-	return c.Send([]byte(fmt.Sprintf(index, number, id)))
+	return c.Send([]byte(fmt.Sprintf(index, html.EscapeString(number), idJSON)))
 }

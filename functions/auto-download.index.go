@@ -9,20 +9,23 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"time"
 
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 	utility_functions_gzip "github.com/rpsoftech/golang-servers/utility/functions/gzip"
+	"github.com/rpsoftech/golang-servers/utility/updater"
 )
 
 const VersionFileName = "client-version.json"
 
 type VersionInfo struct {
-	Version int    `json:"version"`
-	URL     string `json:"url"`
-	SHA256  string `json:"sha256"`
+	Version   int    `json:"version"`
+	URL       string `json:"url"`
+	SHA256    string `json:"sha256"`
+	Signature string `json:"signature"`
 }
 
 type progressReader struct {
@@ -152,12 +155,21 @@ func CheckAndDownload(versinoEndPoint func() string) string {
 		needDownload = true
 	}
 
-	if local.Version != cloud.Version {
-		log.Printf("[Updater] Version mismatch detected (Local: %d, Remote: %d). Triggering download.", local.Version, cloud.Version)
+	// Only move forward: a signed older release must not be replayable.
+	if cloud.Version > local.Version {
+		log.Printf("[Updater] Newer version available (Local: %d, Remote: %d). Triggering download.", local.Version, cloud.Version)
 		needDownload = true
 	}
 
 	if needDownload {
+		// The KV key is the last path segment of the endpoint URL.
+		kvKey := path.Base(endpoint)
+		if err := updater.VerifyRelease(kvKey, updater.KVResponse{Version: cloud.Version, URL: cloud.URL, SHA256: cloud.SHA256, Signature: cloud.Signature}); err != nil {
+			log.Printf("[Updater] Error: Rejecting release v%d for %s: %v", cloud.Version, kvKey, err)
+			return serverBinary
+		}
+		log.Println("[Updater] Release signature verified.")
+
 		log.Printf("[Updater] Removing stale temporary download file if present: %s", gzipFile)
 		os.Remove(gzipFile)
 

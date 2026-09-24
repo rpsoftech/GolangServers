@@ -18,9 +18,10 @@ const (
 )
 
 type VersionInfo struct {
-	Version int    `json:"version"`
-	URL     string `json:"url"`
-	SHA256  string `json:"sha256"`
+	Version   int    `json:"version"`
+	URL       string `json:"url"`
+	SHA256    string `json:"sha256"`
+	Signature string `json:"signature"` // base64 ed25519, see updater.SignedMessage
 }
 
 func UploadFile(path string, filename string, uploadPath string, fileServerURL string, fileServerToken string) error {
