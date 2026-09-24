@@ -43,7 +43,7 @@ func main() {
 			}
 
 			runCheck := func() {
-				updated, err := updater.CheckAndUpdate(envName, "https://keyvalue.rpso.in/public/", "mysql_backup", currentVersion)
+				updated, err := updater.CheckAndUpdate(envName, "https://keyvalue.rpso.in/public/", updater.MysqlBackupCmdProjectName, currentVersion)
 				if err != nil {
 					log.Printf("⚠️ OTA Updater: %v\n", err)
 					return

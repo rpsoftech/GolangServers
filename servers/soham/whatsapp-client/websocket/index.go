@@ -34,7 +34,7 @@ type WebsocketConnectionObject struct {
 	connected                bool
 	UUID                     string
 	NUMBER                   string
-	WhatsappConnectionMap    whatsapp_core.IWhatsappConnectionMap
+	WhatsappConnectionMap    *whatsapp_core.IWhatsappConnectionMap
 	WhatsappConnection       *whatsapp_core.WhatsappConnection
 }
 
@@ -143,7 +143,7 @@ func (w *WebsocketConnectionObject) getWhatsappConnection() (*whatsapp_core.What
 	if w.WhatsappConnection != nil {
 		return w.WhatsappConnection, nil
 	}
-	wc, ok := w.WhatsappConnectionMap[w.UUID]
+	wc, ok := w.WhatsappConnectionMap.Get(w.UUID)
 	if !ok {
 		return nil, fmt.Errorf("invalid from number mapping")
 	}
@@ -165,7 +165,7 @@ func (w *WebsocketConnectionObject) SendTextMessage(wcm *soham_common_req_keys.W
 	}
 
 	wc, err := w.getWhatsappConnection()
-	if err != nil || wc.ConnectionStatus != 1 {
+	if err != nil || wc.Status() != 1 {
 		w.sendErrorResponse(reqId, "WhatsApp client not connected to phone")
 		return
 	}
@@ -195,7 +195,7 @@ func (w *WebsocketConnectionObject) SendBase64Image(wcm *soham_common_req_keys.W
 	}
 
 	wc, err := w.getWhatsappConnection()
-	if err != nil || wc.ConnectionStatus != 1 {
+	if err != nil || wc.Status() != 1 {
 		w.sendErrorResponse(reqId, "WhatsApp client not connected to phone")
 		return
 	}
@@ -234,7 +234,7 @@ func (w *WebsocketConnectionObject) SendWebMedia(wcm *soham_common_req_keys.What
 	}
 
 	wc, err := w.getWhatsappConnection()
-	if err != nil || wc.ConnectionStatus != 1 {
+	if err != nil || wc.Status() != 1 {
 		w.sendErrorResponse(reqId, "WhatsApp client not connected to phone")
 		return
 	}
@@ -269,7 +269,7 @@ func (w *WebsocketConnectionObject) SendMediaWithFilePath(wcm *soham_common_req_
 	}
 
 	wc, err := w.getWhatsappConnection()
-	if err != nil || wc.ConnectionStatus != 1 {
+	if err != nil || wc.Status() != 1 {
 		w.sendErrorResponse(reqId, "WhatsApp client not connected to phone")
 		return
 	}
@@ -349,7 +349,7 @@ func (w *WebsocketConnectionObject) CheckStatusAndSendResponse() {
 		w.mu.RUnlock()
 
 		// CRITICAL FIX: The else if condition was completely broken in the original code, causing spam.
-		if wc.ConnectionStatus == 1 && currentStatus != soham_common_req_keys.LOGGED_IN {
+		if wc.Status() == 1 && currentStatus != soham_common_req_keys.LOGGED_IN {
 			if w.SendResponse(&soham_common_req_keys.WhatsappClientMessage{
 				Type:    soham_common_req_keys.STATUS_MESSAGE,
 				Message: soham_common_req_keys.LOGGED_IN,
@@ -358,7 +358,7 @@ func (w *WebsocketConnectionObject) CheckStatusAndSendResponse() {
 				w.WhatsappConnectionStatus = soham_common_req_keys.LOGGED_IN
 				w.mu.Unlock()
 			}
-		} else if wc.ConnectionStatus != 1 && currentStatus != soham_common_req_keys.NOT_LOGGED_IN {
+		} else if wc.Status() != 1 && currentStatus != soham_common_req_keys.NOT_LOGGED_IN {
 			if w.SendResponse(&soham_common_req_keys.WhatsappClientMessage{
 				Type:    soham_common_req_keys.STATUS_MESSAGE,
 				Message: soham_common_req_keys.NOT_LOGGED_IN,

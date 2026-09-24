@@ -92,7 +92,6 @@ func UpdateKeyValue(key string, data []byte, keyValueURL string, kvToken string)
 		keyValueURL+key,
 		bytes.NewBuffer(data),
 	)
-
 	if err != nil {
 		return err
 	}

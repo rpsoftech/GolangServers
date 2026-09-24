@@ -1,6 +1,7 @@
 package whatsapp_server_apis
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/gofiber/fiber/v3"
@@ -18,7 +19,7 @@ const index = `<!DOCTYPE html>
     <img height="512" width="512" />
     <script>
       // get host url for api calling
-      const id = "%s";
+      const id = %s;
       // const url = window.location.href
       const url = ` + "`${window.location.protocol}//${window.location.host}/v1/qr_code/`;" +
 	`      function hexToBase64(str) {
@@ -58,8 +59,14 @@ const index = `<!DOCTYPE html>
 </html>`
 
 func OpenBrowserWithQr(c fiber.Ctx) error {
-	id := c.Get("id")
-	// println(c.Hostname())
+	// Params, not Get: c.Get reads a request header in Fiber v3.
+	id := c.Params("id")
+	// json.Marshal quotes the value and escapes <, > and &, so the id cannot
+	// break out of the JS string or close the <script> tag.
+	idJSON, err := json.Marshal(id)
+	if err != nil {
+		return err
+	}
 	c.Set("Content-Type", "text/html; charset=utf-8")
-	return c.Send(fmt.Appendf(nil, index, id))
+	return c.Send(fmt.Appendf(nil, index, idJSON))
 }

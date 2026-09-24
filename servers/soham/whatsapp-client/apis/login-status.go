@@ -16,7 +16,7 @@ func LoginStatus(c *fiber.Ctx) error {
 		return err
 	}
 
-	connection, ok := whatsapp_core.ConnectionMap[number]
+	connection, ok := whatsapp_core.ConnectionMap.Get(number)
 	if !ok || connection == nil {
 		return &interfaces.RequestError{
 			StatusCode: http.StatusNotFound,
@@ -26,6 +26,6 @@ func LoginStatus(c *fiber.Ctx) error {
 		}
 	}
 	return c.JSON(fiber.Map{
-		"status": connection.ConnectionStatus,
+		"status": connection.Status(),
 	})
 }

@@ -62,10 +62,10 @@ func main() {
 
 	// 5. Connect WhatsApp Numbers & WebSockets
 	if whatsapp_config.Env.AUTO_CONNECT_TO_WHATSAPP {
-		for k, n := range whatsapp_config.WhatsappNumberConfigMap.Tokens {
+		for k, n := range whatsapp_config.WhatsappNumberConfigMap.TokensSnapshot() {
 			uuidToken := k
 			numberToken := n
-			jidString := whatsapp_config.WhatsappNumberConfigMap.JID[uuidToken]
+			jidString := whatsapp_config.WhatsappNumberConfigMap.GetJID(uuidToken)
 			whatsapp_config.WhatsappNumberToIDMap[uuidToken] = numberToken
 
 			go whatsapp_core.ConnectToNumber(jidString, uuidToken, container)

@@ -15,9 +15,10 @@ import (
 )
 
 type KVResponse struct {
-	Version int    `json:"version"`
-	URL     string `json:"url"`
-	SHA256  string `json:"sha256"`
+	Version   int    `json:"version"`
+	URL       string `json:"url"`
+	SHA256    string `json:"sha256"`
+	Signature string `json:"signature"` // base64 ed25519 over SignedMessage
 }
 
 func GetFileKey(envName, component, osName, arch string) string {
@@ -35,6 +36,10 @@ func CheckAndUpdate(envName, kvBaseURL, componentName string, currentVersion int
 	if err != nil {
 		return false, err
 	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -55,6 +60,12 @@ func CheckAndUpdate(envName, kvBaseURL, componentName string, currentVersion int
 		return false, nil // Up to date
 	}
 
+	// Verify before downloading: the signature covers the SHA256, and the
+	// SHA256 is checked against the downloaded file below.
+	if err := VerifyRelease(kvKey, kvData); err != nil {
+		return false, fmt.Errorf("rejecting v%d: %w", kvData.Version, err)
+	}
+
 	log.Printf("Update found! v%d -> v%d", currentVersion, kvData.Version)
 
 	// os.Executable() perfectly handles user-renamed binaries
@@ -69,13 +80,26 @@ func CheckAndUpdate(envName, kvBaseURL, componentName string, currentVersion int
 	defer os.Remove(binTmpPath)
 
 	// Download
-	downReq, _ := http.NewRequest("GET", kvData.URL, nil)
+	downReq, err := http.NewRequest("GET", kvData.URL, nil)
+	if err != nil {
+		return false, err
+	}
 	downReq.Header.Set("Accept-Encoding", "identity") // Prevent auto-decompression
-	downloadResp, err := client.Do(downReq)
-	if err != nil || downloadResp.StatusCode != http.StatusOK {
+	downReq.Header.Set("Content-Type", "application/json")
+	downReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	downReq.Header.Set("Accept", "application/json, text/plain, */*")
+	downReq.Header.Set("Accept-Language", "en-US,en;q=0.9")
+
+	// The 10s KV client timeout is too short for a binary download.
+	downloadClient := &http.Client{Timeout: 10 * time.Minute}
+	downloadResp, err := downloadClient.Do(downReq)
+	if err != nil {
 		return false, fmt.Errorf("download failed: %w", err)
 	}
 	defer downloadResp.Body.Close()
+	if downloadResp.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("download failed: HTTP %d", downloadResp.StatusCode)
+	}
 
 	gzFile, err := os.Create(gzTmpPath)
 	if err != nil {

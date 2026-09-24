@@ -3,7 +3,10 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/ed25519"
+	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -31,15 +34,28 @@ var (
 		{"windows", "amd64"},
 	}
 	components = map[string]string{
-		"mysql_backup": "./servers/jwelly/mysql-backup-cmd/main.go",
+		updater.MysqlBackupCmdProjectName: "./servers/jwelly/mysql-backup-cmd/main.go",
+		updater.WhatsappProjectName:       "./servers/whatsapp-server/main.go",
 	}
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "keygen" {
+		keygen()
+		return
+	}
+
 	fileServerToken := os.Getenv("FILE_SERVER_TOKEN")
 	kvToken := os.Getenv("KV_TOKEN")
 	if fileServerToken == "" || kvToken == "" {
 		log.Fatal("FATAL: FILE_SERVER_TOKEN and KV_TOKEN environment variables are missing")
+	}
+
+	// Fail before building anything if releases cannot be signed with the key
+	// the shipped updater trusts.
+	signingKey, err := updater.ParseSigningKey(os.Getenv("UPDATE_SIGNING_KEY"))
+	if err != nil {
+		log.Fatalf("FATAL: UPDATE_SIGNING_KEY: %v (run `go run ./utility/deploy keygen` once)", err)
 	}
 
 	deployEnv := os.Getenv("DEPLOY_ENV")
@@ -94,11 +110,13 @@ func main() {
 				log.Fatalf("❌ Upload failed: %v", err)
 			}
 
-			// 5. Update KV
+			// 5. Sign and update KV
+			kvKey := updater.GetFileKey(deployEnv, compName, target.OS, target.Arch)
 			fileURL := fmt.Sprintf("https://files.rpso.in/static/%s/%s", targetFolder, uploadFilename)
-			vInfo, _ := json.Marshal(map[string]any{"version": version, "url": fileURL, "sha256": hash})
+			signature := base64.StdEncoding.EncodeToString(ed25519.Sign(signingKey, updater.SignedMessage(kvKey, version, hash)))
+			vInfo, _ := json.Marshal(updater.KVResponse{Version: version, URL: fileURL, SHA256: hash, Signature: signature})
 
-			req, _ := http.NewRequest("POST", KeyValueURL+updater.GetFileKey(deployEnv, compName, target.OS, target.Arch), bytes.NewReader(vInfo))
+			req, _ := http.NewRequest("POST", KeyValueURL+kvKey, bytes.NewReader(vInfo))
 			req.Header.Set("Authorization", "Bearer "+kvToken)
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
@@ -120,13 +138,28 @@ func main() {
 	}
 }
 
+// keygen prints a new release signing key pair. Paste the public key into
+// updater.ReleasePublicKey and store the private key as UPDATE_SIGNING_KEY on
+// the deploy machine only. Never commit the private key.
+func keygen() {
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		log.Fatalf("keygen failed: %v", err)
+	}
+	fmt.Println("Public key  (paste into utility/updater/signing.go ReleasePublicKey):")
+	fmt.Println(base64.StdEncoding.EncodeToString(pub))
+	fmt.Println()
+	fmt.Println("Private key (set as UPDATE_SIGNING_KEY; keep secret, do not commit):")
+	fmt.Println(base64.StdEncoding.EncodeToString(priv))
+}
+
 // Helpers with Error Handling Added
 
 func getNextVersion(envName, comp, osName, arch string) int {
 	req, _ := http.NewRequest("GET", KeyValueURL+updater.GetFileKey(envName, comp, osName, arch), nil)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 	req.Header.Set("Accept", "application/json, text/plain, */*")
-
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil || resp.StatusCode != 200 {
@@ -203,7 +236,9 @@ func uploadFile(path, filename, uploadPathFolder, token string) error {
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 	client := &http.Client{Timeout: 2 * time.Minute}
 	resp, err := client.Do(req)
 	if err != nil {
