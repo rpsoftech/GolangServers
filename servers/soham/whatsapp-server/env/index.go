@@ -23,12 +23,6 @@ type (
 
 var Env *whatsappEnv
 
-var (
-	WebsocketConnectionMap    = make(map[int]*WebsocketConnection)
-	ConnectionNumberStatusMap = make(map[int]soham_common_req_keys.ConnectionStatus)
-	ReqestIdMap               = make(map[string]chan any)
-)
-
 func init() {
 	env.LoadEnv("whatsapp-server.env")
 	log.Debug("WhatsApp ServerEnv Initialized")

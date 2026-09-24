@@ -18,7 +18,7 @@ func GetQrCode(c *fiber.Ctx) error {
 		return err
 	}
 
-	connection, ok := whatsapp_core.ConnectionMap[number]
+	connection, ok := whatsapp_core.ConnectionMap.Get(number)
 	if !ok || connection == nil {
 		return &interfaces.RequestError{
 			StatusCode: http.StatusNotFound,
@@ -30,10 +30,10 @@ func GetQrCode(c *fiber.Ctx) error {
 	err = connection.ReturnStatusError()
 
 	if err != nil {
-		png, _ := qrcode.Encode(connection.QrCodeString, qrcode.High, 512)
+		png, _ := qrcode.Encode(connection.QRCode(), qrcode.High, 512)
 		return c.JSON(fiber.Map{
 			"qrCode":     base64.StdEncoding.EncodeToString(png),
-			"qrCodeData": connection.QrCodeString,
+			"qrCodeData": connection.QRCode(),
 		})
 	}
 	return c.JSON(fiber.Map{

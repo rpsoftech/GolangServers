@@ -1,8 +1,7 @@
 package whatsapp_functions
 
 import (
-	"fmt"
-	"io"
+	"context"
 	"net/http"
 	"net/url"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	whatsapp_interfaces "github.com/rpsoftech/golang-servers/interfaces/whatsapp"
+	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 )
 
 func ExtractKeyFromHeader(c *fiber.Ctx, key string) string {
@@ -33,21 +33,13 @@ func ExtractNumberFromCtx(c *fiber.Ctx) (string, error) {
 	return id, nil
 }
 
-// fetchFileFromURL downloads a file from the given HTTP/HTTPS URL.
-func FetchFileFromURL(urls string) ([]byte, string, error) {
-	resp, err := http.Get(urls)
+// FetchFileFromURL downloads a caller-supplied HTTP/HTTPS URL. Private,
+// loopback and metadata addresses are refused and the size is capped; see
+// utility_functions.FetchUserURL.
+func FetchFileFromURL(ctx context.Context, urls string) ([]byte, string, error) {
+	bytesData, err := utility_functions.FetchUserURL(ctx, urls)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to make HTTP request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, "", fmt.Errorf("failed to download file, HTTP status code: %d", resp.StatusCode)
-	}
-
-	bytesData, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to read response body: %w", err)
+		return nil, "", err
 	}
 
 	// Try to extract filename from URL path if not explicitly provided

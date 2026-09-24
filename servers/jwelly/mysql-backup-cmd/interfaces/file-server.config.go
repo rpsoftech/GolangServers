@@ -1,15 +1,13 @@
 package mysql_backup_interfaces
 
 import (
-	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
-	"path/filepath"
 
 	"github.com/rpsoftech/golang-servers/validator"
 )
@@ -26,7 +24,7 @@ type SFileServerType1 struct {
 
 type IFileServerConfigInterface interface {
 	Validate() (bool, error)
-	Upload(*os.File, *ConfigWithConnection, string)
+	Upload(fileReader io.Reader, fileName string, cb *ConfigWithConnection) error
 }
 
 func (s *SFileServerConfig) Validate() (bool, error) {
@@ -43,52 +41,54 @@ func (s *SFileServerType1) Validate() (bool, error) {
 	}
 	return true, nil
 }
+func (s *SFileServerType1) Upload(fileReader io.Reader, fileName string, cb *ConfigWithConnection) error {
+	// Stream the multipart form data directly to HTTP to avoid loading the file into RAM
+	bodyReader, bodyWriter := io.Pipe()
+	writer := multipart.NewWriter(bodyWriter)
 
-func (s *SFileServerType1) Upload(f *os.File, cb *ConfigWithConnection, _ string) {
-	payload := &bytes.Buffer{}
-	writer := multipart.NewWriter(payload)
-	fileName := filepath.Base(f.Name())
-	part1, errFile1 := writer.CreateFormFile(fileName, filepath.Join(cb.BaseDir, fileName))
-	if errFile1 != nil {
-		fmt.Println(errFile1)
-		return
-	}
-	_, errFile1 = io.Copy(part1, f)
-	if errFile1 != nil {
-		fmt.Println(errFile1)
-		return
-	}
-	_ = writer.WriteField("path", s.FolderPath)
-	err := writer.Close()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	go func() {
+		defer bodyWriter.Close()
+		defer writer.Close()
+
+		_ = writer.WriteField("path", s.FolderPath)
+		part, err := writer.CreateFormFile("file", fileName) // field name is standard 'file'
+		if err != nil {
+			log.Printf("form file error: %v", err)
+			return
+		}
+
+		if _, err := io.Copy(part, fileReader); err != nil {
+			log.Printf("io.Copy error: %v", err)
+		}
+	}()
+
 	u, err := url.Parse(s.URL)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 	u.Path = path.Join(u.Path, fileName)
-	client := &http.Client{}
-	req, err := http.NewRequest("POST", u.String(), payload)
+
+	req, err := http.NewRequest("POST", u.String(), bodyReader)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
+	// 1. Mirror the anti-bot headers so your file server doesn't block the download
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "*/*")
 	req.Header.Add("Authorization", "Bearer "+s.TOKEN)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		fmt.Println(err)
-		return
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		body, _ := io.ReadAll(res.Body)
+		return fmt.Errorf("server returned %d: %s", res.StatusCode, string(body))
 	}
-	fmt.Println(string(body))
+
+	return nil
 }

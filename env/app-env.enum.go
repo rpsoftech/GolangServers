@@ -11,6 +11,7 @@ type AppEnv string
 const (
 	APP_ENV_DEVELOP    AppEnv = "DEVELOP"
 	APP_ENV_LOCAL      AppEnv = "LOCAL"
+	APP_ENV_STAGING    AppEnv = "STAGING"
 	APP_ENV_CI         AppEnv = "CI"
 	APP_ENV_PRODUCTION AppEnv = "PRODUCTION"
 )
@@ -19,6 +20,7 @@ var (
 	appEnvMap = map[string]AppEnv{
 		"DEVELOP":    APP_ENV_DEVELOP,
 		"LOCAL":      APP_ENV_LOCAL,
+		"STAGING":    APP_ENV_STAGING,
 		"CI":         APP_ENV_CI,
 		"PRODUCTION": APP_ENV_PRODUCTION,
 	}
@@ -44,6 +46,8 @@ func (s AppEnv) String() string {
 		return "LOCAL"
 	case APP_ENV_CI:
 		return "CI"
+	case APP_ENV_STAGING:
+		return "STAGING"
 	case APP_ENV_PRODUCTION:
 		return "PRODUCTION"
 	}
@@ -59,6 +63,7 @@ func (s AppEnv) Valid() bool {
 	case
 		APP_ENV_LOCAL,
 		APP_ENV_CI,
+		APP_ENV_STAGING,
 		APP_ENV_PRODUCTION:
 		return true
 	}

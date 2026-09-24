@@ -14,14 +14,14 @@ func StartNumber(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	_, ok := whatsapp_core.ConnectionMap[token]
+	_, ok := whatsapp_core.ConnectionMap.Get(token)
 	if ok {
 		return c.JSON(fiber.Map{
 			"success": false,
 			"reason":  fmt.Sprintf("Number %s is already connected", token),
 		})
 	}
-	jidString := whatsapp_config.WhatsappNumberConfigMap.JID[token]
+	jidString := whatsapp_config.WhatsappNumberConfigMap.GetJID(token)
 	whatsapp_core.ConnectToNumber(jidString, token, whatsapp_core.InitSqlContainer())
 	return c.JSON(fiber.Map{
 		"success": true,

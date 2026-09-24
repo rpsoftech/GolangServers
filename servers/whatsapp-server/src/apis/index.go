@@ -83,7 +83,7 @@ func SendMediaFileWithWebLinks(c fiber.Ctx) error {
 		return err
 	}
 
-	connection, ok := whatsapp_core.ConnectionMap[number]
+	connection, ok := whatsapp_core.ConnectionMap.Get(number)
 	if !ok || connection == nil {
 		return &interfaces.RequestError{
 			StatusCode: http.StatusNotFound,
@@ -134,7 +134,7 @@ func SendMediaFileWithWebLink(c fiber.Ctx) error {
 		return err
 	}
 
-	connection, ok := whatsapp_core.ConnectionMap[number]
+	connection, ok := whatsapp_core.ConnectionMap.Get(number)
 	if !ok || connection == nil {
 		return &interfaces.RequestError{
 			StatusCode: http.StatusNotFound,
@@ -196,7 +196,7 @@ func SendMediaFile(c fiber.Ctx) error {
 			Name:       "ERROR_INVALID_INPUT",
 		}
 	}
-	connection, ok := whatsapp_core.ConnectionMap[number]
+	connection, ok := whatsapp_core.ConnectionMap.Get(number)
 	if !ok || connection == nil {
 		return &interfaces.RequestError{
 			StatusCode: http.StatusNotFound,
@@ -257,7 +257,7 @@ func SendMediaFileWithBase64(c fiber.Ctx) error {
 		return err
 	}
 
-	connection, ok := whatsapp_core.ConnectionMap[number]
+	connection, ok := whatsapp_core.ConnectionMap.Get(number)
 	if !ok || connection == nil {
 		return &interfaces.RequestError{
 			StatusCode: http.StatusNotFound,
@@ -312,7 +312,7 @@ func SendMessage(c fiber.Ctx) error {
 			Name:       "ERROR_INVALID_INPUT",
 		}
 	}
-	connection, ok := whatsapp_core.ConnectionMap[token]
+	connection, ok := whatsapp_core.ConnectionMap.Get(token)
 	if !ok || connection == nil {
 		return &interfaces.RequestError{
 			StatusCode: http.StatusNotFound,
@@ -330,9 +330,13 @@ func SendMessage(c fiber.Ctx) error {
 		runHeadLess = false
 	}
 	if runHeadLess {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
-		defer cancel()
-		go connection.SendTextMessage(ctx, body.To, body.Msg)
+		// The context must belong to the goroutine. A deferred cancel in the
+		// handler fires on return and would cancel the send before it starts.
+		go func(to []string, msg string) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*30*time.Duration(len(to)))
+			defer cancel()
+			connection.SendTextMessage(ctx, to, msg)
+		}(body.To, body.Msg)
 		return c.JSON(fiber.Map{
 			"success": true,
 		})
@@ -361,7 +365,7 @@ func GetQrCode(c fiber.Ctx) error {
 		return err
 	}
 
-	connection, ok := whatsapp_core.ConnectionMap[number]
+	connection, ok := whatsapp_core.ConnectionMap.Get(number)
 	if !ok || connection == nil {
 		return &interfaces.RequestError{
 			StatusCode: http.StatusNotFound,
@@ -373,10 +377,10 @@ func GetQrCode(c fiber.Ctx) error {
 	err = connection.ReturnStatusError()
 
 	if err != nil {
-		png, _ := qrcode.Encode(connection.QrCodeString, qrcode.High, 512)
+		png, _ := qrcode.Encode(connection.QRCode(), qrcode.High, 512)
 		return c.JSON(fiber.Map{
 			"qrCode":     base64.StdEncoding.EncodeToString(png),
-			"qrCodeData": connection.QrCodeString,
+			"qrCodeData": connection.QRCode(),
 		})
 	}
 	return c.JSON(fiber.Map{

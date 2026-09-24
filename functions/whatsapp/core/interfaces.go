@@ -10,6 +10,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mdp/qrterminal/v3"
@@ -33,33 +34,105 @@ type (
 		DeviceStore  *store.Device
 		SqlContainer *sqlstore.Container
 	}
+	// WhatsappConnection is read by HTTP handlers and written by whatsmeow
+	// event goroutines. Mutable fields are guarded by mu; use the accessors.
 	WhatsappConnection struct {
 		*ParentData
-		Client           *whatsmeow.Client
-		Number           string
-		Token            string
-		ConnectionStatus int
-		QrCodeString     string
-		SyncFinished     bool
+		Token string
+
+		mu               sync.RWMutex
+		client           *whatsmeow.Client
+		number           string
+		connectionStatus int
+		qrCodeString     string
+		syncFinished     bool
 	}
 
-	IWhatsappConnectionMap map[string]*WhatsappConnection
+	// IWhatsappConnectionMap is a token -> connection registry safe for
+	// concurrent use.
+	IWhatsappConnectionMap struct {
+		mu          sync.RWMutex
+		connections map[string]*WhatsappConnection
+	}
 )
 
 var (
 	OutPutFilePath = ""
-	ConnectionMap  = make(IWhatsappConnectionMap)
+	ConnectionMap  = &IWhatsappConnectionMap{connections: make(map[string]*WhatsappConnection)}
 )
 
+func (cm *IWhatsappConnectionMap) Get(token string) (*WhatsappConnection, bool) {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+	connection, ok := cm.connections[token]
+	return connection, ok
+}
+
+func (cm *IWhatsappConnectionMap) Set(token string, connection *WhatsappConnection) {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	cm.connections[token] = connection
+}
+
+func (cm *IWhatsappConnectionMap) Delete(token string) {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	delete(cm.connections, token)
+}
+
+func (connection *WhatsappConnection) getClient() *whatsmeow.Client {
+	connection.mu.RLock()
+	defer connection.mu.RUnlock()
+	return connection.client
+}
+
+// Status returns 0 (waiting for QR scan), 1 (connected) or -1 (logged out).
+func (connection *WhatsappConnection) Status() int {
+	connection.mu.RLock()
+	defer connection.mu.RUnlock()
+	return connection.connectionStatus
+}
+
+func (connection *WhatsappConnection) setStatus(status int) {
+	connection.mu.Lock()
+	defer connection.mu.Unlock()
+	connection.connectionStatus = status
+}
+
+// QRCode returns the latest QR code string, empty if none was issued.
+func (connection *WhatsappConnection) QRCode() string {
+	connection.mu.RLock()
+	defer connection.mu.RUnlock()
+	return connection.qrCodeString
+}
+
+func (connection *WhatsappConnection) Number() string {
+	connection.mu.RLock()
+	defer connection.mu.RUnlock()
+	return connection.number
+}
+
+func (connection *WhatsappConnection) SyncFinished() bool {
+	connection.mu.RLock()
+	defer connection.mu.RUnlock()
+	return connection.syncFinished
+}
+
+func (connection *WhatsappConnection) setSyncFinished(finished bool) {
+	connection.mu.Lock()
+	defer connection.mu.Unlock()
+	connection.syncFinished = finished
+}
+
 func (connection *WhatsappConnection) ReturnStatusError() error {
-	switch connection.ConnectionStatus {
+	switch connection.Status() {
 	case 0:
 		return &interfaces.RequestError{
 			StatusCode: http.StatusNotFound,
 			Code:       interfaces.ERROR_CONNECTION_NOT_INITIALIZED,
 			Message:    "Connection Not Initialized QR SCANNED",
 			Name:       "ERROR_CONNECTION_NOT_INITIALIZED",
-			Extra:      []string{connection.QrCodeString},
+			Extra:      []string{connection.QRCode()},
 		}
 	case -1:
 		return &interfaces.RequestError{
@@ -73,23 +146,26 @@ func (connection *WhatsappConnection) ReturnStatusError() error {
 }
 
 func (connection *WhatsappConnection) ConnectAndGetQRCode() {
-	ConnectionMap[connection.Token] = connection
-	if connection.Client.Store.ID == nil {
+	ConnectionMap.Set(connection.Token, connection)
+	client := connection.getClient()
+	if client.Store.ID == nil {
 		if whatsapp_config.Env.OPEN_BROWSER_FOR_SCAN {
 			go func(token string) {
 				log.Printf("Opening Browser for Token %s", token)
 				utility_functions.OpenBrowser(fmt.Sprintf("http://127.0.0.1:%s/scan/%s", env.GetServerPort(env.PORT_KEY), token))
 			}(connection.Token)
 		}
-		qrChan, _ := connection.Client.GetQRChannel(context.Background())
-		err := connection.Client.Connect()
+		qrChan, _ := client.GetQRChannel(context.Background())
+		err := client.Connect()
 		if err != nil {
 			println(err.Error())
 		}
 		for evt := range qrChan {
 			if evt.Event == "code" {
 				fmt.Printf("QR code for %s\n", connection.Token)
-				connection.QrCodeString = evt.Code
+				connection.mu.Lock()
+				connection.qrCodeString = evt.Code
+				connection.mu.Unlock()
 				if !whatsapp_config.Env.OPEN_BROWSER_FOR_SCAN {
 					qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
 				}
@@ -99,7 +175,7 @@ func (connection *WhatsappConnection) ConnectAndGetQRCode() {
 		}
 	} else {
 		println("Connected")
-		err := connection.Client.Connect()
+		err := client.Connect()
 		if err != nil {
 			println(err.Error())
 		}
@@ -108,24 +184,37 @@ func (connection *WhatsappConnection) ConnectAndGetQRCode() {
 
 func (connection *WhatsappConnection) closeTheConnection() {
 	ctx := context.Background()
-	if err := connection.Client.Logout(ctx); err != nil {
-		connection.Client.Disconnect()
-		connection.Client.Store.Delete(ctx)
+	oldClient := connection.getClient()
+	if err := oldClient.Logout(ctx); err != nil {
+		oldClient.Disconnect()
+		oldClient.Store.Delete(ctx)
 	}
-	println(connection.Number, " Logged Out")
-	delete(ConnectionMap, connection.Token)
-	delete(whatsapp_config.WhatsappNumberConfigMap.JID, connection.Token)
+	println(connection.Number(), " Logged Out")
+	ConnectionMap.Delete(connection.Token)
+	whatsapp_config.WhatsappNumberConfigMap.DeleteJID(connection.Token)
 	whatsapp_config.WhatsappNumberConfigMap.Save()
 
-	connection.Client.Store.DeleteAllSessions(ctx)
-	connection.ConnectionStatus = -1
-	connection.ParentData.SqlContainer.DeleteDevice(ctx, connection.ParentData.DeviceStore)
+	oldClient.Store.DeleteAllSessions(ctx)
+
+	connection.mu.Lock()
+	connection.connectionStatus = -1
+	connection.qrCodeString = ""
+	oldDeviceStore := connection.ParentData.DeviceStore
+	connection.mu.Unlock()
+
+	connection.ParentData.SqlContainer.DeleteDevice(ctx, oldDeviceStore)
 	deviceStore := connection.ParentData.SqlContainer.NewDevice()
 	client := whatsmeow.NewClient(deviceStore, waLog.Stdout("Client", "ERROR", true))
 	client.EnableAutoReconnect = true
-	println(client.LastSuccessfulConnect.String())
-	connection.Client = client
+	// The new client needs the handler too, otherwise Connected never fires
+	// after the user scans the new QR and the connection stays logged out.
+	client.AddEventHandler(connection.eventHandler)
+
+	connection.mu.Lock()
+	connection.client = client
 	connection.ParentData.DeviceStore = deviceStore
+	connection.mu.Unlock()
+
 	go connection.ConnectAndGetQRCode()
 }
 
@@ -135,18 +224,26 @@ func (connection *WhatsappConnection) eventHandler(evt interface{}) {
 	case *events.LoggedOut:
 		connection.closeTheConnection()
 	case *events.Connected:
-		connection.Client.Store.Save(ctx)
-		connection.Number = connection.Client.Store.ID.User
+		client := connection.getClient()
+		client.Store.Save(ctx)
+		number := client.Store.ID.User
+		jid := client.Store.ID.String()
+		connection.mu.Lock()
+		connection.number = number
+		connection.connectionStatus = 1
+		connection.mu.Unlock()
 		go func() {
-			whatsapp_config.WhatsappNumberConfigMap.JID[connection.Token] = connection.Client.Store.ID.String()
+			whatsapp_config.WhatsappNumberConfigMap.SetJID(connection.Token, jid)
 			whatsapp_config.WhatsappNumberConfigMap.Save()
 		}()
-		connection.ConnectionStatus = 1
-		println(connection.Number, " Logged In")
+		println(number, " Logged In")
 	case *events.OfflineSyncPreview:
-		connection.SyncFinished = false
+		connection.setSyncFinished(false)
 	case *events.OfflineSyncCompleted:
-		connection.SyncFinished = true
+		connection.setSyncFinished(true)
+	// case *events.Message:
+	// evt := evt.(*events.Message)
+	// log.Println(evt.Info)
 	case *events.Receipt:
 		evt := evt.(*events.Receipt)
 		log.Println(evt.Chat.User)
@@ -158,9 +255,10 @@ func (connection *WhatsappConnection) eventHandler(evt interface{}) {
 }
 
 func (connection *WhatsappConnection) SendTextMessage(ctx context.Context, to []string, msg string) *map[string]bool {
+	client := connection.getClient()
 	response := make(map[string]bool)
 	for _, number := range to {
-		IsOnWhatsappCheck, err := connection.Client.IsOnWhatsApp(ctx, []string{"+" + number})
+		IsOnWhatsappCheck, err := client.IsOnWhatsApp(ctx, []string{"+" + number})
 		if err != nil || len(IsOnWhatsappCheck) == 0 {
 			AppendToOutPutFile(fmt.Sprintf("%s,false,Something Went Wrong or Number Not On Whatsapp %#v\n", number, err))
 			response[number] = false
@@ -176,7 +274,7 @@ func (connection *WhatsappConnection) SendTextMessage(ctx context.Context, to []
 		fmt.Printf("sending Text To %s\n", number)
 		response[number] = false
 		if len(msg) > 0 {
-			_, err := connection.Client.SendMessage(ctx, targetJID, &waE2E.Message{
+			_, err := client.SendMessage(ctx, targetJID, &waE2E.Message{
 				Conversation: proto.String(msg),
 			})
 			if err == nil {
@@ -195,7 +293,7 @@ func (connection *WhatsappConnection) SendMediaFileFromURLs(ctx context.Context,
 
 // SendMediaFileFromURL fetches a media file from a HTTP/HTTPS URL and sends it.
 func (connection *WhatsappConnection) SendMediaFileFromURL(ctx context.Context, to []string, mediaURL string, fileName string, msg string) *map[string]bool {
-	bytesData, extractedFileName, err := whatsapp_functions.FetchFileFromURL(mediaURL)
+	bytesData, extractedFileName, err := whatsapp_functions.FetchFileFromURL(ctx, mediaURL)
 	if err != nil {
 		AppendToOutPutFile(fmt.Sprintf("false,Error While Downloading File From Web URL %#v\n", err))
 		return nil
@@ -228,11 +326,12 @@ func (connection *WhatsappConnection) SendMediaFileWithPath(ctx context.Context,
 }
 
 func (connection *WhatsappConnection) sendMediaFile(ctx context.Context, to []string, fileByte []byte, fileName string, msg string) *map[string]bool {
+	client := connection.getClient()
 	response := make(map[string]bool)
 	var docProto *waE2E.Message
 
 	for _, number := range to {
-		IsOnWhatsappCheck, err := connection.Client.IsOnWhatsApp(ctx, []string{"+" + number})
+		IsOnWhatsappCheck, err := client.IsOnWhatsApp(ctx, []string{"+" + number})
 		if err != nil || len(IsOnWhatsappCheck) == 0 {
 			AppendToOutPutFile(fmt.Sprintf("%s,false,Something Went Wrong %#v\n", number, err))
 			response[number] = false
@@ -250,7 +349,7 @@ func (connection *WhatsappConnection) sendMediaFile(ctx context.Context, to []st
 		if docProto == nil {
 			extensionName := utility_functions.GetMime(fileName)
 			if strings.Contains(extensionName, "image") {
-				resp, err := connection.Client.Upload(ctx, fileByte, whatsmeow.MediaImage)
+				resp, err := client.Upload(ctx, fileByte, whatsmeow.MediaImage)
 				if err != nil {
 					AppendToOutPutFile(fmt.Sprintf("%s,false,Error While Uploading %#v\n", number, err))
 					continue
@@ -273,7 +372,7 @@ func (connection *WhatsappConnection) sendMediaFile(ctx context.Context, to []st
 					},
 				}
 			} else if strings.Contains(extensionName, "audio") {
-				resp, err := connection.Client.Upload(ctx, fileByte, whatsmeow.MediaAudio)
+				resp, err := client.Upload(ctx, fileByte, whatsmeow.MediaAudio)
 				if err != nil {
 					AppendToOutPutFile(fmt.Sprintf("%s,false,Error While Uploading %#v\n", number, err))
 					continue
@@ -291,7 +390,7 @@ func (connection *WhatsappConnection) sendMediaFile(ctx context.Context, to []st
 				}
 			} else if strings.Contains(extensionName, "video") {
 				thumbBytes, _ := utility_functions.GenerateVideoThumbnail(fileByte, fileName)
-				resp, err := connection.Client.Upload(ctx, fileByte, whatsmeow.MediaVideo)
+				resp, err := client.Upload(ctx, fileByte, whatsmeow.MediaVideo)
 				if err != nil {
 					AppendToOutPutFile(fmt.Sprintf("%s,false,Error While Uploading %#v\n", number, err))
 					continue
@@ -312,7 +411,7 @@ func (connection *WhatsappConnection) sendMediaFile(ctx context.Context, to []st
 					docProto.VideoMessage.JPEGThumbnail = thumbBytes
 				}
 			} else {
-				resp, err := connection.Client.Upload(ctx, fileByte, whatsmeow.MediaDocument)
+				resp, err := client.Upload(ctx, fileByte, whatsmeow.MediaDocument)
 				if err != nil {
 					AppendToOutPutFile(fmt.Sprintf("%s,false,Error While Uploading %#v\n", number, err))
 					continue
@@ -341,7 +440,7 @@ func (connection *WhatsappConnection) sendMediaFile(ctx context.Context, to []st
 
 		response[number] = false
 		if docProto != nil {
-			_, err := connection.Client.SendMessage(ctx, targetJID, docProto)
+			_, err := client.SendMessage(ctx, targetJID, docProto)
 			if err == nil {
 				response[number] = true
 			}
@@ -350,14 +449,23 @@ func (connection *WhatsappConnection) sendMediaFile(ctx context.Context, to []st
 	return &response
 }
 
+var outPutFileMu sync.Mutex
+
+// AppendToOutPutFile appends one line to the CSV send log. A failure here must
+// not take the server down: callers often run in goroutines, where a panic
+// kills the whole process. Errors are logged instead.
 func AppendToOutPutFile(text string) {
+	outPutFileMu.Lock()
+	defer outPutFileMu.Unlock()
+
 	f, err := os.OpenFile(OutPutFilePath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
-		panic(err)
+		log.Printf("[AppendToOutPutFile] open %q: %v (line: %q)", OutPutFilePath, err, text)
+		return
 	}
 	defer f.Close()
 
 	if _, err = f.WriteString(text); err != nil {
-		panic(err)
+		log.Printf("[AppendToOutPutFile] write %q: %v (line: %q)", OutPutFilePath, err, text)
 	}
 }

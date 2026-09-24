@@ -13,12 +13,11 @@ func AppendTokenInConfigJSON(c fiber.Ctx) error {
 		})
 	}
 	// check token exist in config
-	if _, ok := whatsapp_config.WhatsappNumberConfigMap.Tokens[token]; ok {
+	if !whatsapp_config.WhatsappNumberConfigMap.AddToken(token, "") {
 		return c.JSON(fiber.Map{
 			"success": false,
 		})
 	}
-	whatsapp_config.WhatsappNumberConfigMap.Tokens[token] = ""
 	whatsapp_config.WhatsappNumberConfigMap.Save()
 	return c.JSON(fiber.Map{
 		"success": true,

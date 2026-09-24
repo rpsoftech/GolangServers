@@ -3,24 +3,35 @@ package soham_whatsapp_server_middleware
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	soham_common_req_keys "github.com/rpsoftech/golang-servers/servers/soham/common"
-	soham_whatsapp_server_env "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-server/env"
 	soham_whatsapp_server_services "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-server/services"
 	"github.com/rpsoftech/golang-servers/utility/jwt"
 )
 
-var accessTokenService *jwt.TokenService
+type TokenValidator struct {
+	accessTokenService *jwt.TokenService
+}
 
-func init() {
-	accessTokenService = soham_whatsapp_server_services.GetAccessTokenService()
+var (
+	instance *TokenValidator
+	once     sync.Once
+)
+
+func GetTokenValidator() *TokenValidator {
+	once.Do(func() {
+		instance = &TokenValidator{
+			accessTokenService: soham_whatsapp_server_services.GetAccessTokenService(),
+		}
+	})
+	return instance
 }
 
 // fiber middleware for jwt
-func TokenDecrypter(c fiber.Ctx) error {
-	// reqHeaders :=
+func (tv *TokenValidator) TokenDecrypter(c fiber.Ctx) error {
 	tokenString := c.Get("Authorization")
 	if tokenString == "" {
 		c.Locals(interfaces.REQ_LOCAL_ERROR_KEY, &interfaces.RequestError{
@@ -41,7 +52,7 @@ func TokenDecrypter(c fiber.Ctx) error {
 		})
 		return c.Next()
 	}
-	claim, err := soham_whatsapp_server_services.ValidateUserRequestToken(accessTokenService, &splitToken[1])
+	claim, err := soham_whatsapp_server_services.ValidateUserRequestToken(tv.accessTokenService, splitToken[1])
 	if err != nil {
 		c.Locals(interfaces.REQ_LOCAL_ERROR_KEY, err)
 		return c.Next()
@@ -50,7 +61,7 @@ func TokenDecrypter(c fiber.Ctx) error {
 	return c.Next()
 }
 
-func AllowOnlyValidTokenMiddleWare(c fiber.Ctx) error {
+func (tv *TokenValidator) AllowOnlyValidTokenMiddleWare(c fiber.Ctx) error {
 	jwtRawFromLocal := c.Locals(soham_common_req_keys.WHATSAPP_CLIENT_NUM_KEY)
 	localError := c.Locals(interfaces.REQ_LOCAL_ERROR_KEY)
 	if jwtRawFromLocal == nil {
@@ -76,7 +87,7 @@ func AllowOnlyValidTokenMiddleWare(c fiber.Ctx) error {
 	return c.Next()
 }
 
-func AllowOnlyValidLoggedInWhatsapp(c fiber.Ctx) error {
+func (tv *TokenValidator) AllowOnlyValidLoggedInWhatsapp(c fiber.Ctx) error {
 	jwtRawFromLocal := c.Locals(soham_common_req_keys.WHATSAPP_CLIENT_NUM_KEY)
 	token, ok := jwtRawFromLocal.(int)
 	if !ok {
@@ -87,21 +98,21 @@ func AllowOnlyValidLoggedInWhatsapp(c fiber.Ctx) error {
 			Name:       "ERROR_INVALID_TOKEN",
 		}
 	}
-	if value, ok := soham_whatsapp_server_env.ConnectionNumberStatusMap[token]; !ok {
+	if status, exists := soham_whatsapp_server_services.GetWhatsappService().GetStatus(token); !exists {
 		return &interfaces.RequestError{
 			StatusCode: 401,
 			Code:       interfaces.ERROR_INVALID_TOKEN,
-			Message:    "Invalid Token",
+			Message:    "Invalid Token or Session Disconnected",
 			Name:       "ERROR_INVALID_TOKEN",
 		}
-	} else if value != soham_common_req_keys.LOGGED_IN {
+	} else if status != soham_common_req_keys.LOGGED_IN {
 		return &interfaces.RequestError{
 			StatusCode: 401,
 			Code:       interfaces.ERROR_CONNECTION_LOGGED_OUT,
-			Message:    fmt.Sprintf("Connection with number %d is not Loggedin Or Connection offline status is %d", token, value),
+			Message:    fmt.Sprintf("Connection with number %d is offline (Status: %s)", token, status),
 			Name:       "ERROR_CONNECTION_LOGGED_OUT",
 			Extra: fiber.Map{
-				"status": value,
+				"status": status,
 			},
 		}
 	}

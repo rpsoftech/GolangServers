@@ -62,9 +62,9 @@ func ConnectToNumber(jidString string, token string, sqlContainer *sqlstore.Cont
 	client.EnableAutoReconnect = true
 	println(client.LastSuccessfulConnect.String())
 	connection := &WhatsappConnection{
-		Client:           client,
-		ConnectionStatus: 0,
-		SyncFinished:     false,
+		client:           client,
+		connectionStatus: 0,
+		syncFinished:     false,
 		Token:            token,
 		ParentData: &ParentData{
 			DeviceStore:  deviceStore,
