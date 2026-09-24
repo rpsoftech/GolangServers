@@ -1,4 +1,5 @@
-//go:build windows
+// Placeholder thumbnail for builds without go-fitz (Windows, or CGO off).
+//go:build windows || !cgo
 
 package whatsapp_utility
 

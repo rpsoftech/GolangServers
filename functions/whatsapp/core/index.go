@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	_ "github.com/mattn/go-sqlite3"
+	// Pure Go SQLite driver (registers "sqlite"), so builds need no CGO.
+	_ "modernc.org/sqlite"
 	"github.com/rpsoftech/golang-servers/env"
 
 	"go.mau.fi/whatsmeow"
@@ -22,9 +23,10 @@ func InitSqlContainer() *sqlstore.Container {
 	if sqlContainer == nil {
 
 		dbLog := waLog.Stdout("Database", "WARN", true)
-		// Make sure you add appropriate DB connector imports, e.g. github.com/mattn/go-sqlite3 for SQLite
+		// modernc.org/sqlite takes pragmas as _pragma=name(value); whatsmeow
+		// needs foreign keys on. The on-disk format is unchanged from mattn.
 		var err error
-		sqlContainer, err = sqlstore.New(globalBackground, "sqlite3", fmt.Sprintf("file:%s?_foreign_keys=on", filepath.Join(env.FindAndReturnCurrentDir(), "WhatsappSuperSecrete.db")), dbLog)
+		sqlContainer, err = sqlstore.New(globalBackground, "sqlite", fmt.Sprintf("file:%s?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)", filepath.Join(env.FindAndReturnCurrentDir(), "WhatsappSuperSecrete.db")), dbLog)
 		if err != nil {
 			panic(err)
 		}
