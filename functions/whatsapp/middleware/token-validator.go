@@ -1,6 +1,8 @@
 package whatsapp_middleware
 
 import (
+	"net"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/rpsoftech/golang-servers/env"
 	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
@@ -13,7 +15,10 @@ func TokenDecrypter(c *fiber.Ctx) error {
 	reqHeaders := c.GetReqHeaders()
 	tokenString, foundToken := reqHeaders[env.RequestTokenHeaderKey]
 	if !foundToken || len(tokenString) != 1 || tokenString[0] == "" {
-		if c.IP() == "127.0.0.1" || whatsapp_config.Env.ALLOW_LOCAL_NO_AUTH {
+		// No-token access is opt-in and loopback-only. Behind a reverse proxy
+		// on the same host every request is loopback, so keep
+		// ALLOW_LOCAL_NO_AUTH=false there.
+		if whatsapp_config.Env.ALLOW_LOCAL_NO_AUTH && net.ParseIP(c.IP()).IsLoopback() {
 			tokenString = []string{"default"}
 		} else {
 
@@ -26,7 +31,7 @@ func TokenDecrypter(c *fiber.Ctx) error {
 			return c.Next()
 		}
 	}
-	if _, ok := whatsapp_config.WhatsappNumberConfigMap.Tokens[tokenString[0]]; !ok {
+	if _, ok := whatsapp_config.WhatsappNumberConfigMap.GetToken(tokenString[0]); !ok {
 		c.Locals(interfaces.REQ_LOCAL_ERROR_KEY, &interfaces.RequestError{
 			StatusCode: 401,
 			Code:       interfaces.ERROR_INVALID_TOKEN,
@@ -77,7 +82,7 @@ func AllowOnlyValidLoggedInWhatsapp(c *fiber.Ctx) error {
 			Name:       "ERROR_INVALID_TOKEN",
 		}
 	}
-	if value, ok := whatsapp_config.WhatsappNumberConfigMap.Tokens[token]; !ok {
+	if value, ok := whatsapp_config.WhatsappNumberConfigMap.GetToken(token); !ok {
 		return &interfaces.RequestError{
 			StatusCode: 401,
 			Code:       interfaces.ERROR_INVALID_TOKEN,
