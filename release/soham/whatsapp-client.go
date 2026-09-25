@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,6 +15,7 @@ import (
 	"github.com/rpsoftech/golang-servers/functions"
 	"github.com/rpsoftech/golang-servers/release"
 	utility_functions_gzip "github.com/rpsoftech/golang-servers/utility/functions/gzip"
+	"github.com/rpsoftech/golang-servers/utility/updater"
 )
 
 var (
@@ -35,7 +38,13 @@ func main() {
 		version = os.Args[1]
 	}
 	fmt.Printf("Version: %s\n", version)
-	err := os.MkdirAll("build", 0755)
+	// Fail before building if releases cannot be signed with the key the
+	// shipped client and launcher trust.
+	signingKey, err := updater.ParseSigningKey(os.Getenv("UPDATE_SIGNING_KEY"))
+	if err != nil {
+		log.Fatalf("UPDATE_SIGNING_KEY: %v (run `go run ./utility/deploy keygen` once)", err)
+	}
+	err = os.MkdirAll("build", 0755)
 	if err != nil {
 		panic(err)
 	}
@@ -81,11 +90,14 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		kvKey := fmt.Sprintf("soham_go_wbot_%s_%s", runtime.GOOS, arch)
+		versionNumber := release.Atoi(version)
 		// https://files.rpso.in/static/soham/wbot/darwin_amd64/whatsapp-client.o
 		versionInfo := release.VersionInfo{
-			Version: release.Atoi(version),
-			URL:     fmt.Sprintf("https://files.rpso.in/static/soham/wbot/%s_%s/%s", runtime.GOOS, arch, gzipFileName),
-			SHA256:  hash,
+			Version:   versionNumber,
+			URL:       fmt.Sprintf("https://files.rpso.in/static/soham/wbot/%s_%s/%s", runtime.GOOS, arch, gzipFileName),
+			SHA256:    hash,
+			Signature: base64.StdEncoding.EncodeToString(ed25519.Sign(signingKey, updater.SignedMessage(kvKey, versionNumber, hash))),
 		}
 
 		data, _ := json.MarshalIndent(versionInfo, "", " 	")
@@ -99,7 +111,7 @@ func main() {
 
 		fmt.Println("Updating keyvalue store...")
 
-		err = release.UpdateKeyValue(fmt.Sprintf("soham_go_wbot_%s_%s", runtime.GOOS, arch), data, release.KeyValueURL, kvToken)
+		err = release.UpdateKeyValue(kvKey, data, release.KeyValueURL, kvToken)
 		if err != nil {
 			panic(err)
 		}

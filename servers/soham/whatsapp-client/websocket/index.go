@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"sync"
 	"time"
@@ -224,9 +223,16 @@ func (w *WebsocketConnectionObject) SendWebMedia(wcm *soham_common_req_keys.What
 		return
 	}
 
+	// MediaName and reqId come from the websocket peer. Keep only a plain file
+	// name so "../" cannot write outside tmp.
+	mediaName := filepath.Base(body.MediaName)
+	if mediaName == "." || mediaName == ".." || mediaName == string(filepath.Separator) {
+		w.sendErrorResponse(reqId, "Invalid media name")
+		return
+	}
 	// CRITICAL FIX: Prefix with reqId to prevent concurrent file overwrite collisions
-	safeFileName := fmt.Sprintf("%s_%s", reqId, body.MediaName)
-	filePath := path.Join(env.FindAndReturnCurrentDir(), "tmp", safeFileName)
+	safeFileName := filepath.Base(fmt.Sprintf("%s_%s", reqId, mediaName))
+	filePath := filepath.Join(env.FindAndReturnCurrentDir(), "tmp", safeFileName)
 
 	if err = utility_functions.DownloadFile(filePath, body.WebMediaLink); err != nil {
 		w.sendErrorResponseWithExtra(reqId, "Failed to download media file", err)
@@ -235,6 +241,7 @@ func (w *WebsocketConnectionObject) SendWebMedia(wcm *soham_common_req_keys.What
 
 	wc, err := w.getWhatsappConnection()
 	if err != nil || wc.Status() != 1 {
+		os.Remove(filePath)
 		w.sendErrorResponse(reqId, "WhatsApp client not connected to phone")
 		return
 	}
@@ -242,7 +249,7 @@ func (w *WebsocketConnectionObject) SendWebMedia(wcm *soham_common_req_keys.What
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 
-	resp := wc.SendMediaFileWithPath(ctx, body.To, filePath, body.MediaName, body.ImageDesc)
+	resp := wc.SendMediaFileWithPath(ctx, body.To, filePath, mediaName, body.ImageDesc)
 
 	// Clean up temp file when done
 	go os.Remove(filePath)

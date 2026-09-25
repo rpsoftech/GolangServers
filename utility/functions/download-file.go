@@ -1,24 +1,17 @@
 package utility_functions
 
 import (
-	"io"
-	"net/http"
+	"context"
 	"os"
 )
 
+// DownloadFile saves a caller-supplied http(s) URL to filepath. It uses the
+// same guards as FetchUserURL: public addresses only, size capped. An existing
+// file at filepath is replaced, not appended to.
 func DownloadFile(filepath string, url string) error {
-	resp, err := http.Get(url)
+	data, err := FetchUserURL(context.Background(), url)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	out, err := os.OpenFile(filepath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, resp.Body)
-	return err
+	return os.WriteFile(filepath, data, 0644)
 }

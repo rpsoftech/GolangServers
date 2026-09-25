@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -17,14 +18,16 @@ import (
 	"github.com/rpsoftech/golang-servers/functions"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 	utility_functions_gzip "github.com/rpsoftech/golang-servers/utility/functions/gzip"
+	"github.com/rpsoftech/golang-servers/utility/updater"
 )
 
 const VersionFileName = "client-version.json"
 
 type VersionInfo struct {
-	Version int    `json:"version"`
-	URL     string `json:"url"`
-	SHA256  string `json:"sha256"`
+	Version   int    `json:"version"`
+	URL       string `json:"url"`
+	SHA256    string `json:"sha256"`
+	Signature string `json:"signature"`
 }
 
 type progressReader struct {
@@ -102,11 +105,22 @@ func CheckAndDownload(progress *widget.ProgressBar, win fyne.Window) string {
 		needDownload = true
 	}
 
-	if local.Version != cloud.Version {
+	// Only move forward: a signed older release must not be replayable.
+	if cloud.Version > local.Version {
 		needDownload = true
 	}
 
 	if needDownload {
+		// The KV key is the last path segment of the endpoint URL.
+		kvKey := path.Base(endpoint)
+		if err := updater.VerifyRelease(kvKey, updater.KVResponse{Version: cloud.Version, URL: cloud.URL, SHA256: cloud.SHA256, Signature: cloud.Signature}); err != nil {
+			log.Printf("Rejecting client release v%d for %s: %v", cloud.Version, kvKey, err)
+			if exist, _ := utility_functions.Exist(serverBinary); !exist {
+				panic(fmt.Errorf("no client binary installed and release rejected: %w", err))
+			}
+			checkAndRunCalled = true
+			return serverBinary
+		}
 		os.Remove(gzipFile)
 		fyne.DoAndWait(func() {
 			win.Show()
