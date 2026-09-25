@@ -1,0 +1,75 @@
+name: Release
+
+# One pipeline for every component in utility/deploy/components.go.
+#
+# Manual:  Actions > Release > Run workflow (component, env, optional version)
+# Tag:     git tag release/<ENV>/<component>/<version> && git push origin --tags
+#          e.g. release/PRODUCTION/soham-whatsapp-client/16
+#
+# Needs these secrets in the "Production" environment:
+#   FILE_SERVER_TOKEN, KEYVALUETOKEN, UPDATE_SIGNING_KEY
+
+on:
+  workflow_dispatch:
+    inputs:
+      component:
+        description: 'Component name(s), comma separated, or "all"'
+        required: true
+      env:
+        description: "Release channel"
+        type: choice
+        options: [STAGING, PRODUCTION]
+        default: STAGING
+      version:
+        description: "Version number (empty = next after the highest published)"
+        required: false
+  push:
+    tags:
+      - "release/*/*/*"
+
+# Two releases of the same component must not race for the next version.
+concurrency:
+  group: release-${{ github.event.inputs.component || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Resolve release parameters
+        id: params
+        shell: bash
+        env:
+          INPUT_COMPONENT: ${{ github.event.inputs.component }}
+          INPUT_ENV: ${{ github.event.inputs.env }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            # release/<ENV>/<component>/<version>
+            IFS=/ read -r _ ENV COMPONENT VERSION <<< "$GITHUB_REF_NAME"
+          else
+            ENV="$INPUT_ENV"; COMPONENT="$INPUT_COMPONENT"; VERSION="$INPUT_VERSION"
+          fi
+          echo "env=$ENV" >> "$GITHUB_OUTPUT"
+          echo "component=$COMPONENT" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION:-0}" >> "$GITHUB_OUTPUT"
+          echo "Releasing $COMPONENT to $ENV (version ${VERSION:-auto})"
+
+      - name: Build, sign and publish
+        env:
+          FILE_SERVER_TOKEN: ${{ secrets.FILE_SERVER_TOKEN }}
+          KV_TOKEN: ${{ secrets.KEYVALUETOKEN }}
+          UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
+          # Passed through env, not inlined, so tag or input text is never
+          # interpreted by the shell.
+          RELEASE_COMPONENT: ${{ steps.params.outputs.component }}
+          RELEASE_ENV: ${{ steps.params.outputs.env }}
+          RELEASE_VERSION: ${{ steps.params.outputs.version }}
+        run: go run ./utility/deploy -component "$RELEASE_COMPONENT" -env "$RELEASE_ENV" -version "$RELEASE_VERSION"

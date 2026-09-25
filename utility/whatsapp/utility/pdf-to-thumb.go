@@ -1,4 +1,6 @@
-//go:build !windows
+// go-fitz needs CGO; without it the purego fallback panics at init when
+// libmupdf is missing, so non-CGO builds use the placeholder thumbnail.
+//go:build !windows && cgo
 
 package whatsapp_utility
 

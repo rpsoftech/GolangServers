@@ -14,17 +14,16 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/rpsoftech/golang-servers/env"
-	"github.com/rpsoftech/golang-servers/functions"
 	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
 	whatsapp_core "github.com/rpsoftech/golang-servers/functions/whatsapp/core"
 	whatsapp_middleware "github.com/rpsoftech/golang-servers/functions/whatsapp/middleware"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	soham_whatsapp_client_apis "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/apis"
-	sohan_whatsapp_auto_download "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/auto-update"
 	whatsapp_client_core "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/core"
 	soham_whatsapp_client_env "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/env"
 	soham_whatsapp_client_websocket "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/websocket"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
+	"github.com/rpsoftech/golang-servers/utility/updater"
 )
 
 var version string
@@ -43,7 +42,23 @@ func main() {
 		if err := os.MkdirAll("./tmp", 0755); err != nil {
 			log.Printf("⚠️ Warning: Failed to create ./tmp directory: %v", err)
 		}
-		functions.CheckAndDownload(sohan_whatsapp_auto_download.GetVersionEndpoint)
+		if !updater.Published() {
+			log.Println("[updater] unpublished build: OTA updates disabled")
+			return
+		}
+		updated, err := updater.SelfUpdate(ctx, updater.Config{
+			Component:      updater.SohamWhatsappClientProjectName,
+			CurrentVersion: updater.ParseVersion(version),
+		})
+		if err != nil {
+			log.Printf("[updater] %v", err)
+			return
+		}
+		if updated {
+			// The launcher restarts the client, which then runs the new binary.
+			log.Println("[updater] update installed, exiting for restart")
+			os.Exit(0)
+		}
 	}()
 
 	// 3. Setup Log Directory properly

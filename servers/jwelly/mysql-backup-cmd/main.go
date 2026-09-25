@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -33,46 +32,12 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	// 2. The 5-Minute OTA Updater Daemon
-	if !env.ServerEnv.IsDev || env.ServerEnv.Env.APP_ENV != coreEnv.APP_ENV_LOCAL {
-		go func(versionStr string, workerCtx context.Context, triggerRestart context.CancelFunc) {
-			currentVersion, _ := strconv.Atoi(versionStr)
-			envName := string(env.ServerEnv.Env.APP_ENV)
-			if envName == "" {
-				envName = "PRODUCTION"
-			}
-
-			runCheck := func() {
-				updated, err := updater.CheckAndUpdate(envName, "https://keyvalue.rpso.in/public/", updater.MysqlBackupCmdProjectName, currentVersion)
-				if err != nil {
-					log.Printf("⚠️ OTA Updater: %v\n", err)
-					return
-				}
-
-				if updated {
-					log.Println("🔄 OTA Update applied successfully! Triggering graceful restart...")
-					// Instantly alerts <-ctx.Done() on the main thread
-					triggerRestart()
-				}
-			}
-
-			// Run immediately on boot
-			runCheck()
-
-			// Schedule to run exactly every 5 minutes
-			ticker := time.NewTicker(5 * time.Minute)
-			defer ticker.Stop()
-
-			for {
-				select {
-				case <-workerCtx.Done(): // Stop checking for updates if shutting down
-					return
-				case <-ticker.C:
-					runCheck()
-				}
-			}
-		}(version, ctx, cancel)
-	}
+	// 2. OTA updates: only published builds (updater.BuildEnv set by
+	// utility/deploy) update, and only from their own release channel.
+	go updater.RunDaemon(ctx, updater.Config{
+		Component:      updater.MysqlBackupCmdProjectName,
+		CurrentVersion: updater.ParseVersion(version),
+	}, cancel)
 
 	// 3. Setup Connections and Cron Jobs
 	for _, v := range env.ConnectionConfig.ServerConfig {
