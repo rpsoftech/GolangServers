@@ -100,6 +100,7 @@ func InitializeMysqlConnections(config *ecommerce_env.IServerConfig) {
 // BuildApiServer configures and returns the Fiber app instance
 func BuildApiServer() *fiber.App {
 	app := fiber.New(fiber.Config{
+		BodyLimit:    50 * 1024 * 1024,
 		ServerHeader: "Bullion Server V1.0.0",
 		ErrorHandler: func(c fiber.Ctx, err error) error {
 			mappedError, ok := err.(*interfaces.RequestError)
