@@ -285,11 +285,24 @@ func TestNativeEngineRoundTrip(t *testing.T) {
 	}
 	t.Cleanup(func() { srcDB.Close() })
 
+	// JSON and generated columns exist from MySQL 5.7 only; MySQL 5.5/5.6 must
+	// still be dumped, so those columns are left out of the schema there.
+	modern := true
+	if _, err := srcDB.Exec("CREATE TEMPORARY TABLE bk_probe (j JSON, g INT AS (1) VIRTUAL)"); err != nil {
+		modern = false
+		t.Logf("server has no JSON/generated columns, testing without them: %v", err)
+	}
+	miscExtraCols, miscInsertCols := "", ""
+	if modern {
+		miscExtraCols = ", j JSON, g VARCHAR(20) AS (CONCAT(e,'!')) VIRTUAL"
+		miscInsertCols = ", j"
+	}
+
 	for _, q := range []string{
 		"CREATE TABLE `version` (id INT AUTO_INCREMENT PRIMARY KEY, v VARCHAR(50)) ENGINE=InnoDB",
 		"CREATE TABLE t_text (id INT AUTO_INCREMENT PRIMARY KEY, s TEXT, n VARCHAR(20) NULL, `we``ird` INT NULL) ENGINE=InnoDB",
 		"CREATE TABLE t_bin (id INT AUTO_INCREMENT PRIMARY KEY, b BLOB, vb VARBINARY(16), bits BIT(10)) ENGINE=InnoDB",
-		"CREATE TABLE t_misc (id INT AUTO_INCREMENT PRIMARY KEY, d DECIMAL(12,4), dt DATETIME, f DOUBLE, u BIGINT UNSIGNED, j JSON, e ENUM('a','b c'), g VARCHAR(20) AS (CONCAT(e,'!')) VIRTUAL) ENGINE=InnoDB",
+		"CREATE TABLE t_misc (id INT AUTO_INCREMENT PRIMARY KEY, d DECIMAL(12,4), dt DATETIME, f DOUBLE, u BIGINT UNSIGNED, e ENUM('a','b c')" + miscExtraCols + ") ENGINE=InnoDB",
 		"CREATE VIEW v1 AS SELECT id, v FROM `version`",
 		"CREATE VIEW a_v2 AS SELECT id, UPPER(v) AS uv FROM v1",
 		"CREATE TRIGGER trg_ver BEFORE UPDATE ON `version` FOR EACH ROW SET NEW.v = TRIM(NEW.v)",
@@ -305,7 +318,14 @@ func TestNativeEngineRoundTrip(t *testing.T) {
 		tricky, "日本語", "it's")
 	mustExec(t, srcDB, "INSERT INTO t_bin (b, vb, bits) VALUES (?, ?, b'1010101010'), (?, ?, b'0'), (NULL, NULL, NULL)",
 		[]byte{0x00, 0xff, 0x10}, []byte{0x1a, 0x27, 0x5c}, []byte{}, []byte{})
-	mustExec(t, srcDB, "INSERT INTO t_misc (d, dt, f, u, j, e) VALUES (12345678.1234, '2024-02-29 23:59:59', 3.14159265358979, 18446744073709551615, '{\"k\": [1, 2, {\"x\": \"y'\"'\"'z\"}]}', 'b c'), (-0.0001, '1999-12-31 00:00:00', -1e300, 0, 'null', 'a'), (NULL, NULL, NULL, NULL, NULL, NULL)")
+	jsonVals := [3]string{}
+	if modern {
+		jsonVals = [3]string{`, '{"k": [1, 2, {"x": "y''z"}]}'`, `, 'null'`, `, NULL`}
+	}
+	mustExec(t, srcDB, "INSERT INTO t_misc (d, dt, f, u, e"+miscInsertCols+") VALUES "+
+		"(12345678.1234, '2024-02-29 23:59:59', 3.14159265358979, 18446744073709551615, 'b c'"+jsonVals[0]+"), "+
+		"(-0.0001, '1999-12-31 00:00:00', -1e300, 0, 'a'"+jsonVals[1]+"), "+
+		"(NULL, NULL, NULL, NULL, NULL"+jsonVals[2]+")")
 
 	// Dump with the native engine through the production entry point.
 	outDir := t.TempDir()
