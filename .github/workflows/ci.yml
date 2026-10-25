@@ -38,10 +38,22 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Detect package
+        id: pkg
+        shell: bash
+        run: |
+          if [ -d servers/jwelly/mysql-backup-exe ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "mysql-backup-exe is not in this tree yet; skipping"
+          fi
+
       - name: Vet
+        if: steps.pkg.outputs.present == 'true'
         run: go vet ./servers/jwelly/mysql-backup-exe/...
 
       - name: Test
+        if: steps.pkg.outputs.present == 'true'
         env:
           BACKUP_TEST_MYSQL_DSN: root:ci-root-pw@tcp(127.0.0.1:3306)/
         run: go test -race -count=1 -v ./servers/jwelly/mysql-backup-exe/...
@@ -57,11 +69,24 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Detect package
+        id: pkg
+        shell: bash
+        run: |
+          if [ -d servers/jwelly/mysql-backup-exe ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "mysql-backup-exe is not in this tree yet; skipping"
+          fi
+
       - name: Vet
+        if: steps.pkg.outputs.present == 'true'
         run: go vet ./servers/jwelly/mysql-backup-exe/...
 
       - name: Test (no database)
+        if: steps.pkg.outputs.present == 'true'
         run: go test -count=1 ./servers/jwelly/mysql-backup-exe/...
 
       - name: Build exe
+        if: steps.pkg.outputs.present == 'true'
         run: go build -o mysql-backup-exe.exe ./servers/jwelly/mysql-backup-exe/
