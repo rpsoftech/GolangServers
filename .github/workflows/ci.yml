@@ -1,0 +1,67 @@
+name: CI
+
+# Runs on every pull request and on main. builder.yml still builds all servers
+# on push; this workflow is where tests live.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  mysql-backup-exe:
+    name: mysql-backup-exe (test, MySQL 8)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root-pw
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pci-root-pw"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Vet
+        run: go vet ./servers/jwelly/mysql-backup-exe/...
+
+      - name: Test
+        env:
+          BACKUP_TEST_MYSQL_DSN: root:ci-root-pw@tcp(127.0.0.1:3306)/
+        run: go test -race -count=1 -v ./servers/jwelly/mysql-backup-exe/...
+
+  mysql-backup-exe-windows:
+    name: mysql-backup-exe (windows build and test)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Vet
+        run: go vet ./servers/jwelly/mysql-backup-exe/...
+
+      - name: Test (no database)
+        run: go test -count=1 ./servers/jwelly/mysql-backup-exe/...
+
+      - name: Build exe
+        run: go build -o mysql-backup-exe.exe ./servers/jwelly/mysql-backup-exe/
