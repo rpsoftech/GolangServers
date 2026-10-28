@@ -3,12 +3,12 @@ package jwelly_main_server_apis_public_keys
 import (
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	jwelly_main_server_repos "github.com/rpsoftech/golang-servers/servers/jwelly/main-server/repos"
 )
 
-func GetKeyData(c *fiber.Ctx) error {
+func GetKeyData(c fiber.Ctx) error {
 	key := c.Query("key")
 	if key == "" {
 		return &interfaces.RequestError{

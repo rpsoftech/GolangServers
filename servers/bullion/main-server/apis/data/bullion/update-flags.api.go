@@ -3,7 +3,7 @@ package bullion_main_server_data_bullion_apis
 import (
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	bullion_main_server_services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
@@ -15,9 +15,9 @@ type apiUpdateBullionFlagsBody struct {
 	FlagsEntity *bullion_main_server_interfaces.FlagsInterface `bson:"flagsEntity" json:"flagsEntity" validate:"required"`
 }
 
-func apiUpdateBullionFlags(c *fiber.Ctx) error {
+func apiUpdateBullionFlags(c fiber.Ctx) error {
 	body := new(apiUpdateBullionFlagsBody)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}

@@ -3,12 +3,12 @@ package dump_server_apis
 import (
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	dump_server_services "github.com/rpsoftech/golang-servers/servers/http-dump/dump-server/services"
 )
 
-func DumpData(c *fiber.Ctx) error {
+func DumpData(c fiber.Ctx) error {
 	id := c.Params("id")
 	if id == "" {
 		return &interfaces.RequestError{

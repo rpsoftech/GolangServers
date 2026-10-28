@@ -3,7 +3,7 @@ package apis
 import (
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	link_shorner_utility "github.com/rpsoftech/golang-servers/servers/link-shortner/link-shorner-utility"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
@@ -19,9 +19,9 @@ type bodySingleShortning struct {
 	Urls string `json:"url" validate:"required"`
 }
 
-func BulkShortning(c *fiber.Ctx) error {
+func BulkShortning(c fiber.Ctx) error {
 	body := new(bodyBulkShortning)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}
@@ -37,9 +37,9 @@ func BulkShortning(c *fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-func SignleShortning(c *fiber.Ctx) error {
+func SignleShortning(c fiber.Ctx) error {
 	body := new(bodySingleShortning)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}

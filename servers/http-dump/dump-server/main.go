@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	dump_server_apis "github.com/rpsoftech/golang-servers/servers/http-dump/dump-server/api"
@@ -23,7 +23,7 @@ func main() {
 	println("Http Dump Server Env Initialized")
 	app := fiber.New(fiber.Config{
 		ServerHeader: "Http Dump Server V1.0.0",
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
+		ErrorHandler: func(c fiber.Ctx, err error) error {
 			mappedError, ok := err.(*interfaces.RequestError)
 			if !ok {
 				println(err.Error())
@@ -41,7 +41,7 @@ func main() {
 	})
 	app.Use(logger.New())
 	dump_server_apis.AddApis(app.Group("/v1"))
-	app.Use(func(c *fiber.Ctx) error {
+	app.Use(func(c fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).SendString("Sorry can't find that!")
 	})
 	// entity := new(dump_server_interfaces.EndPoint)

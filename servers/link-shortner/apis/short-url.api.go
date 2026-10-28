@@ -3,11 +3,11 @@ package apis
 import (
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/rpsoftech/golang-servers/interfaces"
 )
 
-func GetShortUrlAfterRedirect(c *fiber.Ctx) error {
+func GetShortUrlAfterRedirect(c fiber.Ctx) error {
 	id := c.Params("id")
 	if len(id) == 0 || strings.Contains(id, ".") {
 		return c.Status(400).JSON(interfaces.RequestError{
@@ -39,6 +39,6 @@ func GetShortUrlAfterRedirect(c *fiber.Ctx) error {
 			Name:    "INVALID SHORT URL",
 		})
 	} else {
-		return c.Redirect(url)
+		return c.Redirect().Status(fiber.StatusFound).To(url)
 	}
 }

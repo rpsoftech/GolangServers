@@ -3,7 +3,7 @@ package booz_main_interfaces
 import (
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/rpsoftech/golang-servers/interfaces"
 )
 
@@ -14,7 +14,7 @@ const (
 	REQ_LOCAL_KEY_TOKEN_RAW_DATA = "TokenRawData"
 )
 
-func ExtractTokenUserIdFromCtx(c *fiber.Ctx) (string, error) {
+func ExtractTokenUserIdFromCtx(c fiber.Ctx) (string, error) {
 	id, ok := c.Locals(REQ_LOCAL_UserID).(string)
 	if !ok {
 		return "", &interfaces.RequestError{

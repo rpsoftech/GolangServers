@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	"github.com/rpsoftech/golang-servers/servers/link-shortner/apis"
@@ -19,7 +19,7 @@ func main() {
 	defer deferMainFunc()
 	app := fiber.New(fiber.Config{
 		ServerHeader: "Bullion Server V1.0.0",
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
+		ErrorHandler: func(c fiber.Ctx, err error) error {
 			mappedError, ok := err.(*interfaces.RequestError)
 			if !ok {
 				println(err.Error())
@@ -36,7 +36,7 @@ func main() {
 	// API STARTS HERE
 
 	app.Get("/:id", apis.GetShortUrlAfterRedirect)
-	app.Use(func(c *fiber.Ctx) error {
+	app.Use(func(c fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).SendString("Sorry can't find that!")
 	})
 	hostAndPort := ""

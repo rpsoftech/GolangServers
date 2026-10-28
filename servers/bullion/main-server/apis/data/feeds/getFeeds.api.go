@@ -1,7 +1,7 @@
 package bullion_main_server_data_feeds_apis
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	bullion_main_server_services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
@@ -13,9 +13,9 @@ type apiGetFeedsApiPaginatedBody struct {
 	Limit     int64  `json:"limit" validate:"required,min=1"`
 }
 
-func apiGetFeedsApiPaginated(c *fiber.Ctx) error {
+func apiGetFeedsApiPaginated(c fiber.Ctx) error {
 	body := new(apiGetFeedsApiPaginatedBody)
-	c.QueryParser(body)
+	c.Bind().Query(body)
 	if err := bullion_main_server_interfaces.ValidateBullionIdMatchingInToken(c, body.BullionId); err != nil {
 		return err
 	}

@@ -1,7 +1,7 @@
 package jwelly_main_server_apis
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	public "github.com/rpsoftech/golang-servers/servers/jwelly/main-server/api/public"
 )
 

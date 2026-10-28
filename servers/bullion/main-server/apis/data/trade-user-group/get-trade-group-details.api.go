@@ -3,14 +3,14 @@ package bullion_main_server_tradeusergroup_apis
 import (
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	oriInterfaces "github.com/rpsoftech/golang-servers/interfaces"
 	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
 )
 
-func apiGetTradeGroupDetailsByBullionId(c *fiber.Ctx) error {
+func apiGetTradeGroupDetailsByBullionId(c fiber.Ctx) error {
 	id := c.Query("bullionId")
 	if id == "" {
 		return &oriInterfaces.RequestError{
@@ -34,7 +34,7 @@ func apiGetTradeGroupDetailsByBullionId(c *fiber.Ctx) error {
 	}
 }
 
-func apiGetTradeGroupDetailsById(c *fiber.Ctx) error {
+func apiGetTradeGroupDetailsById(c fiber.Ctx) error {
 	id := c.Query("groupId")
 	if id == "" {
 		return &oriInterfaces.RequestError{
@@ -56,7 +56,7 @@ func apiGetTradeGroupDetailsById(c *fiber.Ctx) error {
 	}
 }
 
-func apiGetTradeGroupMapDetailsByGroupId(c *fiber.Ctx) error {
+func apiGetTradeGroupMapDetailsByGroupId(c fiber.Ctx) error {
 	id := c.Query("groupId")
 	if id == "" {
 		return &oriInterfaces.RequestError{

@@ -3,13 +3,13 @@ package bullion_main_server_data_bullion_apis
 import (
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	bullion_main_server_services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
 )
 
-func apiGetBullionFlags(c *fiber.Ctx) error {
+func apiGetBullionFlags(c fiber.Ctx) error {
 	bullionId := c.Query("bullionId")
 	if bullionId == "" {
 		return &interfaces.RequestError{

@@ -1,7 +1,7 @@
 package bullion_main_server_data_feeds_apis
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/rpsoftech/golang-servers/interfaces"
 	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
@@ -9,9 +9,9 @@ import (
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 )
 
-func apiAddNewFeed(c *fiber.Ctx) error {
+func apiAddNewFeed(c fiber.Ctx) error {
 	body := new(bullion_main_server_interfaces.FeedsBase)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	userId, err := bullion_main_server_interfaces.ExtractTokenUserIdFromCtx(c)
 	if err != nil {
 		return err
@@ -34,9 +34,9 @@ func apiAddNewFeed(c *fiber.Ctx) error {
 		return c.JSON(entity)
 	}
 }
-func apiUpdateFeed(c *fiber.Ctx) error {
+func apiUpdateFeed(c fiber.Ctx) error {
 	body := new(bullion_main_server_interfaces.FeedUpdateRequestBody)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	userId, err := bullion_main_server_interfaces.ExtractTokenUserIdFromCtx(c)
 	if err != nil {
 		return err

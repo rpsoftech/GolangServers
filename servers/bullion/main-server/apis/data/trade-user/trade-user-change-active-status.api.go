@@ -1,7 +1,7 @@
 package bullion_main_server_tradeuser_apis
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	bullion_main_server_services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
@@ -14,9 +14,9 @@ type apiChangeTradeUserStatusBody struct {
 	BullionId string `bson:"bullionId" json:"bullionId" validate:"required,uuid"`
 }
 
-func apiChangeTradeUserStatus(c *fiber.Ctx) error {
+func apiChangeTradeUserStatus(c fiber.Ctx) error {
 	body := new(apiChangeTradeUserStatusBody)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}

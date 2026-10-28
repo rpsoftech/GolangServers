@@ -1,7 +1,7 @@
 package dump_server_apis
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func AddApis(app fiber.Router) {

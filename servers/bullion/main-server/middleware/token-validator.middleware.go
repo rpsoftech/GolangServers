@@ -3,7 +3,7 @@ package bullion_main_server_middleware
 import (
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
@@ -12,7 +12,7 @@ import (
 )
 
 // fiber middleware for jwt
-func TokenDecrypter(c *fiber.Ctx) error {
+func TokenDecrypter(c fiber.Ctx) error {
 	reqHeaders := c.GetReqHeaders()
 	tokenString, foundToken := reqHeaders[env.RequestTokenHeaderKey]
 	if !foundToken || len(tokenString) != 1 || tokenString[0] == "" {
@@ -57,7 +57,7 @@ func TokenDecrypter(c *fiber.Ctx) error {
 	return c.Next()
 }
 
-func AllowOnlyValidTokenMiddleWare(c *fiber.Ctx) error {
+func AllowOnlyValidTokenMiddleWare(c fiber.Ctx) error {
 	jwtRawFromLocal := c.Locals(bullion_main_server_interfaces.REQ_LOCAL_KEY_TOKEN_RAW_DATA)
 	localError := c.Locals(bullion_main_server_interfaces.REQ_LOCAL_ERROR_KEY)
 

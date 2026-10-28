@@ -1,7 +1,7 @@
 package bullion_main_server_user_order_apis
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	utility "github.com/rpsoftech/golang-servers/utility/functions"
 )
 
@@ -20,9 +20,9 @@ type placeMarketOrderApiBody struct {
 	// @MessageBody('req_id') req_id: number,
 }
 
-func PlaceMarkerOrderApi(c *fiber.Ctx) error {
+func PlaceMarkerOrderApi(c fiber.Ctx) error {
 	body := new(placeMarketOrderApiBody)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	if err := utility.ValidateReqInput(body); err != nil {
 		return err
 	}

@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	bullion_main_server_services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
 )
 
-func apiTradeUserResendOtp(c *fiber.Ctx) error {
+func apiTradeUserResendOtp(c fiber.Ctx) error {
 	// var body
 	body := new(map[string]string)
 	json.Unmarshal(c.Body(), body)

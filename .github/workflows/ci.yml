@@ -15,6 +15,29 @@ permissions:
   contents: read
 
 jobs:
+  repo:
+    name: repo (vet and test ./...)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # Same system packages builder.yml installs for the GUI dependencies.
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc libgl1-mesa-dev xorg-dev
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -count=1 ./...
+
   mysql-backup-exe:
     name: mysql-backup-exe (test, MySQL ${{ matrix.mysql }})
     runs-on: ubuntu-latest

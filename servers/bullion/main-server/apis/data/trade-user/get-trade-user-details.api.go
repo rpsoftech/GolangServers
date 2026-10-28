@@ -3,7 +3,7 @@ package bullion_main_server_tradeuser_apis
 import (
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/rpsoftech/golang-servers/interfaces"
 	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
@@ -16,9 +16,9 @@ type apiGetTradeUserDetailsBody struct {
 	BullionId string `bson:"bullionId" json:"bullionId" validate:"required,uuid"`
 }
 
-func apiGetTradeUserDetails(c *fiber.Ctx) error {
+func apiGetTradeUserDetails(c fiber.Ctx) error {
 	body := new(apiGetTradeUserDetailsBody)
-	c.QueryParser(body)
+	c.Bind().Query(body)
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}

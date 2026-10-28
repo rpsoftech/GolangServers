@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/rpsoftech/golang-servers/interfaces"
 	bullion_main_server_services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
 )
 
-func apiGeneralUSerRefreshToken(c *fiber.Ctx) error {
+func apiGeneralUSerRefreshToken(c fiber.Ctx) error {
 	var body map[string]string
 	json.Unmarshal(c.Body(), &body)
 	token, ok := body["token"]

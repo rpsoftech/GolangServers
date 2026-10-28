@@ -1,14 +1,14 @@
 package telegram_server_middleware
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	telegram_server_config "github.com/rpsoftech/golang-servers/servers/telegram-server/config"
 )
 
 // fiber middleware for jwt
-func TokenDecrypter(c *fiber.Ctx) error {
+func TokenDecrypter(c fiber.Ctx) error {
 	reqHeaders := c.GetReqHeaders()
 	println(c.IP())
 	tokenString, foundToken := reqHeaders[env.RequestTokenHeaderKey]
@@ -34,7 +34,7 @@ func TokenDecrypter(c *fiber.Ctx) error {
 	return c.Next()
 }
 
-func AllowOnlyValidTokenMiddleWare(c *fiber.Ctx) error {
+func AllowOnlyValidTokenMiddleWare(c fiber.Ctx) error {
 	jwtRawFromLocal := c.Locals(telegram_server_config.REQ_LOCAL_NUMBER_KEY)
 	localError := c.Locals(interfaces.REQ_LOCAL_ERROR_KEY)
 
@@ -61,7 +61,7 @@ func AllowOnlyValidTokenMiddleWare(c *fiber.Ctx) error {
 	return c.Next()
 }
 
-func AllowOnlyValidLoggedInWhatsapp(c *fiber.Ctx) error {
+func AllowOnlyValidLoggedInWhatsapp(c fiber.Ctx) error {
 	jwtRawFromLocal := c.Locals(telegram_server_config.REQ_LOCAL_NUMBER_KEY)
 	token, ok := jwtRawFromLocal.(string)
 	if !ok {

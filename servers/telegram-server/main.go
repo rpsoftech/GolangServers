@@ -7,8 +7,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/logger"
+	"github.com/gofiber/fiber/v3/middleware/static"
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	telegram_server_apis "github.com/rpsoftech/golang-servers/servers/telegram-server/apis"
@@ -50,7 +51,7 @@ func main() {
 func InitFiberServer() {
 	app := fiber.New(fiber.Config{
 		BodyLimit: 200 * 1024 * 1024,
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
+		ErrorHandler: func(c fiber.Ctx, err error) error {
 			mappedError, ok := err.(*interfaces.RequestError)
 			if !ok {
 				println(err.Error())
@@ -64,9 +65,9 @@ func InitFiberServer() {
 		},
 	})
 	app.Use(logger.New())
-	app.Static("/swagger", "./swagger")
+	app.Use("/swagger", static.New("./swagger"))
 	telegram_server_apis.AddApis(app.Group("/v1", telegram_server_middleware.TokenDecrypter, telegram_server_middleware.AllowOnlyValidTokenMiddleWare))
-	app.Use(func(c *fiber.Ctx) error {
+	app.Use(func(c fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).SendString("Sorry can't find that!")
 	})
 	hostAndPort := ""

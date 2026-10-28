@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 )
@@ -52,7 +52,7 @@ var (
 	}
 )
 
-func (cc *roleCheckerMiddlewareWithRolesArray) Validate(c *fiber.Ctx) error {
+func (cc *roleCheckerMiddlewareWithRolesArray) Validate(c fiber.Ctx) error {
 	roleFromLocal := c.Locals(bullion_main_server_interfaces.REQ_LOCAL_KEY_ROLE)
 	if roleFromLocal == nil {
 		return &interfaces.RequestError{
