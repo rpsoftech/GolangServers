@@ -5,5 +5,6 @@ package updater
 const (
 	WhatsappProjectName            = "whatsapp-server"
 	MysqlBackupCmdProjectName      = "mysql_backup"
+	MysqlBackupExeProjectName      = "mysql_backup_exe"
 	SohamWhatsappClientProjectName = "soham-whatsapp-client"
 )

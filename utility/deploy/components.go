@@ -53,6 +53,12 @@ var components = []Component{
 		Targets: serverTargets,
 	},
 	{
+		Name:    updater.MysqlBackupExeProjectName,
+		Package: "./servers/jwelly/mysql-backup-exe",
+		Binary:  "mysql-backup-exe",
+		Targets: serverTargets,
+	},
+	{
 		Name:    updater.WhatsappProjectName,
 		Package: "./servers/whatsapp-server",
 		Binary:  "whatsapp-server",
