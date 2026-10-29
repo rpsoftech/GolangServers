@@ -7,6 +7,7 @@
 //	go run ./utility/deploy -component soham-whatsapp-client -env PRODUCTION -version 48
 //	go run ./utility/deploy -component all -dry-run   # build only, no upload
 //	go run ./utility/deploy keygen                    # one-time signing key setup
+//	go run ./utility/deploy affected <before> <after> # components changed between two commits
 package main
 
 import (
@@ -56,6 +57,13 @@ type options struct {
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "keygen" {
 		keygen()
+		return
+	}
+
+	if len(os.Args) == 4 && os.Args[1] == "affected" {
+		if err := affected(os.Args[2], os.Args[3]); err != nil {
+			log.Fatal(err)
+		}
 		return
 	}
 

@@ -2,6 +2,9 @@ name: Release
 
 # One pipeline for every component in utility/deploy/components.go.
 #
+# Auto:    every push to main releases the components whose code changed to
+#          STAGING (see `go run ./utility/deploy affected`). PRODUCTION is
+#          never automatic.
 # Manual:  Actions > Release > Run workflow (component, env, optional version)
 # Tag:     git tag release/<ENV>/<component>/<version> && git push origin --tags
 #          e.g. release/PRODUCTION/soham-whatsapp-client/16
@@ -24,6 +27,7 @@ on:
         description: "Version number (empty = next after the highest published)"
         required: false
   push:
+    branches: [main]
     tags:
       - "release/*/*/*"
 
@@ -38,6 +42,9 @@ jobs:
     environment: Production
     steps:
       - uses: actions/checkout@v5
+        with:
+          # The affected check diffs the pushed range.
+          fetch-depth: 0
 
       - uses: actions/setup-go@v5
         with:
@@ -50,8 +57,17 @@ jobs:
           INPUT_COMPONENT: ${{ github.event.inputs.component }}
           INPUT_ENV: ${{ github.event.inputs.env }}
           INPUT_VERSION: ${{ github.event.inputs.version }}
+          PUSH_BEFORE: ${{ github.event.before }}
         run: |
-          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+          if [ "$GITHUB_REF_TYPE" = "branch" ]; then
+            # Push to main: STAGING, only what the commits touched.
+            ENV=STAGING; VERSION=0
+            if [ "$PUSH_BEFORE" = "0000000000000000000000000000000000000000" ]; then
+              COMPONENT=all
+            else
+              COMPONENT=$(go run ./utility/deploy affected "$PUSH_BEFORE" "$GITHUB_SHA")
+            fi
+          elif [ "$GITHUB_EVENT_NAME" = "push" ]; then
             # release/<ENV>/<component>/<version>
             IFS=/ read -r _ ENV COMPONENT VERSION <<< "$GITHUB_REF_NAME"
           else
@@ -60,9 +76,14 @@ jobs:
           echo "env=$ENV" >> "$GITHUB_OUTPUT"
           echo "component=$COMPONENT" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION:-0}" >> "$GITHUB_OUTPUT"
-          echo "Releasing $COMPONENT to $ENV (version ${VERSION:-auto})"
+          if [ -z "$COMPONENT" ]; then
+            echo "No releasable component changed; nothing to release."
+          else
+            echo "Releasing $COMPONENT to $ENV (version ${VERSION:-auto})"
+          fi
 
       - name: Build, sign and publish
+        if: steps.params.outputs.component != ''
         env:
           FILE_SERVER_TOKEN: ${{ secrets.FILE_SERVER_TOKEN }}
           KV_TOKEN: ${{ secrets.KEYVALUETOKEN }}
