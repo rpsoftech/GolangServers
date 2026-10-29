@@ -9,8 +9,8 @@ import (
 	"github.com/rpsoftech/golang-servers/utility/mongodb"
 	"github.com/rpsoftech/golang-servers/utility/redis"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/logger"
 )
 
 func deferMainFunc() {
@@ -23,7 +23,7 @@ func main() {
 	loadEnvConfig()
 	app := fiber.New(fiber.Config{
 		ServerHeader: "Bullion Server V1.0.0",
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
+		ErrorHandler: func(c fiber.Ctx, err error) error {
 			mappedError, ok := err.(*interfaces.RequestError)
 			if !ok {
 				println(err.Error())
@@ -45,7 +45,7 @@ func main() {
 
 	if env.Env.APP_ENV != env.APP_ENV_PRODUCTION {
 
-		// app.Get("/token", func(c *fiber.Ctx) error {
+		// app.Get("/token", func(c fiber.Ctx) error {
 		// 	a, _ := bullion_main_server_services.AccessTokenService.GenerateToken(bullion_main_server_interfaces.GeneralUserAccessRefreshToken{
 		// 		Role: bullion_main_server_interfaces.ROLE_ADMIN,
 		// 		GeneralPurposeTokenGeneration: &jwt.GeneralPurposeTokenGeneration{
@@ -58,7 +58,7 @@ func main() {
 		// }).Name("Temp Admin Access Token")
 	}
 	// bullion_main_server_repos.BullionSiteInfoRepo.Save(bullion_main_server_interfaces.CreateNewBullionSiteInfo("Akshat Bullion", "https://akshatbullion.com").AddGeneralUserInfo(true, true))
-	// app.Get("/", func(c *fiber.Ctx) error {
+	// app.Get("/", func(c fiber.Ctx) error {
 	// bull := bullion_main_server_repos.BullionSiteInfoRepo.FindOne("ad3cee16-e8d7-4a27-a060-46d99c133273")
 	// return c.JSON(bull)
 
@@ -67,7 +67,7 @@ func main() {
 	// return c.SendString("Hello, World!")
 	// })
 	// bullion_main_server_apis.AddApis(app.Group("/v1"))
-	app.Use(func(c *fiber.Ctx) error {
+	app.Use(func(c fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).SendString("Sorry can't find that!")
 	})
 	hostAndPort := ""

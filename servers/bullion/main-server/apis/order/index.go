@@ -1,7 +1,7 @@
 package bullion_main_server_order_apis
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	adminorder "github.com/rpsoftech/golang-servers/servers/bullion/main-server/apis/order/admin-order"
 	user "github.com/rpsoftech/golang-servers/servers/bullion/main-server/apis/order/user"
 	middleware "github.com/rpsoftech/golang-servers/servers/bullion/main-server/middleware"

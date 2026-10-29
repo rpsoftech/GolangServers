@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	whatsapp_functions "github.com/rpsoftech/golang-servers/functions/whatsapp"
 	whatsapp_core "github.com/rpsoftech/golang-servers/functions/whatsapp/core"
 	"github.com/rpsoftech/golang-servers/interfaces"
 )
 
-func LoginStatus(c *fiber.Ctx) error {
+func LoginStatus(c fiber.Ctx) error {
 	number, err := whatsapp_functions.ExtractNumberFromCtx(c)
 	if err != nil {
 		return err

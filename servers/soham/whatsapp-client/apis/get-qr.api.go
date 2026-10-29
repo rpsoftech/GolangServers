@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	whatsapp_functions "github.com/rpsoftech/golang-servers/functions/whatsapp"
 	whatsapp_core "github.com/rpsoftech/golang-servers/functions/whatsapp/core"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	"github.com/skip2/go-qrcode"
 )
 
-func GetQrCode(c *fiber.Ctx) error {
+func GetQrCode(c fiber.Ctx) error {
 	number, err := whatsapp_functions.ExtractNumberFromCtx(c)
 	if err != nil {
 		return err

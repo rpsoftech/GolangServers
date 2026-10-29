@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/rpsoftech/golang-servers/interfaces"
 )
 
@@ -21,7 +21,7 @@ func SetVariablesForRoleCheckerMiddleware(rEQ_LOCAL_KEY_ROLE string, rOLE_GOD st
 
 }
 
-func (cc *RoleCheckerMiddlewareWithRolesArray) Validate(c *fiber.Ctx) error {
+func (cc *RoleCheckerMiddlewareWithRolesArray) Validate(c fiber.Ctx) error {
 	roleFromLocal := c.Locals(REQ_LOCAL_KEY_ROLE)
 	if roleFromLocal == nil {
 		return &interfaces.RequestError{

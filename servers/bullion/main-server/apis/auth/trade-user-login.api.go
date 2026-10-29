@@ -1,7 +1,7 @@
 package bullion_main_server_auth_apis
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	bullion_main_server_services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
@@ -20,9 +20,9 @@ type apiTradeUserLoginEmailBody struct {
 	Password string `bson:"rawPassword" json:"password" mapstructure:"password" validate:"required,min=4"`
 }
 
-func apiTradeUserLoginNumber(c *fiber.Ctx) error {
+func apiTradeUserLoginNumber(c fiber.Ctx) error {
 	body := new(apiTradeUserLoginNumberBody)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}
@@ -37,9 +37,9 @@ func apiTradeUserLoginNumber(c *fiber.Ctx) error {
 		return c.JSON(entity)
 	}
 }
-func apiTradeUserLoginUNumber(c *fiber.Ctx) error {
+func apiTradeUserLoginUNumber(c fiber.Ctx) error {
 	body := new(apiTradeUserLoginUNumberBody)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}
@@ -54,9 +54,9 @@ func apiTradeUserLoginUNumber(c *fiber.Ctx) error {
 		return c.JSON(entity)
 	}
 }
-func apiTradeUserLoginEmail(c *fiber.Ctx) error {
+func apiTradeUserLoginEmail(c fiber.Ctx) error {
 	body := new(apiTradeUserLoginEmailBody)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}

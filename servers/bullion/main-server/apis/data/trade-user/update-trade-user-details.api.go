@@ -1,14 +1,14 @@
 package bullion_main_server_tradeuser_apis
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	bullion_main_server_services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
 )
 
-func apiUpdateTradeUserDetails(c *fiber.Ctx) error {
+func apiUpdateTradeUserDetails(c fiber.Ctx) error {
 	body := new(bullion_main_server_interfaces.TradeUserEntity)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	if err := bullion_main_server_interfaces.ValidateBullionIdMatchingInToken(c, body.BullionId); err != nil {
 		return err
 	}

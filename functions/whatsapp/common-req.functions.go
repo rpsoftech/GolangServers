@@ -6,13 +6,13 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	whatsapp_interfaces "github.com/rpsoftech/golang-servers/interfaces/whatsapp"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 )
 
-func ExtractKeyFromHeader(c *fiber.Ctx, key string) string {
+func ExtractKeyFromHeader(c fiber.Ctx, key string) string {
 	reqHeaders := c.GetReqHeaders()
 	if tokenString, foundToken := reqHeaders[key]; !foundToken || len(tokenString) != 1 || tokenString[0] == "" {
 		return ""
@@ -20,7 +20,7 @@ func ExtractKeyFromHeader(c *fiber.Ctx, key string) string {
 		return tokenString[0]
 	}
 }
-func ExtractNumberFromCtx(c *fiber.Ctx) (string, error) {
+func ExtractNumberFromCtx(c fiber.Ctx) (string, error) {
 	id, ok := c.Locals(whatsapp_interfaces.REQ_LOCAL_NUMBER_KEY).(string)
 	if !ok {
 		return "", &interfaces.RequestError{

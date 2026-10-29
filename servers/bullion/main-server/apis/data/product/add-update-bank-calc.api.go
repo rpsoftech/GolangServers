@@ -1,7 +1,7 @@
 package bullion_main_server_product_apis
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	bullion_main_server_services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
@@ -13,9 +13,9 @@ type apiAddUpdateBankCalcBody struct {
 	SILVER_SPOT *bullion_main_server_interfaces.BankRateCalcBase `bson:"silverSpot" json:"silverSpot" validate:"required"`
 }
 
-func apiAddUpdateBankCalc(c *fiber.Ctx) error {
+func apiAddUpdateBankCalc(c fiber.Ctx) error {
 	body := new(apiAddUpdateBankCalcBody)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}

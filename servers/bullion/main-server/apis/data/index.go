@@ -1,7 +1,7 @@
 package bullion_main_server_data_apis
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	bankdetails "github.com/rpsoftech/golang-servers/servers/bullion/main-server/apis/data/bank-details"
 	bullion "github.com/rpsoftech/golang-servers/servers/bullion/main-server/apis/data/bullion"
 	feeds "github.com/rpsoftech/golang-servers/servers/bullion/main-server/apis/data/feeds"

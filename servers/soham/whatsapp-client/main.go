@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/rpsoftech/golang-servers/env"
 	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
 	whatsapp_core "github.com/rpsoftech/golang-servers/functions/whatsapp/core"
@@ -130,7 +130,7 @@ func main() {
 func InitFiberServer() *fiber.App {
 	app := fiber.New(fiber.Config{
 		BodyLimit: 200 * 1024 * 1024,
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
+		ErrorHandler: func(c fiber.Ctx, err error) error {
 			mappedError, ok := err.(*interfaces.RequestError)
 			if !ok {
 				log.Printf("Internal Server Error: %v", err)
@@ -149,7 +149,7 @@ func InitFiberServer() *fiber.App {
 	app.Get("/scan/:id", whatsapp_client_core.OpenBrowserWithQr)
 	soham_whatsapp_client_apis.AddApis(app.Group("/v1", whatsapp_middleware.TokenDecrypter, whatsapp_middleware.AllowOnlyValidTokenMiddleWare))
 
-	app.Use(func(c *fiber.Ctx) error {
+	app.Use(func(c fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(interfaces.RequestError{
 			Code:    interfaces.ERROR_PATH_NOT_FOUND,
 			Message: "Route not found",

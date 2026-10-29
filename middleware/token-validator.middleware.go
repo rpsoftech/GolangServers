@@ -1,15 +1,15 @@
 package middlewares
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
 )
 
-var TokenDecrypterFunctions func(*fiber.Ctx, *string) error
+var TokenDecrypterFunctions func(fiber.Ctx, *string) error
 
 // fiber middleware for jwt
-func TokenDecrypter(c *fiber.Ctx) error {
+func TokenDecrypter(c fiber.Ctx) error {
 	reqHeaders := c.GetReqHeaders()
 	tokenString, foundToken := reqHeaders[env.RequestTokenHeaderKey]
 	if !foundToken || len(tokenString) != 1 || tokenString[0] == "" {

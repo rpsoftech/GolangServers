@@ -1,7 +1,7 @@
 package bullion_main_server_apis
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	auth "github.com/rpsoftech/golang-servers/servers/bullion/main-server/apis/auth"
 	data "github.com/rpsoftech/golang-servers/servers/bullion/main-server/apis/data"
 	order "github.com/rpsoftech/golang-servers/servers/bullion/main-server/apis/order"

@@ -1,7 +1,7 @@
 package bullion_main_server_auth_apis
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	bullion_main_server_services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 )
@@ -11,9 +11,9 @@ type registerGeneralUserBody struct {
 	User      interface{} `json:"user" validate:"required"`
 }
 
-func apiRegisterNewGeneralUser(c *fiber.Ctx) error {
+func apiRegisterNewGeneralUser(c fiber.Ctx) error {
 	body := new(registerGeneralUserBody)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}

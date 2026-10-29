@@ -3,7 +3,7 @@ package bullion_main_server_product_apis
 import (
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/rpsoftech/golang-servers/interfaces"
 	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
@@ -11,9 +11,9 @@ import (
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 )
 
-func apiUpdateProducts(c *fiber.Ctx) error {
+func apiUpdateProducts(c fiber.Ctx) error {
 	body := new([]bullion_main_server_interfaces.UpdateProductApiBody)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	if len(*body) == 0 {
 		return &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
@@ -54,9 +54,9 @@ func apiUpdateProducts(c *fiber.Ctx) error {
 		return c.JSON(entity)
 	}
 }
-func apiUpdateProductCalcSnapshot(c *fiber.Ctx) error {
+func apiUpdateProductCalcSnapshot(c fiber.Ctx) error {
 	body := new([]bullion_main_server_interfaces.UpdateProductCalcSnapshotApiBody)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	if len(*body) == 0 {
 		return &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,
@@ -97,9 +97,9 @@ func apiUpdateProductCalcSnapshot(c *fiber.Ctx) error {
 		return c.JSON(entity)
 	}
 }
-func apiUpdateProductSequence(c *fiber.Ctx) error {
+func apiUpdateProductSequence(c fiber.Ctx) error {
 	body := new([]bullion_main_server_interfaces.UpdateProductCalcSequenceApiBody)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	if len(*body) < 2 {
 		return &interfaces.RequestError{
 			StatusCode: http.StatusBadRequest,

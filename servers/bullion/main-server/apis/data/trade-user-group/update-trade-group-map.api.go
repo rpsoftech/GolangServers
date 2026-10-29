@@ -1,7 +1,7 @@
 package bullion_main_server_tradeusergroup_apis
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
@@ -14,9 +14,9 @@ type apiUpdateTradeUserGroupMapBody struct {
 	BullionId string                                `bson:"bullionId" json:"bullionId" validate:"required,uuid"`
 }
 
-func apiUpdateTradeUserGroupMap(c *fiber.Ctx) error {
+func apiUpdateTradeUserGroupMap(c fiber.Ctx) error {
 	body := new(apiUpdateTradeUserGroupMapBody)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	if err := utility.ValidateReqInput(body); err != nil {
 		return err
 	}

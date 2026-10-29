@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"html"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
 )
 
@@ -61,7 +61,7 @@ const index = `<!DOCTYPE html>
   </body>
 </html>`
 
-func OpenBrowserWithQr(c *fiber.Ctx) error {
+func OpenBrowserWithQr(c fiber.Ctx) error {
 	id := c.Params("id")
 	number, ok := whatsapp_config.WhatsappNumberToIDMap[id]
 	if !ok {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/rpsoftech/golang-servers/interfaces"
 )
 
@@ -16,7 +16,7 @@ const (
 	REQ_LOCAL_KEY_TOKEN_RAW_DATA = "TokenRawData"
 )
 
-func ValidateBullionIdMatchingInToken(c *fiber.Ctx, bullionId string) error {
+func ValidateBullionIdMatchingInToken(c fiber.Ctx, bullionId string) error {
 	id, ok := c.Locals(REQ_LOCAL_BullionId_KEY).(string)
 	if !ok || bullionId != id {
 		return &interfaces.RequestError{
@@ -29,7 +29,7 @@ func ValidateBullionIdMatchingInToken(c *fiber.Ctx, bullionId string) error {
 	}
 	return nil
 }
-func ExtractTokenUserIdFromCtx(c *fiber.Ctx) (string, error) {
+func ExtractTokenUserIdFromCtx(c fiber.Ctx) (string, error) {
 	id, ok := c.Locals(REQ_LOCAL_UserID).(string)
 	if !ok {
 		return "", &interfaces.RequestError{
@@ -42,7 +42,7 @@ func ExtractTokenUserIdFromCtx(c *fiber.Ctx) (string, error) {
 	return id, nil
 }
 
-func ExtractBullionIdFromCtx(c *fiber.Ctx) (string, error) {
+func ExtractBullionIdFromCtx(c fiber.Ctx) (string, error) {
 	id, ok := c.Locals(REQ_LOCAL_BullionId_KEY).(string)
 	if !ok {
 		return "", &interfaces.RequestError{

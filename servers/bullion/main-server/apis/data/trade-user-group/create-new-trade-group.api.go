@@ -1,7 +1,7 @@
 package bullion_main_server_tradeusergroup_apis
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	bullion_main_server_interfaces "github.com/rpsoftech/golang-servers/servers/bullion/main-server/interfaces"
 	services "github.com/rpsoftech/golang-servers/servers/bullion/main-server/services"
@@ -13,9 +13,9 @@ type apiCreateNewTradeGroupBody struct {
 	BullionId string `bson:"bullionId" json:"bullionId" validate:"required,uuid"`
 }
 
-func apiCreateNewTradeGroup(c *fiber.Ctx) error {
+func apiCreateNewTradeGroup(c fiber.Ctx) error {
 	body := new(apiCreateNewTradeGroupBody)
-	c.BodyParser(body)
+	c.Bind().Body(body)
 	if err := utility.ValidateReqInput(body); err != nil {
 		return err
 	}
