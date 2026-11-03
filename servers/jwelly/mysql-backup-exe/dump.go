@@ -16,7 +16,12 @@ import (
 	"time"
 )
 
-const dumpCompletedMarker = "Dump completed"
+const (
+	dumpCompletedMarker = "Dump completed"
+	// backupTimeLayout is the timestamp in backup file names, which local
+	// pruning relies on.
+	backupTimeLayout = "20060102-150405"
+)
 
 // dumpEngine writes a plain-text SQL dump of one database to w.
 type dumpEngine interface {
@@ -53,7 +58,7 @@ func DumpToFile(ctx context.Context, db *DatabaseConfig, dir string) (path, engi
 		engines = []dumpEngine{mysqldumpEngine{}, nativeEngine{}}
 	}
 
-	name := fmt.Sprintf("%s-%s.sql.gz", db.Name, time.Now().Format("20060102-150405"))
+	name := fmt.Sprintf("%s-%s.sql.gz", db.Name, time.Now().Format(backupTimeLayout))
 	path = filepath.Join(dir, name)
 
 	var errs []error
@@ -108,7 +113,17 @@ func (mysqldumpEngine) Dump(ctx context.Context, db *DatabaseConfig, w io.Writer
 		return err
 	}
 	m := db.MysqlConfig
+	// The password goes in a private option file, not on the command line
+	// (visible in the process list) or in MYSQL_PWD (deprecated by MySQL and
+	// readable from the process environment).
+	optionFile, err := writeOptionFile(m.Password)
+	if err != nil {
+		return err
+	}
+	defer os.Remove(optionFile)
 	cmd := exec.CommandContext(ctx, bin,
+		// mysqldump only accepts --defaults-extra-file as the first argument.
+		"--defaults-extra-file="+optionFile,
 		"--protocol=tcp",
 		"--host="+m.Host,
 		"--port="+strconv.Itoa(m.Port),
@@ -119,11 +134,13 @@ func (mysqldumpEngine) Dump(ctx context.Context, db *DatabaseConfig, w io.Writer
 		"--default-character-set=utf8mb4",
 		m.Database,
 	)
-	// The password goes through the environment, not the command line, so it
-	// does not show up in the process list.
-	cmd.Env = append(os.Environ(), "MYSQL_PWD="+m.Password)
 	var stderr bytes.Buffer
+	var filter *definerFilter
 	cmd.Stdout = w
+	if db.StripDefiner {
+		filter = &definerFilter{w: w}
+		cmd.Stdout = filter
+	}
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
 		if msg := strings.TrimSpace(stderr.String()); msg != "" {
@@ -131,7 +148,49 @@ func (mysqldumpEngine) Dump(ctx context.Context, db *DatabaseConfig, w io.Writer
 		}
 		return err
 	}
+	if filter != nil {
+		return filter.Flush()
+	}
 	return nil
+}
+
+// writeOptionFile writes a MySQL option file holding password and returns its
+// path. The caller removes it.
+func writeOptionFile(password string) (string, error) {
+	v, err := optionValue(password)
+	if err != nil {
+		return "", fmt.Errorf("MYSQL_PASSWORD: %w", err)
+	}
+	// CreateTemp makes the file readable by the owner only (0600); on Windows
+	// the user's temp folder is private to that user.
+	f, err := os.CreateTemp("", "mysql-backup-*.cnf")
+	if err != nil {
+		return "", err
+	}
+	_, err = f.WriteString("[client]\npassword=" + v + "\n")
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		os.Remove(f.Name())
+		return "", err
+	}
+	return f.Name(), nil
+}
+
+// optionValue quotes a value for a MySQL option file. Option files have no
+// escape for the quote character itself, so the quote the value does not
+// contain is used.
+func optionValue(v string) (string, error) {
+	v = strings.NewReplacer(`\`, `\\`, "\n", `\n`, "\r", `\r`, "\t", `\t`).Replace(v)
+	switch {
+	case !strings.Contains(v, `"`):
+		return `"` + v + `"`, nil
+	case !strings.Contains(v, `'`):
+		return `'` + v + `'`, nil
+	default:
+		return "", errors.New(`contains both ' and " and cannot be written to a MySQL option file`)
+	}
 }
 
 func findMysqldump(configured string) (string, error) {

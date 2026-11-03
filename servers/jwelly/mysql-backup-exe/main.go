@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/robfig/cron/v3"
@@ -139,22 +140,30 @@ func runDaemon(cfg *Config, notifier Notifier) {
 		CurrentVersion: updater.ParseVersion(version),
 	}, cancel)
 
-	c := cron.New(cron.WithChain(cron.SkipIfStillRunning(cron.DiscardLogger)))
+	c := cron.New()
+	skipIfRunning := cron.SkipIfStillRunning(cron.DiscardLogger)
 	scheduled := 0
+	var startup []cron.Job
 	for _, db := range cfg.Databases {
 		if db.Cron == "" {
 			log.Printf("[%s] no cron set, skipped in daemon mode", db.Name)
 			continue
 		}
-		if _, err := c.AddFunc(db.Cron, func() {
+		// The same wrapped job runs from cron and at startup, so one database
+		// is never backed up twice at the same time.
+		job := skipIfRunning(cron.FuncJob(func() {
 			res := RunBackup(ctx, db, notifier)
 			reportDaemonResult(res, notifier)
-		}); err != nil {
+		}))
+		if _, err := c.AddJob(db.Cron, job); err != nil {
 			log.Printf("[%s] cannot schedule %q: %v", db.Name, db.Cron, err)
 			continue
 		}
 		scheduled++
 		log.Printf("[%s] scheduled: %s", db.Name, db.Cron)
+		if db.RunOnStart {
+			startup = append(startup, job)
+		}
 	}
 	if scheduled == 0 {
 		fmt.Fprintln(os.Stderr, "ERROR: no database has a valid cron schedule; nothing to run in daemon mode")
@@ -164,9 +173,20 @@ func runDaemon(cfg *Config, notifier Notifier) {
 
 	c.Start()
 	log.Println("backup daemon started")
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		// One after another, so the database server carries one dump at a time.
+		for _, job := range startup {
+			if ctx.Err() != nil {
+				return
+			}
+			job.Run()
+		}
+	})
 	<-ctx.Done()
 	log.Println("shutting down, waiting for running backups to finish...")
 	<-c.Stop().Done()
+	wg.Wait()
 	log.Println("mysql-backup-exe stopped")
 }
 

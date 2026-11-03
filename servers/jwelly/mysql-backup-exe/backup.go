@@ -38,11 +38,21 @@ func (r *Result) OK() bool {
 
 // RunBackup dumps one database and delivers the file to every destination. A
 // failing destination does not stop the others. notify is called for problems
-// the user must act on (an unusable local folder).
+// the user must act on (an unusable local folder). The whole run is bounded by
+// db.Timeout().
 func RunBackup(ctx context.Context, db *DatabaseConfig, notify Notifier) *Result {
 	start := time.Now()
 	res := &Result{Name: db.Name}
 	defer func() { res.Duration = time.Since(start) }()
+
+	ctx, cancel := context.WithTimeout(ctx, db.Timeout())
+	defer cancel()
+	timedOut := func(err error) error {
+		if err != nil && errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return fmt.Errorf("timed out after %s (timeoutMinutes): %w", db.Timeout(), err)
+		}
+		return err
+	}
 
 	tmp, err := os.MkdirTemp("", "mysql-backup-*")
 	if err != nil {
@@ -54,7 +64,7 @@ func RunBackup(ctx context.Context, db *DatabaseConfig, notify Notifier) *Result
 	log.Printf("[%s] dumping %s@%s...", db.Name, db.MysqlConfig.Database, db.MysqlConfig.Host)
 	file, engine, err := DumpToFile(ctx, db, tmp)
 	if err != nil {
-		res.Err = err
+		res.Err = timedOut(err)
 		return res
 	}
 	res.Engine = engine
@@ -66,7 +76,7 @@ func RunBackup(ctx context.Context, db *DatabaseConfig, notify Notifier) *Result
 	for i := range db.Destinations {
 		d := &db.Destinations[i]
 		log.Printf("[%s] delivering to %s", db.Name, d.Label())
-		err := Deliver(ctx, d, file, db.Name, db.RetryCount())
+		err := timedOut(Deliver(ctx, d, file, db.Name, db.RetryCount()))
 		if err != nil && errors.Is(err, errDestUnavailable) && notify != nil {
 			notify.Notify("Backup folder unavailable", fmt.Sprintf("%s: %v", db.Name, err))
 		}

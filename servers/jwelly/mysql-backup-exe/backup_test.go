@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 type recordingNotifier struct {
@@ -211,5 +212,27 @@ func TestRunQuickExitCodes(t *testing.T) {
 	bad.Name = "bad"
 	if code := runQuick(&Config{Databases: []*DatabaseConfig{good, bad}}, &recordingNotifier{}); code != 1 {
 		t.Errorf("exit code = %d, want 1 when any backup fails", code)
+	}
+}
+
+func TestRunBackupTimesOut(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses a shell script as mysqldump")
+	}
+	// exec, so the context kill reaches the process that holds stdout.
+	p := filepath.Join(t.TempDir(), "slow-mysqldump.sh")
+	if err := os.WriteFile(p, []byte("#!/bin/sh\nexec sleep 30\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	db := bkDB(t, p, Destination{Type: destLocal, Path: t.TempDir()})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+	res := RunBackup(ctx, db, nil)
+	if res.Err == nil || !strings.Contains(res.Err.Error(), "timed out after") {
+		t.Fatalf("Err = %v, want a timeout", res.Err)
+	}
+	if res.Duration > 10*time.Second {
+		t.Errorf("backup ran for %s after its deadline", res.Duration)
 	}
 }

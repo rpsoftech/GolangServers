@@ -197,11 +197,12 @@ func TestDumpToFileMysqldumpSuccess(t *testing.T) {
 	scriptDir := t.TempDir()
 	script := writeFakeMysqldump(t, scriptDir,
 		`echo "CREATE TABLE t (a int);"
-echo "-- pwd=$MYSQL_PWD"
+echo "-- cnf=$(tr '\n' ' ' < "${1#--defaults-extra-file=}")"
+echo "-- env=$MYSQL_PWD"
 echo "-- args=$*"
 echo "-- Dump completed on x"
 `,
-		"echo CREATE TABLE t (a int);\r\necho -- pwd=%MYSQL_PWD%\r\necho -- args=%*\r\necho -- Dump completed on x\r\n")
+		"echo CREATE TABLE t (a int);\r\necho -- env=%MYSQL_PWD%\r\necho -- args=%*\r\necho -- Dump completed on x\r\n")
 
 	for _, engine := range []string{engineAuto, engineMysqldump} {
 		out := t.TempDir()
@@ -220,13 +221,23 @@ echo "-- Dump completed on x"
 		if !strings.Contains(got, "CREATE TABLE t (a int);") {
 			t.Errorf("dump content missing: %q", got)
 		}
-		if !strings.Contains(got, "-- pwd=s3cr3t-pw") {
-			t.Errorf("MYSQL_PWD not passed to mysqldump: %q", got)
+		if runtime.GOOS != "windows" && !strings.Contains(got, `-- cnf=[client] password="s3cr3t-pw"`) {
+			t.Errorf("password not passed to mysqldump in the option file: %q", got)
+		}
+		if env := firstLine(got[strings.Index(got, "-- env="):]); env != "-- env=" {
+			t.Errorf("password leaked into the environment: %q", env)
 		}
 		args := got[strings.Index(got, "-- args="):]
 		args = firstLine(args)
 		if strings.Contains(args, "s3cr3t-pw") {
 			t.Errorf("password leaked on the command line: %q", args)
+		}
+		first, _, _ := strings.Cut(strings.TrimPrefix(args, "-- args="), " ")
+		optionFile, ok := strings.CutPrefix(first, "--defaults-extra-file=")
+		if !ok {
+			t.Errorf("--defaults-extra-file must be the first argument: %q", args)
+		} else if _, err := os.Stat(optionFile); !os.IsNotExist(err) {
+			t.Errorf("option file %s not removed after the dump (stat err %v)", optionFile, err)
 		}
 		for _, want := range []string{"--host=127.0.0.1", "--port=1", "--user=u", "--single-transaction", "--routines", "--triggers", "--events"} {
 			if !strings.Contains(args, want) {
@@ -336,4 +347,45 @@ func TestDumpToFileFallbackAndFailures(t *testing.T) {
 			t.Errorf("native engine should not run after cancellation: %v", err)
 		}
 	})
+}
+
+func TestOptionValue(t *testing.T) {
+	cases := map[string]string{
+		"":           `""`,
+		"plain":      `"plain"`,
+		`a"b`:        `'a"b'`,
+		"it's":       `"it's"`,
+		`back\slash`: `"back\\slash"`,
+		"a#b c":      `"a#b c"`,
+		"new\nline":  `"new\nline"`,
+	}
+	for in, want := range cases {
+		got, err := optionValue(in)
+		if err != nil || got != want {
+			t.Errorf("optionValue(%q) = %q, %v; want %q", in, got, err, want)
+		}
+	}
+	if _, err := optionValue(`both ' and "`); err == nil {
+		t.Error("value with both quote characters must be rejected")
+	}
+}
+
+func TestWriteOptionFile(t *testing.T) {
+	p, err := writeOptionFile(`pa"ss`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(p)
+	b, err := os.ReadFile(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "[client]\npassword='pa\"ss'\n"; string(b) != want {
+		t.Errorf("content = %q, want %q", b, want)
+	}
+	if runtime.GOOS != "windows" {
+		if st, _ := os.Stat(p); st.Mode().Perm() != 0o600 {
+			t.Errorf("mode = %v, want 0600", st.Mode().Perm())
+		}
+	}
 }
