@@ -62,7 +62,7 @@ func (nativeEngine) Dump(ctx context.Context, db *DatabaseConfig, w io.Writer) (
 	}
 	defer conn.ExecContext(context.WithoutCancel(ctx), "ROLLBACK")
 
-	d := &nativeDumper{ctx: ctx, conn: conn, schema: m.Database, out: bufio.NewWriterSize(w, 256<<10)}
+	d := &nativeDumper{ctx: ctx, conn: conn, schema: m.Database, stripDefiner: db.StripDefiner, out: bufio.NewWriterSize(w, 256<<10)}
 	if err := d.run(); err != nil {
 		return err
 	}
@@ -70,10 +70,11 @@ func (nativeEngine) Dump(ctx context.Context, db *DatabaseConfig, w io.Writer) (
 }
 
 type nativeDumper struct {
-	ctx    context.Context
-	conn   *sql.Conn
-	schema string
-	out    *bufio.Writer
+	ctx          context.Context
+	conn         *sql.Conn
+	schema       string
+	stripDefiner bool
+	out          *bufio.Writer
 }
 
 func (d *nativeDumper) printf(format string, a ...any) { fmt.Fprintf(d.out, format, a...) }
@@ -380,9 +381,17 @@ func (d *nativeDumper) dumpViews(views []string) error {
 			d.printf("-- view %s skipped: definition hidden (insufficient privileges)\n\n", quoteIdent(v))
 			continue
 		}
-		d.printf("--\n-- View %s\n--\n\nDROP VIEW IF EXISTS %s;\n%s;\n\n", quoteIdent(v), quoteIdent(v), defs[v])
+		d.printf("--\n-- View %s\n--\n\nDROP VIEW IF EXISTS %s;\n%s;\n\n", quoteIdent(v), quoteIdent(v), d.definition(defs[v]))
 	}
 	return nil
+}
+
+// definition returns a SHOW CREATE statement as it goes into the dump.
+func (d *nativeDumper) definition(def string) string {
+	if d.stripDefiner {
+		return stripDefiner(def)
+	}
+	return def
 }
 
 func (d *nativeDumper) writeDelimited(kind, name, def string) {
@@ -390,7 +399,7 @@ func (d *nativeDumper) writeDelimited(kind, name, def string) {
 		d.printf("-- %s %s skipped: definition hidden (insufficient privileges)\n\n", kind, quoteIdent(name))
 		return
 	}
-	d.printf("DROP %s IF EXISTS %s;\nDELIMITER ;;\n%s;;\nDELIMITER ;\n\n", kind, quoteIdent(name), def)
+	d.printf("DROP %s IF EXISTS %s;\nDELIMITER ;;\n%s;;\nDELIMITER ;\n\n", kind, quoteIdent(name), d.definition(def))
 }
 
 func (d *nativeDumper) dumpRoutines() error {

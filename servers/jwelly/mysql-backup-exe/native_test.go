@@ -48,6 +48,16 @@ func TestQuoteIdent(t *testing.T) {
 	}
 }
 
+func TestDumperDefinitionHonoursStripDefiner(t *testing.T) {
+	def := "CREATE DEFINER=`root`@`localhost` PROCEDURE `p`() SELECT 1"
+	if got := (&nativeDumper{}).definition(def); got != def {
+		t.Errorf("DEFINER removed although stripDefiner is off: %q", got)
+	}
+	if got := (&nativeDumper{stripDefiner: true}).definition(def); got != "CREATE PROCEDURE `p`() SELECT 1" {
+		t.Errorf("DEFINER kept although stripDefiner is on: %q", got)
+	}
+}
+
 func TestWriteQuoted(t *testing.T) {
 	cases := []struct{ in, want string }{
 		{"plain", `'plain'`},

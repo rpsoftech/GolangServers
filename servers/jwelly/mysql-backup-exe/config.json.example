@@ -11,8 +11,11 @@
       },
       "engine": "auto",
       "mysqldumpPath": "",
+      "stripDefiner": false,
       "cron": "0 2 * * *",
+      "runOnStart": false,
       "retries": 3,
+      "timeoutMinutes": 360,
       "destinations": [
         {
           "type": "fileServer",
@@ -23,7 +26,8 @@
         {
           "type": "local",
           "path": "D:\\Backups\\jwelly",
-          "keepLast": 7
+          "keepLast": 7,
+          "keepDays": 0
         }
       ]
     }

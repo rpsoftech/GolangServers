@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"mime"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -321,15 +322,17 @@ func setupPruneDir(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
 	for _, n := range []string{
-		"db-20240101.sql.gz", "db-20240102.sql.gz", "db-20240103.sql.gz", "db-20240104.sql.gz",
-		"other-20200101.sql.gz", "db-20240101.txt", "db-notes.sql", "db-20240105.sql.gz.part",
+		"db-20240101-020000.sql.gz", "db-20240102-020000.sql.gz", "db-20240103-020000.sql.gz", "db-20240104-020000.sql.gz",
+		"other-20200101-020000.sql.gz", "db-20240101.txt", "db-notes.sql", "db-20240105-020000.sql.gz.part",
+		// another database whose name starts with "db-" must not be pruned
+		"db-x-20200101-020000.sql.gz",
 	} {
 		if err := os.WriteFile(filepath.Join(dir, n), []byte("x"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
 	// a directory that looks like a backup must be left alone
-	if err := os.Mkdir(filepath.Join(dir, "db-20240100.sql.gz"), 0o755); err != nil {
+	if err := os.Mkdir(filepath.Join(dir, "db-20240100-020000.sql.gz"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	return dir
@@ -351,12 +354,12 @@ func listNames(t *testing.T, dir string) []string {
 
 func TestPruneLocal(t *testing.T) {
 	dir := setupPruneDir(t)
-	if err := pruneLocal(dir, "db", 2); err != nil {
+	if err := pruneLocal(dir, "db", 2, 0); err != nil {
 		t.Fatal(err)
 	}
 	want := []string{
-		"db-20240100.sql.gz", "db-20240101.txt", "db-20240103.sql.gz", "db-20240104.sql.gz",
-		"db-20240105.sql.gz.part", "db-notes.sql", "other-20200101.sql.gz",
+		"db-20240100-020000.sql.gz", "db-20240101.txt", "db-20240103-020000.sql.gz", "db-20240104-020000.sql.gz",
+		"db-20240105-020000.sql.gz.part", "db-notes.sql", "db-x-20200101-020000.sql.gz", "other-20200101-020000.sql.gz",
 	}
 	if got := listNames(t, dir); !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v\nwant %v", got, want)
@@ -366,7 +369,7 @@ func TestPruneLocal(t *testing.T) {
 func TestPruneLocalFewerThanKeep(t *testing.T) {
 	dir := setupPruneDir(t)
 	before := listNames(t, dir)
-	if err := pruneLocal(dir, "db", 10); err != nil {
+	if err := pruneLocal(dir, "db", 10, 0); err != nil {
 		t.Fatal(err)
 	}
 	if got := listNames(t, dir); !reflect.DeepEqual(got, before) {
@@ -375,14 +378,57 @@ func TestPruneLocalFewerThanKeep(t *testing.T) {
 }
 
 func TestPruneLocalMissingDir(t *testing.T) {
-	if err := pruneLocal(filepath.Join(t.TempDir(), "nope"), "db", 1); err == nil {
+	if err := pruneLocal(filepath.Join(t.TempDir(), "nope"), "db", 1, 0); err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestPruneLocalKeepDays(t *testing.T) {
+	dir := t.TempDir()
+	name := func(age time.Duration) string {
+		return "db-" + time.Now().Add(-age).Format(backupTimeLayout) + ".sql.gz"
+	}
+	day := 24 * time.Hour
+	recent, older, oldest := name(day), name(10*day), name(40*day)
+	for _, n := range []string{recent, older, oldest} {
+		if err := os.WriteFile(filepath.Join(dir, n), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := pruneLocal(dir, "db", 0, 30); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := listNames(t, dir), []string{older, recent}; !reflect.DeepEqual(got, want) {
+		t.Errorf("keepDays 30: got %v, want %v", got, want)
+	}
+
+	// keepLast and keepDays combine: either rule deletes.
+	if err := pruneLocal(dir, "db", 5, 7); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := listNames(t, dir), []string{recent}; !reflect.DeepEqual(got, want) {
+		t.Errorf("keepDays 7: got %v, want %v", got, want)
+	}
+}
+
+func TestPruneLocalAlwaysKeepsNewest(t *testing.T) {
+	dir := t.TempDir()
+	n := "db-20200101-020000.sql.gz"
+	if err := os.WriteFile(filepath.Join(dir, n), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := pruneLocal(dir, "db", 0, 1); err != nil {
+		t.Fatal(err)
+	}
+	if got := listNames(t, dir); !reflect.DeepEqual(got, []string{n}) {
+		t.Errorf("newest backup removed: %v", got)
 	}
 }
 
 func TestDeliverLocalKeepLast(t *testing.T) {
 	src := t.TempDir()
-	newName := "db-20240110.sql.gz"
+	newName := "db-20240110-020000.sql.gz"
 	writeRandomFile(t, src, newName, 10)
 
 	t.Run("keep 2", func(t *testing.T) {
@@ -392,8 +438,8 @@ func TestDeliverLocalKeepLast(t *testing.T) {
 			t.Fatal(err)
 		}
 		want := []string{
-			"db-20240100.sql.gz", "db-20240101.txt", "db-20240104.sql.gz", "db-20240105.sql.gz.part",
-			"db-20240110.sql.gz", "db-notes.sql", "other-20200101.sql.gz",
+			"db-20240100-020000.sql.gz", "db-20240101.txt", "db-20240104-020000.sql.gz", "db-20240105-020000.sql.gz.part",
+			"db-20240110-020000.sql.gz", "db-notes.sql", "db-x-20200101-020000.sql.gz", "other-20200101-020000.sql.gz",
 		}
 		if got := listNames(t, dir); !reflect.DeepEqual(got, want) {
 			t.Errorf("got %v\nwant %v", got, want)
@@ -465,5 +511,97 @@ func TestDestLabelStrings(t *testing.T) {
 		if got := c.d.Label(); got != c.want {
 			t.Errorf("Label() = %q, want %q", got, c.want)
 		}
+	}
+}
+
+func shortStallTimeout(t *testing.T, d time.Duration) {
+	t.Helper()
+	old := uploadStallTimeout
+	uploadStallTimeout = d
+	t.Cleanup(func() { uploadStallTimeout = old })
+}
+
+func TestWatchStallCancelsIdleUpload(t *testing.T) {
+	shortStallTimeout(t, 50*time.Millisecond)
+	pr, pw := io.Pipe()
+	defer pw.Close()
+	r := &progressReader{r: pr}
+	r.touch()
+	ctx, cancel := context.WithCancelCause(context.Background())
+	defer cancel(nil)
+	go watchStall(ctx, cancel, r)
+	select {
+	case <-ctx.Done():
+	case <-time.After(5 * time.Second):
+		t.Fatal("idle upload was not cancelled")
+	}
+	if !errors.Is(context.Cause(ctx), errUploadStalled) {
+		t.Errorf("cause = %v, want errUploadStalled", context.Cause(ctx))
+	}
+}
+
+func TestWatchStallStopsOnceFileIsSent(t *testing.T) {
+	shortStallTimeout(t, 50*time.Millisecond)
+	r := &progressReader{r: strings.NewReader("data")}
+	r.touch()
+	if _, err := io.ReadAll(r); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancelCause(context.Background())
+	defer cancel(nil)
+	done := make(chan struct{})
+	go func() { watchStall(ctx, cancel, r); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("watcher kept running after the file was sent")
+	}
+	if ctx.Err() != nil {
+		t.Errorf("upload cancelled after the file was sent: %v", context.Cause(ctx))
+	}
+}
+
+func TestUploadFileStalledServer(t *testing.T) {
+	shortStallTimeout(t, 300*time.Millisecond)
+	// A server that accepts the connection but never reads: once the socket
+	// buffers are full, no more file data can be sent.
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	accepted := make(chan net.Conn, 16)
+	go func() {
+		defer close(accepted)
+		for {
+			c, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			accepted <- c
+		}
+	}()
+	defer func() {
+		ln.Close()
+		for c := range accepted {
+			c.Close()
+		}
+	}()
+
+	// Sparse, so the test does not write 256 MiB to disk.
+	file := filepath.Join(t.TempDir(), "big.sql.gz")
+	if err := os.WriteFile(file, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Truncate(file, 256<<20); err != nil {
+		t.Fatal(err)
+	}
+
+	start := time.Now()
+	err = uploadFile(context.Background(), &Destination{URL: "http://" + ln.Addr().String()}, file)
+	if !errors.Is(err, errUploadStalled) {
+		t.Fatalf("err = %v, want errUploadStalled", err)
+	}
+	if took := time.Since(start); took > 30*time.Second {
+		t.Errorf("stall detected only after %s", took)
 	}
 }

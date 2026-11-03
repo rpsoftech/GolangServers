@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/robfig/cron/v3"
 )
@@ -20,6 +21,7 @@ const (
 	destLocal      = "local"
 
 	defaultRetries = 3
+	defaultTimeout = 6 * time.Hour
 )
 
 type Config struct {
@@ -35,13 +37,25 @@ type MysqlConfig struct {
 }
 
 type DatabaseConfig struct {
-	Name          string        `json:"name"`
-	MysqlConfig   MysqlConfig   `json:"mysqlConfig"`
-	Engine        string        `json:"engine"`
-	MysqldumpPath string        `json:"mysqldumpPath"`
-	Cron          string        `json:"cron"`
-	Retries       *int          `json:"retries"`
-	Destinations  []Destination `json:"destinations"`
+	Name          string      `json:"name"`
+	MysqlConfig   MysqlConfig `json:"mysqlConfig"`
+	Engine        string      `json:"engine"`
+	MysqldumpPath string      `json:"mysqldumpPath"`
+	// StripDefiner removes the DEFINER clause from views, routines, triggers
+	// and events, so the dump restores on a server that lacks the original
+	// user. Off by default: restored objects then belong to the user running
+	// the restore, and SQL SECURITY DEFINER objects run with that user's
+	// privileges.
+	StripDefiner bool   `json:"stripDefiner"`
+	Cron         string `json:"cron"`
+	// RunOnStart also backs the database up once when the daemon starts.
+	RunOnStart bool `json:"runOnStart"`
+	Retries    *int `json:"retries"`
+	// TimeoutMinutes caps one whole backup (dump and every destination), so a
+	// hung database or file server cannot hold the cron job forever. 0 means
+	// the default of 360.
+	TimeoutMinutes int           `json:"timeoutMinutes"`
+	Destinations   []Destination `json:"destinations"`
 }
 
 // Destination is one place a finished backup is delivered. Which fields apply
@@ -54,9 +68,10 @@ type Destination struct {
 	Token      string `json:"token"`
 	FolderPath string `json:"folderPath"`
 
-	// local
+	// local; KeepLast and KeepDays of 0 disable that rule
 	Path     string `json:"path"`
 	KeepLast int    `json:"keepLast"`
+	KeepDays int    `json:"keepDays"`
 }
 
 func (d *Destination) Label() string {
@@ -74,6 +89,13 @@ func (d *DatabaseConfig) RetryCount() int {
 		return defaultRetries
 	}
 	return max(*d.Retries, 0)
+}
+
+func (d *DatabaseConfig) Timeout() time.Duration {
+	if d.TimeoutMinutes <= 0 {
+		return defaultTimeout
+	}
+	return time.Duration(d.TimeoutMinutes) * time.Minute
 }
 
 // LoadConfig reads and validates the config file. Every problem found is
@@ -152,9 +174,14 @@ func (d *DatabaseConfig) validate() []string {
 		if _, err := cron.ParseStandard(d.Cron); err != nil {
 			p = append(p, fmt.Sprintf("cron %q: %v", d.Cron, err))
 		}
+	} else if d.RunOnStart {
+		p = append(p, "runOnStart needs cron (daemon mode only runs scheduled databases)")
 	}
 	if d.Retries != nil && *d.Retries < 0 {
 		p = append(p, "retries must not be negative")
+	}
+	if d.TimeoutMinutes < 0 {
+		p = append(p, "timeoutMinutes must not be negative")
 	}
 	if len(d.Destinations) == 0 {
 		p = append(p, "at least one destination is required")
@@ -172,6 +199,9 @@ func (d *DatabaseConfig) validate() []string {
 			}
 			if dest.KeepLast < 0 {
 				p = append(p, fmt.Sprintf("destinations[%d]: keepLast must not be negative", i))
+			}
+			if dest.KeepDays < 0 {
+				p = append(p, fmt.Sprintf("destinations[%d]: keepDays must not be negative", i))
 			}
 		default:
 			p = append(p, fmt.Sprintf("destinations[%d]: type %q must be fileServer or local", i, dest.Type))

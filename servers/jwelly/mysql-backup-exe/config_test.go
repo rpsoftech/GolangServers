@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func validDB() *DatabaseConfig {
@@ -58,6 +59,11 @@ func TestValidateRejectsProblems(t *testing.T) {
 		{"negative keepLast", func(d *DatabaseConfig) {
 			d.Destinations = []Destination{{Type: destLocal, Path: "x", KeepLast: -1}}
 		}, "keepLast"},
+		{"negative keepDays", func(d *DatabaseConfig) {
+			d.Destinations = []Destination{{Type: destLocal, Path: "x", KeepDays: -1}}
+		}, "keepDays"},
+		{"negative timeoutMinutes", func(d *DatabaseConfig) { d.TimeoutMinutes = -1 }, "timeoutMinutes"},
+		{"runOnStart without cron", func(d *DatabaseConfig) { d.RunOnStart = true }, "runOnStart needs cron"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -125,6 +131,26 @@ func TestRetryCount(t *testing.T) {
 	d.Retries = &five
 	if d.RetryCount() != 5 {
 		t.Errorf("explicit 5 must be honoured")
+	}
+}
+
+func TestTimeout(t *testing.T) {
+	d := &DatabaseConfig{}
+	if d.Timeout() != defaultTimeout {
+		t.Errorf("0 should give the default, got %s", d.Timeout())
+	}
+	d.TimeoutMinutes = 90
+	if d.Timeout() != 90*time.Minute {
+		t.Errorf("got %s, want 1h30m", d.Timeout())
+	}
+}
+
+func TestValidateAcceptsRunOnStartWithCron(t *testing.T) {
+	db := validDB()
+	db.Cron = "0 2 * * *"
+	db.RunOnStart = true
+	if err := (&Config{Databases: []*DatabaseConfig{db}}).Validate(); err != nil {
+		t.Fatal(err)
 	}
 }
 
