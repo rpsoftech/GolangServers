@@ -121,7 +121,8 @@ func copyFile(src, dst string) error {
 // pruneLocal deletes dbName's backups beyond the newest keepLast or older than
 // keepDays days; 0 disables a rule. The newest backup is always kept.
 //
-// Only names of exactly <dbName>-<timestamp>.sql.gz count, so databases
+// Only names of exactly <dbName>-<timestamp>.sql.gz (or .sql.gz.age when the
+// backup is encrypted) count, so databases
 // sharing a folder never prune each other ("shop" must not match
 // "shop-eu-..."). The timestamp in the name is the dump time and sorts
 // chronologically, so it gives both the order and the age.
@@ -130,7 +131,7 @@ func pruneLocal(dir, dbName string, keepLast, keepDays int) error {
 	if err != nil {
 		return err
 	}
-	pattern := regexp.MustCompile(`^` + regexp.QuoteMeta(dbName) + `-(\d{8}-\d{6})\.sql\.gz$`)
+	pattern := regexp.MustCompile(`^` + regexp.QuoteMeta(dbName) + `-(\d{8}-\d{6})\.sql\.gz(?:\.age)?$`)
 	type backup struct {
 		name  string
 		taken time.Time

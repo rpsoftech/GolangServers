@@ -29,6 +29,10 @@ func main() {
 	)
 	flag.Parse()
 
+	if handled, code := runSubcommand(flag.Args(), os.Stdout, os.Stderr); handled {
+		os.Exit(code)
+	}
+
 	log.SetFlags(log.LstdFlags)
 	notifier := newNotifier()
 
@@ -95,7 +99,7 @@ func runQuick(cfg *Config, notifier Notifier) int {
 	fmt.Println("\n=== Backup summary ===")
 	for _, r := range results {
 		if r.OK() {
-			fmt.Printf("OK     %-20s %s via %s in %s\n", r.Name, humanSize(r.Size), r.Engine, r.Duration.Round(100*1e6))
+			fmt.Printf("OK     %-20s %s via %s in %s%s\n", r.Name, humanSize(r.Size), r.Engine, r.Duration.Round(100*1e6), encryptedNote(r))
 		} else {
 			failed++
 			fmt.Printf("FAILED %s\n", r.Name)
@@ -121,6 +125,13 @@ func runQuick(cfg *Config, notifier Notifier) int {
 	}
 	fmt.Printf("\nAll %d backup(s) completed.\n", len(results))
 	return 0
+}
+
+func encryptedNote(r *Result) string {
+	if r.Encrypted {
+		return " (encrypted)"
+	}
+	return ""
 }
 
 func indent(s string) string {
@@ -192,7 +203,7 @@ func runDaemon(cfg *Config, notifier Notifier) {
 
 func reportDaemonResult(r *Result, notifier Notifier) {
 	if r.OK() {
-		log.Printf("[%s] backup completed (%s via %s)", r.Name, humanSize(r.Size), r.Engine)
+		log.Printf("[%s] backup completed (%s via %s%s)", r.Name, humanSize(r.Size), r.Engine, encryptedNote(r))
 		return
 	}
 	var problems []string
