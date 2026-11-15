@@ -51,7 +51,7 @@ func TestValidateRejectsProblems(t *testing.T) {
 		{"bad cron", func(d *DatabaseConfig) { d.Cron = "not a cron" }, "cron"},
 		{"negative retries", func(d *DatabaseConfig) { d.Retries = &neg }, "retries"},
 		{"no destinations", func(d *DatabaseConfig) { d.Destinations = nil }, "at least one destination"},
-		{"unknown destination", func(d *DatabaseConfig) { d.Destinations = []Destination{{Type: "ftp"}} }, "fileServer or local"},
+		{"unknown destination", func(d *DatabaseConfig) { d.Destinations = []Destination{{Type: "ftp"}} }, "fileServer, local or r2"},
 		{"fileServer without token", func(d *DatabaseConfig) {
 			d.Destinations = []Destination{{Type: destFileServer, URL: "http://x"}}
 		}, "url and token"},

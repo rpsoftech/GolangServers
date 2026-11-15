@@ -4,6 +4,34 @@ Backs up the databases listed in `config.json` to gzipped SQL files. See
 `config.json.example`, `config.once.json.example` and
 `config.cron.linux.json.example`.
 
+## Destinations
+
+| type | needs | notes |
+|------|-------|-------|
+| `local` | `path` | `keepLast` / `keepDays` prune old backups |
+| `fileServer` | `url`, `token`, optional `folderPath` | multipart upload |
+| `r2` | `accountId` (or `endpoint`), `bucket`, `accessKeyId`, `secretAccessKey`, optional `folderPath` | Cloudflare R2; `keepLast` / `keepDays` prune old backups |
+
+```json
+{
+  "type": "r2",
+  "accountId": "your-cloudflare-account-id",
+  "bucket": "db-backups",
+  "accessKeyId": "...",
+  "secretAccessKey": "...",
+  "folderPath": "jwelly/main",
+  "keepLast": 14
+}
+```
+
+Create the R2 API token with access to that one bucket only. It needs read and
+delete permission on objects when `keepLast` or `keepDays` is set, because
+pruning lists and deletes old backups. Turn on versioning or Object Lock on the
+bucket if you want a compromised backup machine to be unable to destroy history.
+Uploads are retried (`retries`) and a transfer that sends no data for 10 minutes
+is aborted. Pruning only touches `<name>-<timestamp>.sql.gz[.age]` objects of
+the same database directly under `folderPath`.
+
 ## Encrypting backups (optional)
 
 Set `encryptTo` on a database to one or more age public keys. The backup is

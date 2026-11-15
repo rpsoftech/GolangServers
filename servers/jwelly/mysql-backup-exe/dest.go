@@ -44,22 +44,39 @@ func Deliver(ctx context.Context, d *Destination, file, dbName string, retries i
 	case destLocal:
 		return deliverLocal(d, file, dbName)
 	case destFileServer:
-		var err error
-		for attempt := 0; attempt <= retries; attempt++ {
-			if attempt > 0 {
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				case <-time.After(retryBackoff(attempt)):
-				}
-			}
-			if err = uploadFile(ctx, d, file); err == nil {
-				return nil
+		return withRetries(ctx, retries, func() error { return uploadFile(ctx, d, file) })
+	case destR2:
+		err := withRetries(ctx, retries, func() error { return uploadR2(ctx, d, file) })
+		if err != nil {
+			return err
+		}
+		if d.KeepLast > 0 || d.KeepDays > 0 {
+			if err := pruneR2(ctx, d, dbName); err != nil {
+				return fmt.Errorf("backup uploaded but pruning old backups failed: %w", err)
 			}
 		}
-		return fmt.Errorf("after %d attempt(s): %w", retries+1, err)
+		return nil
 	}
 	return fmt.Errorf("unknown destination type %q", d.Type)
+}
+
+// withRetries runs upload until it succeeds, waiting retryBackoff between
+// attempts, up to retries extra attempts.
+func withRetries(ctx context.Context, retries int, upload func() error) error {
+	var err error
+	for attempt := 0; attempt <= retries; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(retryBackoff(attempt)):
+			}
+		}
+		if err = upload(); err == nil {
+			return nil
+		}
+	}
+	return fmt.Errorf("after %d attempt(s): %w", retries+1, err)
 }
 
 // --- local folder ---
@@ -131,42 +148,58 @@ func pruneLocal(dir, dbName string, keepLast, keepDays int) error {
 	if err != nil {
 		return err
 	}
+	var names []string
+	for _, e := range entries {
+		if !e.IsDir() {
+			names = append(names, e.Name())
+		}
+	}
+	var errs []error
+	for _, name := range pruneCandidates(names, dbName, keepLast, keepDays) {
+		if err := os.Remove(filepath.Join(dir, name)); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// pruneCandidates picks which of names to delete: dbName's backups beyond the
+// newest keepLast or older than keepDays days. Names that are not dbName's
+// backups are never picked. Shared by the local folder and R2.
+func pruneCandidates(names []string, dbName string, keepLast, keepDays int) []string {
 	pattern := regexp.MustCompile(`^` + regexp.QuoteMeta(dbName) + `-(\d{8}-\d{6})\.sql\.gz(?:\.age)?$`)
 	type backup struct {
 		name  string
 		taken time.Time
 	}
 	var backups []backup
-	for _, e := range entries {
-		m := pattern.FindStringSubmatch(e.Name())
-		if e.IsDir() || m == nil {
+	for _, n := range names {
+		m := pattern.FindStringSubmatch(n)
+		if m == nil {
 			continue
 		}
 		taken, err := time.ParseInLocation(backupTimeLayout, m[1], time.Local)
 		if err != nil {
 			continue
 		}
-		backups = append(backups, backup{e.Name(), taken})
+		backups = append(backups, backup{n, taken})
 	}
 	// Newest first.
 	sort.Slice(backups, func(i, j int) bool { return backups[i].name > backups[j].name })
 
 	cutoff := time.Now().AddDate(0, 0, -keepDays)
-	var errs []error
+	var doomed []string
 	for i, b := range backups {
 		if i == 0 {
 			continue
 		}
 		tooMany := keepLast > 0 && i >= keepLast
 		tooOld := keepDays > 0 && b.taken.Before(cutoff)
-		if !tooMany && !tooOld {
-			continue
-		}
-		if err := os.Remove(filepath.Join(dir, b.name)); err != nil {
-			errs = append(errs, err)
+		if tooMany || tooOld {
+			doomed = append(doomed, b.name)
 		}
 	}
-	return errors.Join(errs...)
+	return doomed
 }
 
 // --- file server ---
