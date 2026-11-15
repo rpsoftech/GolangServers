@@ -197,8 +197,10 @@ func TestLoadConfig(t *testing.T) {
 
 // The shipped example must stay loadable (apart from the empty password and
 // placeholder URL, which are valid values).
-func TestExampleConfigIsValid(t *testing.T) {
-	if _, err := LoadConfig("config.json.example"); err != nil {
-		t.Fatalf("config.json.example: %v", err)
+func TestExampleConfigsAreValid(t *testing.T) {
+	for _, name := range []string{"config.json.example", "config.once.json.example", "config.cron.linux.json.example"} {
+		if _, err := LoadConfig(name); err != nil {
+			t.Errorf("%s: %v", name, err)
+		}
 	}
 }
