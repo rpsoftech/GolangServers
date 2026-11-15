@@ -1,0 +1,29 @@
+{
+  "databases": [
+    {
+      "name": "jwelly-main",
+      "mysqlConfig": {
+        "MYSQL_HOST": "127.0.0.1",
+        "MYSQL_PORT": 3306,
+        "MYSQL_USERNAME": "root",
+        "MYSQL_PASSWORD": "",
+        "MYSQL_DATABASE": "your_database"
+      },
+      "engine": "auto",
+      "retries": 3,
+      "destinations": [
+        {
+          "type": "local",
+          "path": "D:\\Backups\\jwelly",
+          "keepLast": 7
+        },
+        {
+          "type": "fileServer",
+          "url": "https://files.example.com/upload",
+          "token": "change-me",
+          "folderPath": "backups/jwelly"
+        }
+      ]
+    }
+  ]
+}
