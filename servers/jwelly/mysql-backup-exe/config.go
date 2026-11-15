@@ -54,8 +54,12 @@ type DatabaseConfig struct {
 	// TimeoutMinutes caps one whole backup (dump and every destination), so a
 	// hung database or file server cannot hold the cron job forever. 0 means
 	// the default of 360.
-	TimeoutMinutes int           `json:"timeoutMinutes"`
-	Destinations   []Destination `json:"destinations"`
+	TimeoutMinutes int `json:"timeoutMinutes"`
+	// EncryptTo lists age public keys (age1...). When set, the backup is
+	// encrypted once and every destination receives the .sql.gz.age file;
+	// any one of the matching secret keys can open it.
+	EncryptTo    []string      `json:"encryptTo"`
+	Destinations []Destination `json:"destinations"`
 }
 
 // Destination is one place a finished backup is delivered. Which fields apply
@@ -176,6 +180,11 @@ func (d *DatabaseConfig) validate() []string {
 		}
 	} else if d.RunOnStart {
 		p = append(p, "runOnStart needs cron (daemon mode only runs scheduled databases)")
+	}
+	if len(d.EncryptTo) > 0 {
+		if _, err := parseRecipients(d.EncryptTo); err != nil {
+			p = append(p, err.Error())
+		}
 	}
 	if d.Retries != nil && *d.Retries < 0 {
 		p = append(p, "retries must not be negative")

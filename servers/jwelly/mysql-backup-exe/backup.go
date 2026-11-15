@@ -15,10 +15,12 @@ type DestResult struct {
 }
 
 type Result struct {
-	Name     string
-	Engine   string
-	Size     int64
-	Duration time.Duration
+	Name   string
+	Engine string
+	Size   int64
+	// Encrypted is true when the delivered file was encrypted (encryptTo).
+	Encrypted bool
+	Duration  time.Duration
 	// Err is a dump failure; destination failures are in Dests.
 	Err   error
 	Dests []DestResult
@@ -72,6 +74,22 @@ func RunBackup(ctx context.Context, db *DatabaseConfig, notify Notifier) *Result
 		res.Size = st.Size()
 	}
 	log.Printf("[%s] dump ok via %s (%s gzipped)", db.Name, engine, humanSize(res.Size))
+
+	// Encrypt once, after the dump has been verified; every destination then
+	// gets the same encrypted file.
+	if len(db.EncryptTo) > 0 {
+		recipients, err := parseRecipients(db.EncryptTo)
+		if err == nil {
+			err = encryptFile(file, file+encryptedSuffix, recipients)
+		}
+		if err != nil {
+			res.Err = fmt.Errorf("encrypt backup: %w", err)
+			return res
+		}
+		file += encryptedSuffix
+		res.Encrypted = true
+		log.Printf("[%s] encrypted for %d key(s)", db.Name, len(recipients))
+	}
 
 	for i := range db.Destinations {
 		d := &db.Destinations[i]
