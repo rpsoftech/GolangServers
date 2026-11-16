@@ -4,6 +4,7 @@ go 1.26.0
 
 require (
 	cloud.google.com/go/firestore v1.29.0
+	filippo.io/age v1.3.2
 	firebase.google.com/go/v4 v4.22.0
 	fyne.io/fyne/v2 v2.8.2
 	github.com/fxamacker/cbor/v2 v2.9.6
@@ -20,6 +21,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/jpillora/chisel v1.13.0
 	github.com/mdp/qrterminal/v3 v3.2.1
+	github.com/minio/minio-go/v7 v7.4.1
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/prplecake/go-thumbnail v0.1.6
 	github.com/redis/go-redis/v9 v9.23.0
@@ -47,7 +49,6 @@ require (
 	cloud.google.com/go/longrunning v1.4.0 // indirect
 	cloud.google.com/go/monitoring v1.32.0 // indirect
 	cloud.google.com/go/storage v1.70.0 // indirect
-	filippo.io/age v1.3.2 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
 	filippo.io/hpke v0.4.0 // indirect
 	fyne.io/systray v1.12.3-0.20260810170012-af4e8e793ec4 // indirect
@@ -100,10 +101,14 @@ require (
 	github.com/jpillora/sizestr v1.0.0 // indirect
 	github.com/jsummers/gobmp v0.0.0-20230614200233-a9de23ed2e25 // indirect
 	github.com/klauspost/compress v1.20.3 // indirect
+	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
+	github.com/klauspost/crc32 v1.3.0 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect
 	github.com/mattn/go-colorable v0.1.16 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mattn/go-runewidth v0.0.31 // indirect
+	github.com/minio/crc64nvme v1.1.1 // indirect
+	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/molecule-man/go-brrr v1.3.1 // indirect
 	github.com/ncruces/go-strftime v1.1.0 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
@@ -112,6 +117,7 @@ require (
 	github.com/philhofer/fwd v1.2.1 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
+	github.com/rs/xid v1.6.0 // indirect
 	github.com/rs/zerolog v1.35.1 // indirect
 	github.com/rymdport/portal v0.4.2 // indirect
 	github.com/savsgio/gotils v0.0.0-20250924091648-bce9a52d7761 // indirect
@@ -129,6 +135,7 @@ require (
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	github.com/yuin/goldmark v1.8.6 // indirect
+	github.com/zeebo/xxh3 v1.1.0 // indirect
 	go.mau.fi/libsignal v0.2.2 // indirect
 	go.mau.fi/util v0.11.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
@@ -155,6 +162,7 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20261026165753-2ffab32bce7e // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20261026165753-2ffab32bce7e // indirect
 	google.golang.org/grpc v1.85.0 // indirect
+	gopkg.in/ini.v1 v1.67.3 // indirect
 	modernc.org/libc v1.79.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect

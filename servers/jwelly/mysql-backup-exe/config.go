@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -19,6 +21,7 @@ const (
 
 	destFileServer = "fileServer"
 	destLocal      = "local"
+	destR2         = "r2"
 
 	defaultRetries = 3
 	defaultTimeout = 6 * time.Hour
@@ -72,7 +75,15 @@ type Destination struct {
 	Token      string `json:"token"`
 	FolderPath string `json:"folderPath"`
 
-	// local; KeepLast and KeepDays of 0 disable that rule
+	// r2 (Cloudflare R2, S3-compatible). Give AccountID, or Endpoint to use
+	// another S3 endpoint. FolderPath is the key prefix.
+	AccountID       string `json:"accountId"`
+	Endpoint        string `json:"endpoint"`
+	Bucket          string `json:"bucket"`
+	AccessKeyID     string `json:"accessKeyId"`
+	SecretAccessKey string `json:"secretAccessKey"`
+
+	// local and r2; KeepLast and KeepDays of 0 disable that rule
 	Path     string `json:"path"`
 	KeepLast int    `json:"keepLast"`
 	KeepDays int    `json:"keepDays"`
@@ -84,8 +95,41 @@ func (d *Destination) Label() string {
 		return "fileServer " + d.URL
 	case destLocal:
 		return "local " + d.Path
+	case destR2:
+		return "r2 " + path.Join(d.Bucket, d.FolderPath)
 	}
 	return d.Type
+}
+
+func (d *Destination) validateR2(i int) []string {
+	var p []string
+	bad := func(format string, a ...any) {
+		p = append(p, fmt.Sprintf("destinations[%d]: ", i)+fmt.Sprintf(format, a...))
+	}
+	if d.AccountID == "" && d.Endpoint == "" {
+		bad("r2 needs accountId (or endpoint)")
+	}
+	if d.Bucket == "" || d.AccessKeyID == "" || d.SecretAccessKey == "" {
+		bad("r2 needs bucket, accessKeyId and secretAccessKey")
+	}
+	for _, v := range []string{d.AccountID, d.Endpoint, d.Bucket, d.AccessKeyID, d.SecretAccessKey} {
+		if strings.ContainsAny(v, "<>") {
+			bad("r2 still holds a placeholder value (%q)", v)
+			break
+		}
+	}
+	if d.Endpoint != "" {
+		if u, err := url.Parse(d.Endpoint); err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+			bad("r2 endpoint %q must be a full http(s) URL", d.Endpoint)
+		}
+	}
+	if d.KeepLast < 0 {
+		bad("keepLast must not be negative")
+	}
+	if d.KeepDays < 0 {
+		bad("keepDays must not be negative")
+	}
+	return p
 }
 
 func (d *DatabaseConfig) RetryCount() int {
@@ -212,8 +256,10 @@ func (d *DatabaseConfig) validate() []string {
 			if dest.KeepDays < 0 {
 				p = append(p, fmt.Sprintf("destinations[%d]: keepDays must not be negative", i))
 			}
+		case destR2:
+			p = append(p, dest.validateR2(i)...)
 		default:
-			p = append(p, fmt.Sprintf("destinations[%d]: type %q must be fileServer or local", i, dest.Type))
+			p = append(p, fmt.Sprintf("destinations[%d]: type %q must be fileServer, local or r2", i, dest.Type))
 		}
 	}
 	return p
