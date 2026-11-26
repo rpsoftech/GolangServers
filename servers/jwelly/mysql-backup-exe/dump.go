@@ -121,19 +121,7 @@ func (mysqldumpEngine) Dump(ctx context.Context, db *DatabaseConfig, w io.Writer
 		return err
 	}
 	defer os.Remove(optionFile)
-	cmd := exec.CommandContext(ctx, bin,
-		// mysqldump only accepts --defaults-extra-file as the first argument.
-		"--defaults-extra-file="+optionFile,
-		"--protocol=tcp",
-		"--host="+m.Host,
-		"--port="+strconv.Itoa(m.Port),
-		"--user="+m.Username,
-		"--single-transaction",
-		"--routines", "--triggers", "--events",
-		"--add-drop-table",
-		"--default-character-set=utf8mb4",
-		m.Database,
-	)
+	cmd := exec.CommandContext(ctx, bin, mysqldumpArgs(db, optionFile)...)
 	var stderr bytes.Buffer
 	var filter *definerFilter
 	cmd.Stdout = w
@@ -152,6 +140,27 @@ func (mysqldumpEngine) Dump(ctx context.Context, db *DatabaseConfig, w io.Writer
 		return filter.Flush()
 	}
 	return nil
+}
+
+// mysqldumpArgs builds the mysqldump command line. The database is last.
+func mysqldumpArgs(db *DatabaseConfig, optionFile string) []string {
+	m := db.MysqlConfig
+	args := []string{
+		// mysqldump only accepts --defaults-extra-file as the first argument.
+		"--defaults-extra-file=" + optionFile,
+		"--protocol=tcp",
+		"--host=" + m.Host,
+		"--port=" + strconv.Itoa(m.Port),
+		"--user=" + m.Username,
+		"--single-transaction",
+		"--routines", "--triggers", "--events",
+		"--add-drop-table",
+		"--default-character-set=utf8mb4",
+	}
+	if db.Compress {
+		args = append(args, "--compress")
+	}
+	return append(args, m.Database)
 }
 
 // writeOptionFile writes a MySQL option file holding password and returns its

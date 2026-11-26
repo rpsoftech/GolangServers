@@ -32,6 +32,44 @@ Uploads are retried (`retries`) and a transfer that sends no data for 10 minutes
 is aborted. Pruning only touches `<name>-<timestamp>.sql.gz[.age]` objects of
 the same database directly under `folderPath`.
 
+## Telegram reports (optional)
+
+Add a top-level `telegram` section next to `databases` to get a message for
+every backup result, success or failure, from both quick runs and the daemon:
+
+```json
+{
+  "telegram": { "botToken": "123456:ABC-from-BotFather", "chatId": -1001234567890 },
+  "databases": [ ... ]
+}
+```
+
+Create the bot with @BotFather, add it to the chat or group (or press Start in a
+private chat), and use the chat id. `chatId` may be a number or a string such as
+`"@mychannel"`. The message shows the database, size, engine, duration and each
+destination, or the first line of each error. A failed send is logged and never
+fails the backup. The bot token is a secret: keep `config.json` private. It is
+not printed in logs.
+
+## Updates
+
+A published build updates itself. The daemon checks every 5 minutes and exits
+after installing, so your service or scheduler must start it again. A quick run
+(one-time or started by cron or Task Scheduler) checks once at the start; when
+it installs a newer version it starts that version with the same arguments,
+waits for it and returns its exit code, so the backup runs with the new
+version. If the update server is unreachable the backup runs with the current
+version. Use `--no-update` to skip the check. Builds made locally never update.
+
+## Backing up over a remote link (optional)
+
+Backing up from another machine is much slower than on the database server,
+because every row crosses the network uncompressed. Set `"compress": true` on a
+database to ask MySQL to compress that traffic (`--compress` for `mysqldump`,
+`compress=true` for the built-in engine). It is off by default and brings
+nothing when the tool runs on the database server itself. Running the tool on
+the server, with `MYSQL_HOST` set to `127.0.0.1`, is still the fastest setup.
+
 ## Encrypting backups (optional)
 
 Set `encryptTo` on a database to one or more age public keys. The backup is

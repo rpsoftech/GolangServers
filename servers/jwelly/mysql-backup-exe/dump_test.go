@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"os"
@@ -179,6 +180,51 @@ func listDir(t *testing.T, dir string) []string {
 		names = append(names, e.Name())
 	}
 	return names
+}
+
+func TestMysqldumpArgsCompress(t *testing.T) {
+	db := testDB(engineMysqldump, "")
+	has := func(args []string, want string) bool {
+		for _, a := range args {
+			if a == want {
+				return true
+			}
+		}
+		return false
+	}
+	off := mysqldumpArgs(db, "opt.cnf")
+	if has(off, "--compress") {
+		t.Errorf("--compress must be off by default: %v", off)
+	}
+	db.Compress = true
+	on := mysqldumpArgs(db, "opt.cnf")
+	if !has(on, "--compress") {
+		t.Errorf("--compress missing when compress is set: %v", on)
+	}
+	if on[0] != "--defaults-extra-file=opt.cnf" || on[len(on)-1] != "d" {
+		t.Errorf("option file must be first and the database last: %v", on)
+	}
+}
+
+func TestNativeDSNCompress(t *testing.T) {
+	db := testDB(engineNative, "")
+	if strings.Contains(nativeDSN(db), "compress") {
+		t.Errorf("compress must be off by default: %s", nativeDSN(db))
+	}
+	db.Compress = true
+	if !strings.Contains(nativeDSN(db), "compress=true") {
+		t.Errorf("compress=true missing: %s", nativeDSN(db))
+	}
+}
+
+func TestCompressConfigParses(t *testing.T) {
+	var c Config
+	if err := json.Unmarshal([]byte(`{"databases":[{"name":"a","compress":true},{"name":"b"}]}`), &c); err != nil {
+		t.Fatal(err)
+	}
+	if !c.Databases[0].Compress || c.Databases[1].Compress {
+		t.Errorf("compress parsed wrong: %v %v", c.Databases[0].Compress, c.Databases[1].Compress)
+	}
 }
 
 func testDB(engine, script string) *DatabaseConfig {

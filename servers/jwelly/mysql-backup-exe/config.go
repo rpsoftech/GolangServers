@@ -28,6 +28,8 @@ const (
 )
 
 type Config struct {
+	// Telegram, when set, sends every backup result to a chat.
+	Telegram  *TelegramConfig   `json:"telegram"`
 	Databases []*DatabaseConfig `json:"databases"`
 }
 
@@ -49,8 +51,12 @@ type DatabaseConfig struct {
 	// user. Off by default: restored objects then belong to the user running
 	// the restore, and SQL SECURITY DEFINER objects run with that user's
 	// privileges.
-	StripDefiner bool   `json:"stripDefiner"`
-	Cron         string `json:"cron"`
+	StripDefiner bool `json:"stripDefiner"`
+	// Compress asks MySQL to compress the traffic between the server and this
+	// tool. It speeds up backups over a remote link and does nothing useful
+	// when the tool runs on the database server. Off by default.
+	Compress bool   `json:"compress"`
+	Cron     string `json:"cron"`
 	// RunOnStart also backs the database up once when the daemon starts.
 	RunOnStart bool `json:"runOnStart"`
 	Retries    *int `json:"retries"`
@@ -165,8 +171,14 @@ func LoadConfig(path string) (*Config, error) {
 
 func (c *Config) Validate() error {
 	var errs []error
+	if c.Telegram != nil {
+		for _, e := range c.Telegram.validate() {
+			errs = append(errs, fmt.Errorf("  %s", e))
+		}
+	}
 	if len(c.Databases) == 0 {
-		return errors.New("  databases: at least one entry is required")
+		errs = append(errs, errors.New("  databases: at least one entry is required"))
+		return errors.Join(errs...)
 	}
 	seen := map[string]bool{}
 	for i, db := range c.Databases {
