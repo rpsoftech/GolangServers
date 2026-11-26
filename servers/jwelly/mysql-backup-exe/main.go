@@ -25,6 +25,7 @@ func main() {
 		daemon     = flag.Bool("daemon", false, "run in the background and back up on each database's cron schedule")
 		configPath = flag.String("config", "", "path to the config file (default: config.json next to the executable)")
 		noPause    = flag.Bool("no-pause", false, "do not wait for Enter before closing (quick run)")
+		noUpdate   = flag.Bool("no-update", false, "skip the update check before a quick run")
 		_          = flag.Bool("dev", false, "accepted for compatibility with other tools; no effect")
 	)
 	flag.Parse()
@@ -34,6 +35,14 @@ func main() {
 	}
 
 	log.SetFlags(log.LstdFlags)
+	// A quick run updates itself first, so an old binary never reads a newer
+	// config; the daemon has its own background updater.
+	if !*daemon && !*noUpdate {
+		if code, updated := updateAndRestart(); updated {
+			finish(code, *noPause)
+			return
+		}
+	}
 	notifier := newNotifier()
 
 	cfgFile := resolveConfigPath(*configPath)
@@ -89,7 +98,9 @@ func runQuick(cfg *Config, notifier Notifier) int {
 
 	var results []*Result
 	for _, db := range cfg.Databases {
-		results = append(results, RunBackup(ctx, db, notifier))
+		res := RunBackup(ctx, db, notifier)
+		results = append(results, res)
+		notifyTelegram(ctx, cfg, res)
 		if ctx.Err() != nil {
 			break
 		}
@@ -165,6 +176,7 @@ func runDaemon(cfg *Config, notifier Notifier) {
 		job := skipIfRunning(cron.FuncJob(func() {
 			res := RunBackup(ctx, db, notifier)
 			reportDaemonResult(res, notifier)
+			notifyTelegram(ctx, cfg, res)
 		}))
 		if _, err := c.AddJob(db.Cron, job); err != nil {
 			log.Printf("[%s] cannot schedule %q: %v", db.Name, db.Cron, err)

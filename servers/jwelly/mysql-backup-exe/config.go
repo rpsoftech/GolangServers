@@ -28,6 +28,8 @@ const (
 )
 
 type Config struct {
+	// Telegram, when set, sends every backup result to a chat.
+	Telegram  *TelegramConfig   `json:"telegram"`
 	Databases []*DatabaseConfig `json:"databases"`
 }
 
@@ -169,8 +171,14 @@ func LoadConfig(path string) (*Config, error) {
 
 func (c *Config) Validate() error {
 	var errs []error
+	if c.Telegram != nil {
+		for _, e := range c.Telegram.validate() {
+			errs = append(errs, fmt.Errorf("  %s", e))
+		}
+	}
 	if len(c.Databases) == 0 {
-		return errors.New("  databases: at least one entry is required")
+		errs = append(errs, errors.New("  databases: at least one entry is required"))
+		return errors.Join(errs...)
 	}
 	seen := map[string]bool{}
 	for i, db := range c.Databases {
