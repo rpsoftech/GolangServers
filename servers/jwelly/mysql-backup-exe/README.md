@@ -70,6 +70,24 @@ database to ask MySQL to compress that traffic (`--compress` for `mysqldump`,
 nothing when the tool runs on the database server itself. Running the tool on
 the server, with `MYSQL_HOST` set to `127.0.0.1`, is still the fastest setup.
 
+`mysqldump` also asks the server several questions for every table, one after
+another, so a database with many tables is slow over a remote link even when it
+holds little data (each question costs one network round trip). Compression does
+not help with that. Instead set a top-level `"parallel"` number, next to
+`databases`, to back up that many databases at the same time:
+
+```json
+{ "parallel": 4, "databases": [ ... ] }
+```
+
+Allowed values are 1 to 16. Unset (or 0) keeps the old behaviour: a quick run
+goes one database after another, and the daemon puts no limit on schedules that
+fire together. With `parallel` set, both a quick run and the daemon (schedules
+and `runOnStart`) run at most that many backups at once. Each running backup is
+one more connection to the database server, so raise it gradually. It makes the
+whole run faster, not a single database. The summary and Telegram messages
+still list the databases in config order.
+
 ## Encrypting backups (optional)
 
 Set `encryptTo` on a database to one or more age public keys. The backup is

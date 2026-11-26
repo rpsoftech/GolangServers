@@ -29,7 +29,13 @@ const (
 
 type Config struct {
 	// Telegram, when set, sends every backup result to a chat.
-	Telegram  *TelegramConfig   `json:"telegram"`
+	Telegram *TelegramConfig `json:"telegram"`
+	// Parallel is how many databases are backed up at the same time (1 to 16).
+	// 0 or unset keeps the old behaviour: a quick run goes one database after
+	// another, and the daemon puts no limit on schedules that fire together.
+	// It speeds up backups over a remote link, where each dump mostly waits on
+	// the network; every running backup is one more connection to the server.
+	Parallel  int               `json:"parallel"`
 	Databases []*DatabaseConfig `json:"databases"`
 }
 
@@ -175,6 +181,9 @@ func (c *Config) Validate() error {
 		for _, e := range c.Telegram.validate() {
 			errs = append(errs, fmt.Errorf("  %s", e))
 		}
+	}
+	if c.Parallel < 0 || c.Parallel > maxParallel {
+		errs = append(errs, fmt.Errorf("  parallel: must be between 1 and %d (or 0 to leave it unset)", maxParallel))
 	}
 	if len(c.Databases) == 0 {
 		errs = append(errs, errors.New("  databases: at least one entry is required"))
