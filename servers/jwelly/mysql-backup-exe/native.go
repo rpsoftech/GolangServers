@@ -25,7 +25,8 @@ func (nativeEngine) Name() string { return engineNative }
 // maxInsertBytes caps one multi-row INSERT statement.
 const maxInsertBytes = 1 << 20
 
-func (nativeEngine) Dump(ctx context.Context, db *DatabaseConfig, w io.Writer) (err error) {
+// nativeDSN builds the connection string for the native engine.
+func nativeDSN(db *DatabaseConfig) string {
 	m := db.MysqlConfig
 	cfg := mysql.NewConfig()
 	cfg.User = m.Username
@@ -34,10 +35,18 @@ func (nativeEngine) Dump(ctx context.Context, db *DatabaseConfig, w io.Writer) (
 	cfg.Addr = fmt.Sprintf("%s:%d", m.Host, m.Port)
 	cfg.DBName = m.Database
 	cfg.Params = map[string]string{"charset": "utf8mb4"}
+	if db.Compress {
+		// The driver reads this from the DSN; it has no exported field.
+		cfg.Params["compress"] = "true"
+	}
 	// Dates, decimals and floats are read as the server's own text, so no
 	// precision is lost and zero dates survive.
+	return cfg.FormatDSN()
+}
 
-	pool, err := sql.Open("mysql", cfg.FormatDSN())
+func (nativeEngine) Dump(ctx context.Context, db *DatabaseConfig, w io.Writer) (err error) {
+	m := db.MysqlConfig
+	pool, err := sql.Open("mysql", nativeDSN(db))
 	if err != nil {
 		return err
 	}

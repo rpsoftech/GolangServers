@@ -32,6 +32,15 @@ Uploads are retried (`retries`) and a transfer that sends no data for 10 minutes
 is aborted. Pruning only touches `<name>-<timestamp>.sql.gz[.age]` objects of
 the same database directly under `folderPath`.
 
+## Backing up over a remote link (optional)
+
+Backing up from another machine is much slower than on the database server,
+because every row crosses the network uncompressed. Set `"compress": true` on a
+database to ask MySQL to compress that traffic (`--compress` for `mysqldump`,
+`compress=true` for the built-in engine). It is off by default and brings
+nothing when the tool runs on the database server itself. Running the tool on
+the server, with `MYSQL_HOST` set to `127.0.0.1`, is still the fastest setup.
+
 ## Encrypting backups (optional)
 
 Set `encryptTo` on a database to one or more age public keys. The backup is
