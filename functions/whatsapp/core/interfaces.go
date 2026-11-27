@@ -151,7 +151,7 @@ func (connection *WhatsappConnection) ConnectAndGetQRCode() {
 	if client.Store.ID == nil {
 		if whatsapp_config.Env.OPEN_BROWSER_FOR_SCAN {
 			go func(token string) {
-				log.Printf("Opening Browser for Token %s", token)
+				log.Printf("Opening Browser for Token %s", maskToken(token))
 				utility_functions.OpenBrowser(fmt.Sprintf("http://127.0.0.1:%s/scan/%s", env.GetServerPort(env.PORT_KEY), token))
 			}(connection.Token)
 		}
@@ -468,4 +468,13 @@ func AppendToOutPutFile(text string) {
 	if _, err = f.WriteString(text); err != nil {
 		log.Printf("[AppendToOutPutFile] write %q: %v (line: %q)", OutPutFilePath, err, text)
 	}
+}
+
+// maskToken hides most of an API token so it can be logged safely.
+func maskToken(token string) string {
+	const visible = 4
+	if len(token) <= visible {
+		return "***"
+	}
+	return token[:visible] + "***"
 }
