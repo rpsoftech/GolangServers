@@ -19,7 +19,7 @@ type WhatsappClientMessage struct {
 
 type ApiSendRequestBase struct {
 	From int      `json:"from" validate:"required"`
-	To   []string `json:"to" validate:"required"`
+	To   []string `json:"to" validate:"required,min=1"`
 	Wait int      `json:"wait"`
 }
 type SendTextMessage struct {
