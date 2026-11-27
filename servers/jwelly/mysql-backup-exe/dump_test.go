@@ -435,3 +435,43 @@ func TestWriteOptionFile(t *testing.T) {
 		}
 	}
 }
+
+func TestSupportsColumnStatistics(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses a shell script as a fake mysqldump")
+	}
+	dir := t.TempDir()
+	mk := func(name, help string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte("#!/bin/sh\necho '"+help+"'\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	if !supportsColumnStatistics(mk("new", "  --column-statistics Add COLUMN_STATISTICS")) {
+		t.Error("MySQL 8 style client not detected")
+	}
+	if supportsColumnStatistics(mk("old", "  --compress Use compression")) {
+		t.Error("old client reported as supporting --column-statistics")
+	}
+	if supportsColumnStatistics(filepath.Join(dir, "missing")) {
+		t.Error("missing binary reported as supporting it")
+	}
+}
+
+func TestConfigTrimsSpaces(t *testing.T) {
+	cfg := &Config{Databases: []*DatabaseConfig{{
+		Name:         " shop ",
+		MysqlConfig:  MysqlConfig{Host: "103.102.234.39 ", Username: " u", Database: "d ", Password: " keep "},
+		Destinations: []Destination{{Type: "local ", Path: " x ", Token: " t "}},
+	}}}
+	cfg.trimSpaces()
+	db := cfg.Databases[0]
+	if db.Name != "shop" || db.MysqlConfig.Host != "103.102.234.39" || db.MysqlConfig.Username != "u" ||
+		db.MysqlConfig.Database != "d" || db.Destinations[0].Type != "local" || db.Destinations[0].Path != "x" {
+		t.Errorf("not trimmed: %+v %+v", db, db.Destinations[0])
+	}
+	if db.MysqlConfig.Password != " keep " || db.Destinations[0].Token != " t " {
+		t.Error("password and token must stay as given")
+	}
+}

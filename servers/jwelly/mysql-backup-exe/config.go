@@ -169,10 +169,37 @@ func LoadConfig(path string) (*Config, error) {
 	if err := json.Unmarshal(data, cfg); err != nil {
 		return nil, fmt.Errorf("config %s is not valid JSON: %w", path, err)
 	}
+	cfg.trimSpaces()
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("config %s is invalid:\n%w", path, err)
 	}
 	return cfg, nil
+}
+
+// trimSpaces removes stray spaces around host names, user names, URLs and
+// similar values, which are easy to leave in when copying (a trailing space in
+// a host made the lookup fail). Passwords and tokens are left exactly as given.
+func (c *Config) trimSpaces() {
+	for _, db := range c.Databases {
+		if db == nil {
+			continue
+		}
+		for _, s := range []*string{
+			&db.Name, &db.MysqlConfig.Host, &db.MysqlConfig.Username,
+			&db.MysqlConfig.Database, &db.Engine, &db.MysqldumpPath, &db.Cron,
+		} {
+			*s = strings.TrimSpace(*s)
+		}
+		for i := range db.Destinations {
+			d := &db.Destinations[i]
+			for _, s := range []*string{
+				&d.Type, &d.URL, &d.FolderPath, &d.AccountID, &d.Endpoint,
+				&d.Bucket, &d.Path,
+			} {
+				*s = strings.TrimSpace(*s)
+			}
+		}
+	}
 }
 
 func (c *Config) Validate() error {

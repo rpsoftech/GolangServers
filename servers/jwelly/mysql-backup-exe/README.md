@@ -88,6 +88,11 @@ one more connection to the database server, so raise it gradually. It makes the
 whole run faster, not a single database. The summary and Telegram messages
 still list the databases in config order.
 
+With a MySQL 8 `mysqldump` against an older server (MySQL 5.x), the tool adds
+`--column-statistics=0` by itself, so the "column statistics not supported"
+error no longer happens. Spaces around host, user, database and path values in
+`config.json` are ignored; passwords and tokens are used exactly as written.
+
 ## Encrypting backups (optional)
 
 Set `encryptTo` on a database to one or more age public keys. The backup is
