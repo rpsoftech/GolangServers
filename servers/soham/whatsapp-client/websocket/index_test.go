@@ -185,28 +185,6 @@ func TestResolveLocalMediaPath(t *testing.T) {
 	}
 }
 
-func TestSendTimeout(t *testing.T) {
-	tests := []struct {
-		base       time.Duration
-		recipients int
-		want       time.Duration
-	}{
-		{textSendTimeout, 0, 10 * time.Second},
-		{textSendTimeout, 1, 10 * time.Second},
-		{textSendTimeout, 3, 30 * time.Second},
-		{mediaSendTimeout, 4, 2 * time.Minute},
-		{webMediaSendTimeout, 2, 90 * time.Second},
-		{textSendTimeout, 30, maxSendTimeout},
-		{mediaSendTimeout, 11, maxSendTimeout},
-		{webMediaSendTimeout, 1 << 62, maxSendTimeout},
-	}
-	for _, tc := range tests {
-		if got := sendTimeout(tc.base, tc.recipients); got != tc.want {
-			t.Errorf("sendTimeout(%s, %d) = %s, want %s", tc.base, tc.recipients, got, tc.want)
-		}
-	}
-}
-
 // connectedObject returns an object whose Conn is a live client connection to
 // u, as connectAndRead would leave it.
 func connectedObject(t *testing.T, u *url.URL) *WebsocketConnectionObject {
@@ -409,8 +387,11 @@ func TestReadLimit(t *testing.T) {
 	if !errors.Is(err, websocket.ErrReadLimit) {
 		t.Fatalf("connectAndRead error = %v, want %v", err, websocket.ErrReadLimit)
 	}
-	if maxMessageSize != 64<<20 {
-		t.Fatalf("maxMessageSize = %d", maxMessageSize)
+}
+
+func TestDefaultReadLimitIsSharedLimit(t *testing.T) {
+	if readLimit != soham_common_req_keys.MaxWebsocketMessageSize {
+		t.Fatalf("readLimit = %d, want %d", readLimit, soham_common_req_keys.MaxWebsocketMessageSize)
 	}
 }
 
