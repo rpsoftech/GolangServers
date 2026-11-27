@@ -8,7 +8,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -24,6 +26,7 @@ import (
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/store/sqlstore"
+	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
 	"google.golang.org/protobuf/proto"
@@ -285,9 +288,30 @@ func (connection *WhatsappConnection) SendTextMessage(ctx context.Context, to []
 	return &response
 }
 func (connection *WhatsappConnection) SendMediaFileFromURLs(ctx context.Context, to []string, mediaURL []string, msg string) {
-	for _, url := range mediaURL {
+	for i, url := range mediaURL {
+		if ctx.Err() != nil {
+			return
+		}
 		connection.SendMediaFileFromURL(ctx, to, url, "", msg)
-		time.Sleep(time.Second * 2)
+		if i < len(mediaURL)-1 && !sleepCtx(ctx, mediaURLsDelay) {
+			return
+		}
+	}
+}
+
+// mediaURLsDelay is the pause between files in SendMediaFileFromURLs.
+var mediaURLsDelay = 2 * time.Second
+
+// sleepCtx waits for d or until ctx is done. It reports whether the full
+// duration elapsed.
+func sleepCtx(ctx context.Context, d time.Duration) bool {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
 	}
 }
 
@@ -325,131 +349,188 @@ func (connection *WhatsappConnection) SendMediaFileWithPath(ctx context.Context,
 	return connection.sendMediaFile(ctx, to, pdfBytes, fileName, msg)
 }
 
-func (connection *WhatsappConnection) sendMediaFile(ctx context.Context, to []string, fileByte []byte, fileName string, msg string) *map[string]bool {
-	client := connection.getClient()
-	response := make(map[string]bool)
-	var docProto *waE2E.Message
+// mediaClient is the subset of *whatsmeow.Client used to send media. It
+// lets tests drive sendMediaFileWith with a fake.
+type mediaClient interface {
+	IsOnWhatsApp(ctx context.Context, phones []string) ([]types.IsOnWhatsAppResponse, error)
+	Upload(ctx context.Context, plaintext []byte, appInfo whatsmeow.MediaType) (whatsmeow.UploadResponse, error)
+	SendMessage(ctx context.Context, to types.JID, message *waE2E.Message, extra ...whatsmeow.SendRequestExtra) (whatsmeow.SendResponse, error)
+}
 
-	for _, number := range to {
+func (connection *WhatsappConnection) sendMediaFile(ctx context.Context, to []string, fileByte []byte, fileName string, msg string) *map[string]bool {
+	return sendMediaFileWith(ctx, connection.getClient(), to, fileByte, fileName, msg)
+}
+
+// sendMediaFileWith uploads the file once, on the first recipient that is on
+// WhatsApp, and sends it to every recipient. Every number in to gets an entry
+// in the result. If the upload fails, the remaining recipients are marked
+// false without another upload attempt.
+func sendMediaFileWith(ctx context.Context, client mediaClient, to []string, fileByte []byte, fileName string, msg string) *map[string]bool {
+	response := make(map[string]bool, len(to))
+	var docProto *waE2E.Message
+	var followUpText *waE2E.Message
+
+	for i, number := range to {
+		response[number] = false
 		IsOnWhatsappCheck, err := client.IsOnWhatsApp(ctx, []string{"+" + number})
 		if err != nil || len(IsOnWhatsappCheck) == 0 {
 			AppendToOutPutFile(fmt.Sprintf("%s,false,Something Went Wrong %#v\n", number, err))
-			response[number] = false
 			continue
 		}
 		NumberOnWhatsapp := IsOnWhatsappCheck[0]
 		if !NumberOnWhatsapp.IsIn {
 			AppendToOutPutFile(fmt.Sprintf("%s,false,Number %s Not On Whatsapp\n", number, number))
-			response[number] = false
 			continue
 		}
 		targetJID := NumberOnWhatsapp.JID
 		fmt.Printf("sending File To %s\n", number)
 
 		if docProto == nil {
-			extensionName := utility_functions.GetMime(fileName)
-			if strings.Contains(extensionName, "image") {
-				resp, err := client.Upload(ctx, fileByte, whatsmeow.MediaImage)
-				if err != nil {
-					AppendToOutPutFile(fmt.Sprintf("%s,false,Error While Uploading %#v\n", number, err))
-					continue
+			docProto, followUpText, err = buildMediaMessage(ctx, client, fileByte, fileName, msg)
+			if err != nil {
+				// Fail fast: the same bytes would fail again, so do not
+				// retry the upload for each remaining recipient.
+				AppendToOutPutFile(fmt.Sprintf("%s,false,Error While Uploading %#v\n", number, err))
+				for _, rest := range to[i+1:] {
+					response[rest] = false
 				}
-				jpegThumbnail, err := utility_functions.ImageThumbnail(fileByte)
-				if err != nil {
-					AppendToOutPutFile(fmt.Sprintf("%s,false,Error While Generating Thumbnail %#v\n", number, err))
-				}
-				docProto = &waE2E.Message{
-					ImageMessage: &waE2E.ImageMessage{
-						Caption:       proto.String(msg),
-						URL:           &resp.URL,
-						Mimetype:      proto.String(extensionName),
-						DirectPath:    &resp.DirectPath,
-						JPEGThumbnail: jpegThumbnail,
-						MediaKey:      resp.MediaKey,
-						FileEncSHA256: resp.FileEncSHA256,
-						FileSHA256:    resp.FileSHA256,
-						FileLength:    &resp.FileLength,
-					},
-				}
-			} else if strings.Contains(extensionName, "audio") {
-				resp, err := client.Upload(ctx, fileByte, whatsmeow.MediaAudio)
-				if err != nil {
-					AppendToOutPutFile(fmt.Sprintf("%s,false,Error While Uploading %#v\n", number, err))
-					continue
-				}
-				docProto = &waE2E.Message{
-					AudioMessage: &waE2E.AudioMessage{
-						URL:           &resp.URL,
-						Mimetype:      proto.String(extensionName),
-						DirectPath:    &resp.DirectPath,
-						MediaKey:      resp.MediaKey,
-						FileEncSHA256: resp.FileEncSHA256,
-						FileSHA256:    resp.FileSHA256,
-						FileLength:    &resp.FileLength,
-					},
-				}
-			} else if strings.Contains(extensionName, "video") {
-				thumbBytes, _ := utility_functions.GenerateVideoThumbnail(fileByte, fileName)
-				resp, err := client.Upload(ctx, fileByte, whatsmeow.MediaVideo)
-				if err != nil {
-					AppendToOutPutFile(fmt.Sprintf("%s,false,Error While Uploading %#v\n", number, err))
-					continue
-				}
-				docProto = &waE2E.Message{
-					VideoMessage: &waE2E.VideoMessage{
-						Caption:       proto.String(msg),
-						URL:           &resp.URL,
-						Mimetype:      proto.String(extensionName),
-						DirectPath:    &resp.DirectPath,
-						MediaKey:      resp.MediaKey,
-						FileEncSHA256: resp.FileEncSHA256,
-						FileSHA256:    resp.FileSHA256,
-						FileLength:    &resp.FileLength,
-					},
-				}
-				if len(thumbBytes) > 0 {
-					docProto.VideoMessage.JPEGThumbnail = thumbBytes
-				}
-			} else {
-				resp, err := client.Upload(ctx, fileByte, whatsmeow.MediaDocument)
-				if err != nil {
-					AppendToOutPutFile(fmt.Sprintf("%s,false,Error While Uploading %#v\n", number, err))
-					continue
-				}
-				docProto = &waE2E.Message{
-					DocumentMessage: &waE2E.DocumentMessage{
-						Caption:       proto.String(msg),
-						URL:           &resp.URL,
-						Mimetype:      proto.String(extensionName),
-						FileName:      &fileName,
-						DirectPath:    &resp.DirectPath,
-						MediaKey:      resp.MediaKey,
-						FileEncSHA256: resp.FileEncSHA256,
-						FileSHA256:    resp.FileSHA256,
-						FileLength:    &resp.FileLength,
-					},
-				}
-				if strings.Contains(extensionName, "pdf") {
-					thumb, err := whatsapp_utility.ExtractFirstPage(fileByte)
-					if err == nil && len(thumb) > 0 {
-						docProto.DocumentMessage.JPEGThumbnail = thumb
-					}
-				}
+				break
 			}
 		}
 
-		response[number] = false
-		if docProto != nil {
-			_, err := client.SendMessage(ctx, targetJID, docProto)
-			if err == nil {
-				response[number] = true
+		if _, err := client.SendMessage(ctx, targetJID, docProto); err != nil {
+			AppendToOutPutFile(fmt.Sprintf("%s,false,Error While Sending File %#v\n", number, err))
+			continue
+		}
+		response[number] = true
+		if followUpText != nil {
+			if _, err := client.SendMessage(ctx, targetJID, followUpText); err != nil {
+				AppendToOutPutFile(fmt.Sprintf("%s,false,Error While Sending Audio Text %#v\n", number, err))
 			}
 		}
 	}
 	return &response
 }
 
-var outPutFileMu sync.Mutex
+// buildMediaMessage uploads fileByte and returns the message to send. For
+// audio, which has no caption field, a non-empty msg is returned as a
+// separate text message to send after the audio.
+func buildMediaMessage(ctx context.Context, client mediaClient, fileByte []byte, fileName string, msg string) (*waE2E.Message, *waE2E.Message, error) {
+	extensionName := utility_functions.GetMime(fileName)
+	switch {
+	case strings.Contains(extensionName, "image"):
+		resp, err := client.Upload(ctx, fileByte, whatsmeow.MediaImage)
+		if err != nil {
+			return nil, nil, err
+		}
+		jpegThumbnail, err := utility_functions.ImageThumbnail(fileByte)
+		if err != nil {
+			AppendToOutPutFile(fmt.Sprintf("%s,false,Error While Generating Thumbnail %#v\n", fileName, err))
+		}
+		return &waE2E.Message{
+			ImageMessage: &waE2E.ImageMessage{
+				Caption:       proto.String(msg),
+				URL:           &resp.URL,
+				Mimetype:      proto.String(extensionName),
+				DirectPath:    &resp.DirectPath,
+				JPEGThumbnail: jpegThumbnail,
+				MediaKey:      resp.MediaKey,
+				FileEncSHA256: resp.FileEncSHA256,
+				FileSHA256:    resp.FileSHA256,
+				FileLength:    &resp.FileLength,
+			},
+		}, nil, nil
+	case strings.Contains(extensionName, "audio"):
+		resp, err := client.Upload(ctx, fileByte, whatsmeow.MediaAudio)
+		if err != nil {
+			return nil, nil, err
+		}
+		var text *waE2E.Message
+		if msg != "" {
+			text = &waE2E.Message{Conversation: proto.String(msg)}
+		}
+		return &waE2E.Message{
+			AudioMessage: &waE2E.AudioMessage{
+				URL:           &resp.URL,
+				Mimetype:      proto.String(extensionName),
+				DirectPath:    &resp.DirectPath,
+				MediaKey:      resp.MediaKey,
+				FileEncSHA256: resp.FileEncSHA256,
+				FileSHA256:    resp.FileSHA256,
+				FileLength:    &resp.FileLength,
+			},
+		}, text, nil
+	case strings.Contains(extensionName, "video"):
+		thumbBytes, _ := utility_functions.GenerateVideoThumbnail(fileByte, fileName)
+		resp, err := client.Upload(ctx, fileByte, whatsmeow.MediaVideo)
+		if err != nil {
+			return nil, nil, err
+		}
+		message := &waE2E.Message{
+			VideoMessage: &waE2E.VideoMessage{
+				Caption:       proto.String(msg),
+				URL:           &resp.URL,
+				Mimetype:      proto.String(extensionName),
+				DirectPath:    &resp.DirectPath,
+				MediaKey:      resp.MediaKey,
+				FileEncSHA256: resp.FileEncSHA256,
+				FileSHA256:    resp.FileSHA256,
+				FileLength:    &resp.FileLength,
+			},
+		}
+		if len(thumbBytes) > 0 {
+			message.VideoMessage.JPEGThumbnail = thumbBytes
+		}
+		return message, nil, nil
+	default:
+		resp, err := client.Upload(ctx, fileByte, whatsmeow.MediaDocument)
+		if err != nil {
+			return nil, nil, err
+		}
+		message := &waE2E.Message{
+			DocumentMessage: &waE2E.DocumentMessage{
+				Caption:       proto.String(msg),
+				URL:           &resp.URL,
+				Mimetype:      proto.String(extensionName),
+				FileName:      &fileName,
+				DirectPath:    &resp.DirectPath,
+				MediaKey:      resp.MediaKey,
+				FileEncSHA256: resp.FileEncSHA256,
+				FileSHA256:    resp.FileSHA256,
+				FileLength:    &resp.FileLength,
+			},
+		}
+		if strings.Contains(extensionName, "pdf") {
+			thumb, err := whatsapp_utility.ExtractFirstPage(fileByte)
+			if err == nil && len(thumb) > 0 {
+				message.DocumentMessage.JPEGThumbnail = thumb
+			}
+		}
+		return message, nil, nil
+	}
+}
+
+var (
+	outPutFileMu sync.Mutex
+	// now is the clock used for log rotation. Tests replace it.
+	now = time.Now
+	// dailyLogName matches the "<midnight-unix>.log.csv" files that the
+	// servers put in OutPutFilePath.
+	dailyLogName = regexp.MustCompile(`^\d+\.log\.csv$`)
+)
+
+// currentOutPutFilePath returns the log file for today. The servers set
+// OutPutFilePath once at startup to "<dir>/<midnight-unix>.log.csv"; this
+// keeps the directory and recomputes the file name per call, so a long
+// running process starts a new file each day. Any other file name is used
+// as is.
+func currentOutPutFilePath(base string, t time.Time) string {
+	if base == "" || !dailyLogName.MatchString(filepath.Base(base)) {
+		return base
+	}
+	midnight := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location()).Unix()
+	return filepath.Join(filepath.Dir(base), fmt.Sprintf("%d.log.csv", midnight))
+}
 
 // AppendToOutPutFile appends one line to the CSV send log. A failure here must
 // not take the server down: callers often run in goroutines, where a panic
@@ -458,15 +539,16 @@ func AppendToOutPutFile(text string) {
 	outPutFileMu.Lock()
 	defer outPutFileMu.Unlock()
 
-	f, err := os.OpenFile(OutPutFilePath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	path := currentOutPutFilePath(OutPutFilePath, now())
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
-		log.Printf("[AppendToOutPutFile] open %q: %v (line: %q)", OutPutFilePath, err, text)
+		log.Printf("[AppendToOutPutFile] open %q: %v (line: %q)", path, err, text)
 		return
 	}
 	defer f.Close()
 
 	if _, err = f.WriteString(text); err != nil {
-		log.Printf("[AppendToOutPutFile] write %q: %v (line: %q)", OutPutFilePath, err, text)
+		log.Printf("[AppendToOutPutFile] write %q: %v (line: %q)", path, err, text)
 	}
 }
 
