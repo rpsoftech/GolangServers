@@ -3,11 +3,10 @@ package whatsapp_server_apis
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
-	"strconv"
-	"time"
+	"os"
 
 	"github.com/gofiber/fiber/v3"
 	whatsapp_core "github.com/rpsoftech/golang-servers/functions/whatsapp/core"
@@ -56,295 +55,226 @@ func AddApis(app fiber.Router) {
 func SendMediaFileWithWebLinks(c fiber.Ctx) error {
 	body := new(apiSendMediaMsgWithWebLinks)
 	if err := c.Bind().Body(body); err != nil {
-		return &interfaces.RequestError{
-			StatusCode: http.StatusBadRequest,
-			Code:       interfaces.ERROR_INVALID_INPUT,
-			Message:    "Invalid Request Body",
-			Name:       "ERROR_INVALID_INPUT",
-			Extra:      err,
-		}
+		return invalidBody(err)
 	}
-
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}
-
-	if len(body.To) == 0 || len(body.To[0]) < 7 {
-		return &interfaces.RequestError{
-			StatusCode: http.StatusBadRequest,
-			Code:       interfaces.ERROR_INVALID_INPUT,
-			Message:    "Number Not Found",
-			Name:       "ERROR_INVALID_INPUT",
-		}
+	to, err := normalizeRecipients(body.To)
+	if err != nil {
+		return err
 	}
-
 	number, err := whatsapp_functions.ExtractNumberFromCtx(c)
 	if err != nil {
 		return err
 	}
-
-	connection, ok := whatsapp_core.ConnectionMap.Get(number)
-	if !ok || connection == nil {
-		return &interfaces.RequestError{
-			StatusCode: http.StatusNotFound,
-			Code:       interfaces.ERROR_CONNECTION_NOT_FOUND,
-			Message:    fmt.Sprintf("Number %s Not Found", number),
-			Name:       "ERROR_CONNECTION_NOT_FOUND",
-		}
-	}
-
-	if err := connection.ReturnStatusError(); err != nil {
+	connection, err := lookupConnection(number)
+	if err != nil {
 		return err
 	}
 
-	go connection.SendMediaFileFromURLs(context.Background(), body.To, body.URL, body.Msg)
+	// Each URL is sent to every recipient, so the budget covers both.
+	timeout := sendTimeout(len(to) * len(body.URL))
+	go func(urls []string, msg string) {
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+		connection.SendMediaFileFromURLs(ctx, to, urls, msg)
+	}(body.URL, body.Msg)
 	return c.JSON(fiber.Map{
 		"success": true,
 		"msg":     "Media are queued for sending",
 	})
-
 }
+
 func SendMediaFileWithWebLink(c fiber.Ctx) error {
 	body := new(apiSendMediaMsgWithWebLink)
 	if err := c.Bind().Body(body); err != nil {
-		return &interfaces.RequestError{
-			StatusCode: http.StatusBadRequest,
-			Code:       interfaces.ERROR_INVALID_INPUT,
-			Message:    "Invalid Request Body",
-			Name:       "ERROR_INVALID_INPUT",
-			Extra:      err,
-		}
+		return invalidBody(err)
 	}
-
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}
-
-	if len(body.To) == 0 || len(body.To[0]) < 7 {
-		return &interfaces.RequestError{
-			StatusCode: http.StatusBadRequest,
-			Code:       interfaces.ERROR_INVALID_INPUT,
-			Message:    "Number Not Found",
-			Name:       "ERROR_INVALID_INPUT",
-		}
+	to, err := normalizeRecipients(body.To)
+	if err != nil {
+		return err
 	}
-
 	number, err := whatsapp_functions.ExtractNumberFromCtx(c)
 	if err != nil {
 		return err
 	}
-
-	connection, ok := whatsapp_core.ConnectionMap.Get(number)
-	if !ok || connection == nil {
-		return &interfaces.RequestError{
-			StatusCode: http.StatusNotFound,
-			Code:       interfaces.ERROR_CONNECTION_NOT_FOUND,
-			Message:    fmt.Sprintf("Number %s Not Found", number),
-			Name:       "ERROR_CONNECTION_NOT_FOUND",
-		}
-	}
-
-	if err := connection.ReturnStatusError(); err != nil {
+	connection, err := lookupConnection(number)
+	if err != nil {
 		return err
 	}
 
-	runHeadLess, err := strconv.ParseBool(whatsapp_functions.ExtractKeyFromHeader(c, "Headless"))
-	if err != nil {
-		runHeadLess = false
-	}
-
-	if runHeadLess {
-		go connection.SendMediaFileFromURL(context.Background(), body.To, body.URL, body.FileName, body.Msg)
+	timeout := sendTimeout(len(to))
+	if isHeadless(c) {
+		go func(url, fileName, msg string) {
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
+			defer cancel()
+			connection.SendMediaFileFromURL(ctx, to, url, fileName, msg)
+		}(body.URL, body.FileName, body.Msg)
 		return c.JSON(fiber.Map{
 			"success": true,
 		})
-	} else {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
-		defer cancel()
-		return c.JSON(connection.SendMediaFileFromURL(ctx, body.To, body.URL, body.FileName, body.Msg))
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	result := connection.SendMediaFileFromURL(ctx, to, body.URL, body.FileName, body.Msg)
+	if result == nil {
+		return sendFailed(http.StatusBadGateway, "Error While Downloading File From URL")
+	}
+	return c.JSON(result)
 }
 
 func SendMediaFile(c fiber.Ctx) error {
-	body := new(apiSendMessage)
-	c.Bind().Body(body)
+	// This endpoint is multipart only. Fields are read from the form
+	// directly: `to` may be a JSON array or a comma-separated list and `msg`
+	// is plain text, which the generic body binder does not handle.
 	number, err := whatsapp_functions.ExtractNumberFromCtx(c)
 	if err != nil {
 		return err
 	}
 	file, err := c.FormFile("file")
 	if err != nil {
-		return &interfaces.RequestError{
-			StatusCode: http.StatusBadRequest,
-			Code:       interfaces.ERROR_INVALID_INPUT,
-			Message:    "File Not Found",
-			Name:       "ERROR_INVALID_INPUT",
-			Extra:      err,
-		}
+		return invalidInput("File Not Found", err.Error())
 	}
-	json.Unmarshal([]byte(c.FormValue("to", "[]")), &body.To)
-	json.Unmarshal([]byte(c.FormValue("msg", "")), &body.Msg)
+	body := new(apiSendMessage)
+	if body.To, err = parseRecipientsField(c.FormValue("to")); err != nil {
+		return err
+	}
+	body.Msg = parseMsgField(c.FormValue("msg"))
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}
-
-	if len(body.To) == 0 || len(body.To[0]) < 7 {
-		return &interfaces.RequestError{
-			StatusCode: http.StatusBadRequest,
-			Code:       interfaces.ERROR_INVALID_INPUT,
-			Message:    "Number Not Found",
-			Name:       "ERROR_INVALID_INPUT",
-		}
+	to, err := normalizeRecipients(body.To)
+	if err != nil {
+		return err
 	}
-	connection, ok := whatsapp_core.ConnectionMap.Get(number)
-	if !ok || connection == nil {
-		return &interfaces.RequestError{
-			StatusCode: http.StatusNotFound,
-			Code:       interfaces.ERROR_CONNECTION_NOT_FOUND,
-			Message:    fmt.Sprintf("Number %s Not Found", number),
-			Name:       "ERROR_CONNECTION_NOT_FOUND",
-		}
-	}
-	err = connection.ReturnStatusError()
+	connection, err := lookupConnection(number)
 	if err != nil {
 		return err
 	}
 
-	destination := fmt.Sprintf("./tmp/%s", file.Filename)
-	if err := c.SaveFile(file, destination); err != nil {
+	destination, err := saveUpload(file)
+	if err != nil {
 		return &interfaces.RequestError{
-			StatusCode: http.StatusBadRequest,
+			StatusCode: http.StatusInternalServerError,
 			Code:       interfaces.ERROR_INTERNAL_SERVER,
 			Message:    "Error While Saving File",
 			Name:       "ERROR_INTERNAL_SERVER",
-			Extra:      err,
+			Extra:      err.Error(),
 		}
 	}
-	runHeadLess, err := strconv.ParseBool(whatsapp_functions.ExtractKeyFromHeader(c, "Headless"))
-	if err != nil {
-		runHeadLess = false
-	}
-	if runHeadLess {
-
-		go connection.SendMediaFileWithPath(context.Background(), body.To, destination, file.Filename, body.Msg)
+	timeout := sendTimeout(len(to))
+	if isHeadless(c) {
+		go func(fileName, msg string) {
+			defer removeUpload(destination)
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
+			defer cancel()
+			connection.SendMediaFileWithPath(ctx, to, destination, fileName, msg)
+		}(file.Filename, body.Msg)
 		return c.JSON(fiber.Map{
 			"success": true,
 		})
-	} else {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
-		defer cancel()
-		return c.JSON(connection.SendMediaFileWithPath(ctx, body.To, destination, file.Filename, body.Msg))
+	}
+	defer removeUpload(destination)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	result := connection.SendMediaFileWithPath(ctx, to, destination, file.Filename, body.Msg)
+	if result == nil {
+		return sendFailed(http.StatusInternalServerError, "Error While Reading Uploaded File")
+	}
+	return c.JSON(result)
+}
+
+func removeUpload(path string) {
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		log.Printf("could not remove upload %s: %v", path, err)
 	}
 }
+
 func SendMediaFileWithBase64(c fiber.Ctx) error {
 	body := new(apiSendMediaMsgWithBase64)
-	c.Bind().Body(body)
-
+	if err := c.Bind().Body(body); err != nil {
+		return invalidBody(err)
+	}
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}
-
-	if len(body.To) == 0 || len(body.To[0]) < 7 {
-		return &interfaces.RequestError{
-			StatusCode: http.StatusBadRequest,
-			Code:       interfaces.ERROR_INVALID_INPUT,
-			Message:    "Number Not Found",
-			Name:       "ERROR_INVALID_INPUT",
-		}
+	to, err := normalizeRecipients(body.To)
+	if err != nil {
+		return err
 	}
 	number, err := whatsapp_functions.ExtractNumberFromCtx(c)
 	if err != nil {
 		return err
 	}
-
-	connection, ok := whatsapp_core.ConnectionMap.Get(number)
-	if !ok || connection == nil {
-		return &interfaces.RequestError{
-			StatusCode: http.StatusNotFound,
-			Code:       interfaces.ERROR_CONNECTION_NOT_FOUND,
-			Message:    fmt.Sprintf("Number %s Not Found", number),
-			Name:       "ERROR_CONNECTION_NOT_FOUND",
-		}
-	}
-	err = connection.ReturnStatusError()
+	connection, err := lookupConnection(number)
 	if err != nil {
 		return err
 	}
-	runHeadLess, err := strconv.ParseBool(whatsapp_functions.ExtractKeyFromHeader(c, "Headless"))
-	if err != nil {
-		runHeadLess = false
-	}
-	if runHeadLess {
-		go connection.SendMediaFileBase64(context.Background(), body.To, body.Base64, body.FileName, body.Msg)
+
+	timeout := sendTimeout(len(to))
+	if isHeadless(c) {
+		go func(data, fileName, msg string) {
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
+			defer cancel()
+			connection.SendMediaFileBase64(ctx, to, data, fileName, msg)
+		}(body.Base64, body.FileName, body.Msg)
 		return c.JSON(fiber.Map{
 			"success": true,
 		})
-	} else {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
-		defer cancel()
-		return c.JSON(connection.SendMediaFileBase64(ctx, body.To, body.Base64, body.FileName, body.Msg))
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	result := connection.SendMediaFileBase64(ctx, to, body.Base64, body.FileName, body.Msg)
+	if result == nil {
+		return sendFailed(http.StatusBadRequest, "Invalid Base64 Data")
+	}
+	return c.JSON(result)
 }
+
 func SendMessage(c fiber.Ctx) error {
 	body := new(apiSendMessage)
-	c.Bind().Body(body)
-
+	if err := c.Bind().Body(body); err != nil {
+		return invalidBody(err)
+	}
 	if err := utility_functions.ValidateReqInput(body); err != nil {
 		return err
 	}
-	if len(body.To) == 0 || len(body.To[0]) < 7 {
-		return &interfaces.RequestError{
-			StatusCode: http.StatusBadRequest,
-			Code:       interfaces.ERROR_INVALID_INPUT,
-			Message:    "Number Not Found",
-			Name:       "ERROR_INVALID_INPUT",
-		}
+	to, err := normalizeRecipients(body.To)
+	if err != nil {
+		return err
 	}
 	token, err := whatsapp_functions.ExtractNumberFromCtx(c)
 	if err != nil {
 		return err
 	}
 	if len(body.Msg) == 0 {
-		return &interfaces.RequestError{
-			StatusCode: http.StatusBadRequest,
-			Code:       interfaces.ERROR_INVALID_INPUT,
-			Message:    "Message Not Found",
-			Name:       "ERROR_INVALID_INPUT",
-		}
+		return invalidInput("Message Not Found", nil)
 	}
-	connection, ok := whatsapp_core.ConnectionMap.Get(token)
-	if !ok || connection == nil {
-		return &interfaces.RequestError{
-			StatusCode: http.StatusNotFound,
-			Code:       interfaces.ERROR_CONNECTION_NOT_FOUND,
-			Message:    fmt.Sprintf("Number %s Not Found", token),
-			Name:       "ERROR_CONNECTION_NOT_FOUND",
-		}
-	}
-	err = connection.ReturnStatusError()
+	connection, err := lookupConnection(token)
 	if err != nil {
 		return err
 	}
-	runHeadLess, err := strconv.ParseBool(whatsapp_functions.ExtractKeyFromHeader(c, "Headless"))
-	if err != nil {
-		runHeadLess = false
-	}
-	if runHeadLess {
+
+	timeout := sendTimeout(len(to))
+	if isHeadless(c) {
 		// The context must belong to the goroutine. A deferred cancel in the
 		// handler fires on return and would cancel the send before it starts.
-		go func(to []string, msg string) {
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*30*time.Duration(len(to)))
+		go func(msg string) {
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
 			connection.SendTextMessage(ctx, to, msg)
-		}(body.To, body.Msg)
+		}(body.Msg)
 		return c.JSON(fiber.Map{
 			"success": true,
 		})
-	} else {
-		ctx, cancel := context.WithTimeout(c.Context(), time.Second*30)
-		defer cancel()
-		return c.JSON(connection.SendTextMessage(ctx, body.To, body.Msg))
 	}
+	ctx, cancel := context.WithTimeout(c.Context(), timeout)
+	defer cancel()
+	return c.JSON(connection.SendTextMessage(ctx, to, body.Msg))
 }
 
 // GetQrCode returns the QR Code of the connection based on the number in the request context
