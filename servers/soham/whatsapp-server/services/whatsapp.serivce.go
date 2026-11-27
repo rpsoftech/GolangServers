@@ -2,6 +2,7 @@ package soham_whatsapp_server_services
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"sync"
 	"time"
@@ -103,21 +104,42 @@ func (w *WhatsappService) RouteResponse(reqId string, data any) bool {
 
 // --- Message Sending logic ---
 
+// replyMargin is how much longer than the client's send timeout the server
+// waits for the reply, so the client's own result (or timeout error) arrives
+// first. It covers the websocket round trip and the client's work around the
+// send. It is a variable so tests can shorten it.
+var replyMargin = 15 * time.Second
+
+// sendTimeout is the client's send timeout. It is a variable so tests can
+// shorten it.
+var sendTimeout = soham_common_req_keys.SendTimeout
+
+// replyTimeout is how long sendMessage waits for the client's reply.
+func replyTimeout(messageType soham_common_req_keys.MessageType, recipients int) time.Duration {
+	return sendTimeout(messageType, recipients) + replyMargin
+}
+
 func (w *WhatsappService) SendTextMessage(ctx context.Context, s *soham_common_req_keys.SendTextMessage) (any, error) {
-	return w.sendMessage(ctx, soham_common_req_keys.SEND_TEXT_MESSAGE, s.From, s)
+	return w.sendMessage(ctx, soham_common_req_keys.SEND_TEXT_MESSAGE, s.From, len(s.To), s)
 }
 
 func (w *WhatsappService) SendBase64Image(ctx context.Context, s *soham_common_req_keys.SendBase64Image) (any, error) {
-	return w.sendMessage(ctx, soham_common_req_keys.SEND_BASE64_IMAGE, s.From, s)
+	return w.sendMessage(ctx, soham_common_req_keys.SEND_BASE64_IMAGE, s.From, len(s.To), s)
 }
 func (w *WhatsappService) SendWebMedia(ctx context.Context, s *soham_common_req_keys.SendWebMediaType) (any, error) {
-	return w.sendMessage(ctx, soham_common_req_keys.SEND_WEB_MEDIA, s.From, s)
+	return w.sendMessage(ctx, soham_common_req_keys.SEND_WEB_MEDIA, s.From, len(s.To), s)
 }
 func (w *WhatsappService) SendLocalMedia(ctx context.Context, s *soham_common_req_keys.SendFilePathMediaType) (any, error) {
-	return w.sendMessage(ctx, soham_common_req_keys.SEND_FILE_PATH_MEDIA, s.From, s)
+	return w.sendMessage(ctx, soham_common_req_keys.SEND_FILE_PATH_MEDIA, s.From, len(s.To), s)
 }
 
-func (w *WhatsappService) sendMessage(ctx context.Context, messageType soham_common_req_keys.MessageType, from int, s any) (any, error) {
+// sendMessage sends s to the client for number from and waits for its reply,
+// at most replyTimeout for messageType and recipients.
+//
+// ctx is the request context. fasthttp (and so Fiber's c.Context()) does not
+// cancel it when the HTTP client disconnects, so the 499 branch runs only for
+// a caller that cancels ctx itself. The wait is always bounded by the timeout.
+func (w *WhatsappService) sendMessage(ctx context.Context, messageType soham_common_req_keys.MessageType, from int, recipients int, s any) (any, error) {
 	w.mu.RLock()
 	conn, ok := w.connMap[from]
 	w.mu.RUnlock()
@@ -146,31 +168,39 @@ func (w *WhatsappService) sendMessage(ctx context.Context, messageType soham_com
 		w.mu.Unlock()
 	}()
 
+	ctx, cancel := context.WithTimeout(ctx, replyTimeout(messageType, recipients))
+	defer cancel()
+
 	if err := conn.SendMessage(reqId, messageType, s); err != nil {
+		if errors.Is(err, soham_whatsapp_server_env.ErrMessageTooLarge) {
+			return nil, &interfaces.RequestError{
+				StatusCode: http.StatusRequestEntityTooLarge,
+				Code:       soham_common_req_keys.ERROR_MESSAGE_TOO_LARGE,
+				Message:    "Request is too large to send to the WhatsApp client",
+				Name:       "ERROR_MESSAGE_TOO_LARGE",
+			}
+		}
 		return nil, err
 	}
 
-	// 3-Way Race: Who finishes first?
 	select {
 	case res := <-responseChan:
-		// 1. Success: WebSocket client replied
 		return res, nil
-
 	case <-ctx.Done():
-		// 2. Abort: HTTP Client dropped the connection (Status 499 Client Closed Request)
-		return nil, &interfaces.RequestError{
-			StatusCode: 499,
-			Code:       soham_common_req_keys.ERROR_REQUEST_CONNECTION_DROPPED,
-			Message:    "HTTP client disconnected before WebSocket responded",
-			Name:       "ERROR_CLIENT_DISCONNECTED",
-		}
-
-	case <-time.After(30 * time.Second):
+	}
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 		return nil, &interfaces.RequestError{
 			StatusCode: http.StatusRequestTimeout,
 			Code:       soham_common_req_keys.ERROR_CLIENT_REQ_TIMEOUT,
 			Message:    "Client did not respond in time",
 			Name:       "ERROR_CLIENT_TIMEOUT",
 		}
+	}
+	// 499 Client Closed Request: the caller cancelled ctx.
+	return nil, &interfaces.RequestError{
+		StatusCode: 499,
+		Code:       soham_common_req_keys.ERROR_REQUEST_CONNECTION_DROPPED,
+		Message:    "HTTP client disconnected before WebSocket responded",
+		Name:       "ERROR_CLIENT_DISCONNECTED",
 	}
 }

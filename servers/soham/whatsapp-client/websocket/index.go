@@ -23,22 +23,12 @@ import (
 )
 
 const (
-	// maxMessageSize caps one incoming websocket message. Base64 media is the
-	// largest payload the server sends.
-	maxMessageSize = 64 << 20 // 64 MiB
-
 	// maxConcurrentHandlers caps how many incoming messages are handled at
 	// once. When all slots are busy the reader waits for a free slot.
 	maxConcurrentHandlers = 16
 
 	// writeWait is the deadline for a single websocket write.
 	writeWait = 10 * time.Second
-
-	// Base send timeouts per recipient, and the overall cap.
-	textSendTimeout     = 10 * time.Second
-	mediaSendTimeout    = 30 * time.Second
-	webMediaSendTimeout = 45 * time.Second
-	maxSendTimeout      = 5 * time.Minute
 )
 
 // These are variables so tests can shorten them.
@@ -48,8 +38,9 @@ var (
 	pongWait = 60 * time.Second
 	// pingPeriod must be shorter than pongWait so the peer has time to answer.
 	pingPeriod = 50 * time.Second
-	// readLimit is the limit passed to SetReadLimit.
-	readLimit int64 = maxMessageSize
+	// readLimit is the limit passed to SetReadLimit. The server rejects
+	// requests larger than this before it writes them.
+	readLimit int64 = soham_common_req_keys.MaxWebsocketMessageSize
 	// statusCheckInterval is the tick of CheckStatusAndSendResponse.
 	statusCheckInterval = 5 * time.Second
 	// reconnectDelay is the pause between connection attempts.
@@ -258,21 +249,6 @@ func (w *WebsocketConnectionObject) handlerFor(t soham_common_req_keys.MessageTy
 	return nil
 }
 
-// sendTimeout scales base with the number of recipients, capped at
-// maxSendTimeout. Fewer than one recipient counts as one.
-func sendTimeout(base time.Duration, recipients int) time.Duration {
-	if recipients < 1 {
-		recipients = 1
-	}
-	if base <= 0 {
-		return maxSendTimeout
-	}
-	if int64(recipients) > int64(maxSendTimeout/base) {
-		return maxSendTimeout
-	}
-	return base * time.Duration(recipients)
-}
-
 // protectedFiles are the client's own secret files in its app directory:
 // the WhatsApp session database (with its SQLite sidecar files), the env
 // file and the number config. They are never sent, wherever they are found.
@@ -399,7 +375,7 @@ func (w *WebsocketConnectionObject) SendTextMessage(wcm *soham_common_req_keys.W
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), sendTimeout(textSendTimeout, len(body.To)))
+	ctx, cancel := context.WithTimeout(context.Background(), soham_common_req_keys.SendTimeout(soham_common_req_keys.SEND_TEXT_MESSAGE, len(body.To)))
 	defer cancel()
 
 	resp := wc.SendTextMessage(ctx, body.To, body.Message)
@@ -425,7 +401,7 @@ func (w *WebsocketConnectionObject) SendBase64Image(wcm *soham_common_req_keys.W
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), sendTimeout(mediaSendTimeout, len(body.To)))
+	ctx, cancel := context.WithTimeout(context.Background(), soham_common_req_keys.SendTimeout(soham_common_req_keys.SEND_BASE64_IMAGE, len(body.To)))
 	defer cancel()
 
 	resp := wc.SendMediaFileBase64(ctx, body.To, body.Base64, body.Media, body.ImageDesc)
@@ -468,7 +444,7 @@ func (w *WebsocketConnectionObject) SendWebMedia(wcm *soham_common_req_keys.What
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), sendTimeout(webMediaSendTimeout, len(body.To)))
+	ctx, cancel := context.WithTimeout(context.Background(), soham_common_req_keys.SendTimeout(soham_common_req_keys.SEND_WEB_MEDIA, len(body.To)))
 	defer cancel()
 
 	resp := wc.SendMediaFileWithPath(ctx, body.To, filePath, mediaName, body.ImageDesc)
@@ -506,7 +482,7 @@ func (w *WebsocketConnectionObject) SendMediaWithFilePath(wcm *soham_common_req_
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), sendTimeout(mediaSendTimeout, len(body.To)))
+	ctx, cancel := context.WithTimeout(context.Background(), soham_common_req_keys.SendTimeout(soham_common_req_keys.SEND_FILE_PATH_MEDIA, len(body.To)))
 	defer cancel()
 
 	resp := wc.SendMediaFileWithPath(ctx, body.To, filePath, filepath.Base(filePath), body.ImageDesc)
