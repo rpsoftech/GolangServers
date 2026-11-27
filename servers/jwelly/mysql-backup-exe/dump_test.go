@@ -448,13 +448,13 @@ func TestSupportsColumnStatistics(t *testing.T) {
 		}
 		return p
 	}
-	if !supportsColumnStatistics(mk("new", "  --column-statistics Add COLUMN_STATISTICS")) {
+	if !supportsColumnStatistics(context.Background(), mk("new", "  --column-statistics Add COLUMN_STATISTICS")) {
 		t.Error("MySQL 8 style client not detected")
 	}
-	if supportsColumnStatistics(mk("old", "  --compress Use compression")) {
+	if supportsColumnStatistics(context.Background(), mk("old", "  --compress Use compression")) {
 		t.Error("old client reported as supporting --column-statistics")
 	}
-	if supportsColumnStatistics(filepath.Join(dir, "missing")) {
+	if supportsColumnStatistics(context.Background(), filepath.Join(dir, "missing")) {
 		t.Error("missing binary reported as supporting it")
 	}
 }

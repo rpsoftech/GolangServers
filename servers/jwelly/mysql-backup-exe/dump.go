@@ -124,7 +124,7 @@ func (mysqldumpEngine) Dump(ctx context.Context, db *DatabaseConfig, w io.Writer
 	}
 	defer os.Remove(optionFile)
 	args := mysqldumpArgs(db, optionFile)
-	if supportsColumnStatistics(bin) {
+	if supportsColumnStatistics(ctx, bin) {
 		// mysqldump 8 queries INFORMATION_SCHEMA.COLUMN_STATISTICS, which older
 		// servers (MySQL 5.x, MariaDB) lack, and then exits with an error.
 		args = slices.Insert(args, len(args)-1, "--column-statistics=0")
@@ -176,15 +176,17 @@ var columnStatsSupport sync.Map // binary path -> bool
 // supportsColumnStatistics reports whether this mysqldump knows the
 // --column-statistics option (the MySQL 8 client does; older clients and
 // MariaDB reject it). The answer is cached per binary.
-func supportsColumnStatistics(bin string) bool {
+func supportsColumnStatistics(parent context.Context, bin string) bool {
 	if v, ok := columnStatsSupport.Load(bin); ok {
 		return v.(bool)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(parent, 15*time.Second)
 	defer cancel()
 	out, err := exec.CommandContext(ctx, bin, "--help").Output()
 	ok := err == nil && bytes.Contains(out, []byte("--column-statistics"))
-	columnStatsSupport.Store(bin, ok)
+	if parent.Err() == nil {
+		columnStatsSupport.Store(bin, ok)
+	}
 	return ok
 }
 
