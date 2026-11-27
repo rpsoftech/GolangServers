@@ -21,6 +21,7 @@ import (
 	whatsapp_server_middleware "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/middleware"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 	"github.com/rpsoftech/golang-servers/utility/updater"
+	"go.mau.fi/whatsmeow/store/sqlstore"
 )
 
 var version = "dev"
@@ -51,13 +52,7 @@ func main() {
 	container := whatsapp_core.InitSqlContainer()
 
 	if whatsapp_config.Env.AUTO_CONNECT_TO_WHATSAPP {
-		go func() {
-			for k := range whatsapp_config.WhatsappNumberConfigMap.TokensSnapshot() {
-				// Note: Update ConnectToNumber in your whatsapp_core package to accept and respect ctx
-				jidString := whatsapp_config.WhatsappNumberConfigMap.GetJID(k)
-				whatsapp_core.ConnectToNumber(jidString, k, container)
-			}
-		}()
+		autoConnect(container)
 	}
 
 	app := setupFiberServer()
@@ -79,10 +74,24 @@ func main() {
 	defer shutdownCancel()
 
 	if err := app.ShutdownWithContext(shutdownCtx); err != nil {
+		whatsapp_core.DisconnectAll()
 		log.Fatalf("Server forced to shutdown: %v", err)
 	}
+	whatsapp_core.DisconnectAll()
 
 	log.Println("Server successfully stopped.")
+}
+
+// autoConnect starts one connection goroutine per configured token, so a
+// token that waits for a QR scan does not block the others.
+func autoConnect(container *sqlstore.Container) {
+	tokens := make([]string, 0)
+	for token := range whatsapp_config.WhatsappNumberConfigMap.TokensSnapshot() {
+		tokens = append(tokens, token)
+	}
+	whatsapp_core.ConnectionMap.ConnectEach(tokens, whatsapp_config.WhatsappNumberConfigMap.GetJID, func(jidString, token string) {
+		whatsapp_core.ConnectReserved(jidString, token, container)
+	})
 }
 
 func initDirectories() error {
