@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	whatsapp_functions "github.com/rpsoftech/golang-servers/functions/whatsapp"
 	"github.com/rpsoftech/golang-servers/interfaces"
-	whatsapp_functions "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/functions"
 )
 
 const (
