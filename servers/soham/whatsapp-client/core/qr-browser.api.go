@@ -6,7 +6,6 @@ import (
 	"html"
 
 	"github.com/gofiber/fiber/v3"
-	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
 )
 
 const index = `<!DOCTYPE html>
@@ -63,7 +62,7 @@ const index = `<!DOCTYPE html>
 
 func OpenBrowserWithQr(c fiber.Ctx) error {
 	id := c.Params("id")
-	number, ok := whatsapp_config.WhatsappNumberToIDMap[id]
+	number, ok := ScanNumber(id)
 	if !ok {
 		return c.Status(404).SendString("Invalid ID")
 	}

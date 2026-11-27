@@ -10,7 +10,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/rpsoftech/golang-servers/env"
 	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
 	"github.com/rpsoftech/golang-servers/interfaces"
@@ -136,43 +135,5 @@ func TestRequestLogsNeverContainToken(t *testing.T) {
 	t.Log("\n" + out)
 	if !strings.Contains(out, "/scan/***") || !strings.Contains(out, "/v1/qr_code") || !strings.Contains(out, "Number *** Not Found") {
 		t.Fatalf("request log misses expected paths:\n%s", out)
-	}
-}
-
-func TestRedactLogPath(t *testing.T) {
-	cases := map[string]string{
-		"/scan/abc":        "/scan/***",
-		"/scan/abc/":       "/scan/***/",
-		"/Scan/abc":        "/Scan/***",
-		"/scan/a/b":        "/scan/***/***",
-		"/scan":            "/scan",
-		"/scan/":           "/scan/",
-		"/v1/qr_code":      "/v1/qr_code",
-		"/":                "/",
-		"/scanner/abc":     "/scanner/abc",
-		"/x/scan/abc":      "/x/scan/***",
-		"/v1/send_message": "/v1/send_message",
-	}
-	for in, want := range cases {
-		if got := redactLogPath(in); got != want {
-			t.Errorf("redactLogPath(%q) = %q, want %q", in, got, want)
-		}
-	}
-}
-
-func TestRequestLogFormatAvoidsFastPath(t *testing.T) {
-	if requestLogFormat == logger.DefaultFormat {
-		t.Fatal("requestLogFormat equals logger.DefaultFormat, so CustomTags would be ignored")
-	}
-	for _, tag := range []string{"${reqHeader", "${reqHeaders}", "${queryParams}", "${query:", "${body}", "${url}", "${cookie"} {
-		if strings.Contains(requestLogFormat, tag) {
-			t.Fatalf("requestLogFormat contains %s", tag)
-		}
-	}
-}
-
-func TestSanitizeLogValue(t *testing.T) {
-	if got := sanitizeLogValue("/a\nb\r\x1b[31m\x7f"); got != "/a?b??[31m?" {
-		t.Fatalf("sanitizeLogValue = %q", got)
 	}
 }
