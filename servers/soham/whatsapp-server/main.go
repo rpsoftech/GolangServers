@@ -12,10 +12,12 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/gofiber/fiber/v3/middleware/logger"
+	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/rpsoftech/golang-servers/env"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	soham_common_req_keys "github.com/rpsoftech/golang-servers/servers/soham/common"
 	soham_whatsapp_server_api "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-server/api"
+	soham_whatsapp_server_env "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-server/env"
 	soham_whatsapp_server_middleware "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-server/middleware"
 	soham_whatsapp_server_websocket "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-server/websocket"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
@@ -23,6 +25,7 @@ import (
 )
 
 func main() {
+	soham_whatsapp_server_env.Init()
 	app := fiber.New(fiber.Config{
 		BodyLimit: 200 * 1024 * 1024,
 		ErrorHandler: func(c fiber.Ctx, err error) error {
@@ -39,6 +42,8 @@ func main() {
 			return c.Status(mappedError.StatusCode).JSON(mappedError)
 		},
 	})
+	// A panic in a handler must not take the whole server down.
+	app.Use(recover.New())
 	app.Use(logger.New(
 		logger.Config{
 			Format: "${time} | ${status} | ${latency} | ${number} | ${ip} | ${path} | ${error}\n",

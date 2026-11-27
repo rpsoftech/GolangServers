@@ -1,7 +1,11 @@
 package soham_whatsapp_server_env
 
 import (
-	"github.com/gofiber/contrib/v3/websocket"
+	"os"
+	"path/filepath"
+	"sync"
+	"time"
+
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/rpsoftech/golang-servers/env"
@@ -15,16 +19,33 @@ type (
 		ACCESS_TOKEN_KEY string    `json:"ACCESS_TOKEN_KEY" validate:"required,min=10"`
 		UUIDObj          uuid.UUID `json:"-" validate:"-"`
 	}
+	// WSConn is the part of a websocket connection the server uses. It is an
+	// interface so tests can replace the real connection.
+	WSConn interface {
+		WriteJSON(v any) error
+		WriteControl(messageType int, data []byte, deadline time.Time) error
+		SetWriteDeadline(t time.Time) error
+		Close() error
+	}
+	// WebsocketConnection is one connected WhatsApp client. Writes are
+	// serialized because a websocket connection supports only one concurrent
+	// writer.
 	WebsocketConnection struct {
-		Conn   *websocket.Conn
-		Status soham_common_req_keys.ConnectionStatus
+		Conn    WSConn
+		writeMu sync.Mutex
 	}
 )
 
+// WriteWait bounds a single websocket write, so a client that stopped reading
+// cannot block senders forever. It is a variable so tests can shorten it.
+var WriteWait = 2 * time.Minute
+
 var Env *whatsappEnv
 
-func init() {
-	env.LoadEnv("whatsapp-server.env")
+// Init loads whatsapp-server.env and validates it. main calls it before
+// anything reads Env.
+func Init() {
+	env.LoadEnv(envFilePath())
 	log.Debug("WhatsApp ServerEnv Initialized")
 	Env = &whatsappEnv{
 		DefaultEnv:       env.Env,
@@ -39,10 +60,31 @@ func init() {
 	env.ValidateEnv(Env)
 }
 
+// SendMessage writes one message to the client. It is safe for concurrent use.
 func (c *WebsocketConnection) SendMessage(reqid string, messageType soham_common_req_keys.MessageType, s any) error {
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
+	if err := c.Conn.SetWriteDeadline(time.Now().Add(WriteWait)); err != nil {
+		return err
+	}
 	return c.Conn.WriteJSON(soham_common_req_keys.WhatsappClientMessage{
 		ReqId:   reqid,
 		Type:    messageType,
 		Message: s,
 	})
+}
+
+// envFileName is the env file next to the executable.
+const envFileName = "whatsapp-server.env"
+
+// envFilePath returns the env file in the executable's directory, like the
+// client does, and falls back to the working directory (go run, tests).
+func envFilePath() string {
+	if exe, err := os.Executable(); err == nil {
+		p := filepath.Join(filepath.Dir(exe), envFileName)
+		if _, err := os.Stat(p); err == nil {
+			return p
+		}
+	}
+	return envFileName
 }
