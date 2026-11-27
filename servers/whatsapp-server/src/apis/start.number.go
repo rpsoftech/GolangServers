@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v3"
+	whatsapp_functions "github.com/rpsoftech/golang-servers/functions/whatsapp"
 	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
 	whatsapp_core "github.com/rpsoftech/golang-servers/functions/whatsapp/core"
-	whatsapp_functions "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/functions"
 )
 
 // connectReserved connects a token already reserved in ConnectionMap. It can

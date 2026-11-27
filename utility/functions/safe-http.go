@@ -21,6 +21,13 @@ var (
 	ErrDownloadTooBig  = fmt.Errorf("download is larger than %d bytes", MaxUserURLDownloadBytes)
 	cgnatPrefix        = netip.MustParsePrefix("100.64.0.0/10")
 	userURLHTTPTimeout = 2 * time.Minute
+
+	// maxUserURLBytes is the cap FetchUserURL enforces. Tests lower it.
+	maxUserURLBytes = MaxUserURLDownloadBytes
+	// allowDialForTest, when set, lets exact host:port pairs through the
+	// address check so tests can reach httptest servers on loopback. It is
+	// nil in production builds and nothing outside tests sets it.
+	allowDialForTest func(address string) bool
 )
 
 // userURLClient fetches URLs supplied by API callers. The dialer checks every
@@ -52,6 +59,9 @@ var userURLClient = &http.Client{
 }
 
 func blockNonPublicAddress(_ string, address string, _ syscall.RawConn) error {
+	if allowDialForTest != nil && allowDialForTest(address) {
+		return nil
+	}
 	host, _, err := net.SplitHostPort(address)
 	if err != nil {
 		return err
@@ -91,15 +101,15 @@ func FetchUserURL(ctx context.Context, rawURL string) ([]byte, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to download file, HTTP status code: %d", resp.StatusCode)
 	}
-	if resp.ContentLength > MaxUserURLDownloadBytes {
+	if resp.ContentLength > maxUserURLBytes {
 		return nil, ErrDownloadTooBig
 	}
 
-	data, err := io.ReadAll(io.LimitReader(resp.Body, MaxUserURLDownloadBytes+1))
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxUserURLBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-	if int64(len(data)) > MaxUserURLDownloadBytes {
+	if int64(len(data)) > maxUserURLBytes {
 		return nil, ErrDownloadTooBig
 	}
 	return data, nil

@@ -11,14 +11,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/rpsoftech/golang-servers/env"
 	whatsapp_config "github.com/rpsoftech/golang-servers/functions/whatsapp/config"
 	whatsapp_core "github.com/rpsoftech/golang-servers/functions/whatsapp/core"
-	"github.com/rpsoftech/golang-servers/interfaces"
-	whatsapp_server_apis "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/apis"
-	whatsapp_server_middleware "github.com/rpsoftech/golang-servers/servers/whatsapp-server/src/middleware"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 	"github.com/rpsoftech/golang-servers/utility/updater"
 	"go.mau.fi/whatsmeow/store/sqlstore"
@@ -55,7 +50,7 @@ func main() {
 		autoConnect(container)
 	}
 
-	app := setupFiberServer()
+	app := setupFiberServer(os.Stdout)
 	hostAndPort := getHostAndPort()
 
 	// 3. Start server in a non-blocking goroutine
@@ -111,33 +106,6 @@ func initDirectories() error {
 		}
 	}
 	return nil
-}
-
-func setupFiberServer() *fiber.App {
-	app := fiber.New(fiber.Config{
-		BodyLimit: 200 * 1024 * 1024,
-		ErrorHandler: func(c fiber.Ctx, err error) error {
-			var mappedError *interfaces.RequestError
-			if !errors.As(err, &mappedError) {
-				log.Printf("[Fiber Error] %v", err)
-				return c.Status(fiber.StatusInternalServerError).JSON(interfaces.RequestError{
-					Code:    interfaces.ERROR_INTERNAL_SERVER,
-					Message: "Some Internal Error",
-					Name:    "Global Error Handler Function",
-				})
-			}
-			return c.Status(mappedError.StatusCode).JSON(mappedError)
-		},
-	})
-
-	app.Use(logger.New())
-	whatsapp_server_apis.AddApis(app.Group("/v1", whatsapp_server_middleware.TokenDecrypter, whatsapp_server_middleware.AllowOnlyValidTokenMiddleWare))
-	app.Get("/scan/:id", whatsapp_server_apis.OpenBrowserWithQr)
-	app.Use(func(c fiber.Ctx) error {
-		return c.Status(fiber.StatusNotFound).SendString("Sorry can't find that!")
-	})
-
-	return app
 }
 
 func getHostAndPort() string {
