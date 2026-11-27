@@ -16,7 +16,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	soham_common_req_keys "github.com/rpsoftech/golang-servers/servers/soham/common"
-	soham_whatsapp_client_env "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/env"
 )
 
 // setVar sets *p to v for the duration of the test.
@@ -94,9 +93,9 @@ func waitReply(t *testing.T, replies <-chan reply) reply {
 
 func TestResolveLocalMediaPath(t *testing.T) {
 	root := t.TempDir()
-	base := filepath.Join(root, "media")
-	outside := filepath.Join(root, "outside")
-	for _, d := range []string{base, outside, filepath.Join(base, "sub")} {
+	app := filepath.Join(root, "app")
+	other := filepath.Join(root, "anywhere", "deep")
+	for _, d := range []string{app, other, filepath.Join(other, "folder")} {
 		if err := os.MkdirAll(d, 0o755); err != nil {
 			t.Fatal(err)
 		}
@@ -106,51 +105,67 @@ func TestResolveLocalMediaPath(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write(filepath.Join(base, "a.pdf"))
-	write(filepath.Join(base, "sub", "b.pdf"))
-	write(filepath.Join(outside, "secret.db"))
-	if err := os.Symlink(filepath.Join(outside, "secret.db"), filepath.Join(base, "link-out.pdf")); err != nil {
+	for _, name := range protectedFiles {
+		write(filepath.Join(app, name))
+	}
+	write(filepath.Join(app, "photo.pdf"))
+	write(filepath.Join(other, "invoice.pdf"))
+	write(filepath.Join(other, "copy.env"))
+	write(filepath.Join(other, ".env"))
+	write(filepath.Join(other, ".env.local"))
+	write(filepath.Join(other, "data.db"))
+	write(filepath.Join(other, "data.sqlite"))
+	if err := os.Symlink(filepath.Join(app, "WhatsappSuperSecrete.db"), filepath.Join(other, "innocent.pdf")); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(filepath.Join(base, "a.pdf"), filepath.Join(base, "link-in.pdf")); err != nil {
+	if err := os.Link(filepath.Join(app, "whatsapp-client.env"), filepath.Join(other, "hardlink.pdf")); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(outside, filepath.Join(base, "dir-out")); err != nil {
+	if err := os.Symlink(filepath.Join(other, "invoice.pdf"), filepath.Join(other, "link.pdf")); err != nil {
 		t.Fatal(err)
 	}
 
-	realBase, err := filepath.EvalSymlinks(base)
-	if err != nil {
-		t.Fatal(err)
+	real := func(p string) string {
+		r, err := filepath.EvalSymlinks(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r
 	}
 
 	tests := []struct {
 		name      string
-		baseDir   string
 		requested string
 		want      string // resolved path when allowed
 		wantErr   string // substring of the error when rejected
 	}{
-		{"absolute file inside", base, filepath.Join(base, "a.pdf"), filepath.Join(realBase, "a.pdf"), ""},
-		{"relative file inside", base, "a.pdf", filepath.Join(realBase, "a.pdf"), ""},
-		{"nested file inside", base, filepath.Join("sub", "b.pdf"), filepath.Join(realBase, "sub", "b.pdf"), ""},
-		{"symlink staying inside", base, "link-in.pdf", filepath.Join(realBase, "a.pdf"), ""},
-		{"dot-dot escape", base, filepath.Join("..", "outside", "secret.db"), "", "outside the allowed directory"},
-		{"dot-dot in absolute path", base, filepath.Join(base, "..", "outside", "secret.db"), "", "outside the allowed directory"},
-		{"absolute path outside", base, filepath.Join(outside, "secret.db"), "", "outside the allowed directory"},
-		{"system file", base, "/etc/hosts", "", "outside the allowed directory"},
-		{"symlink pointing out", base, "link-out.pdf", "", "outside the allowed directory"},
-		{"file through symlinked dir", base, filepath.Join("dir-out", "secret.db"), "", "outside the allowed directory"},
-		{"base directory itself", base, base, "", "outside the allowed directory"},
-		{"directory inside", base, "sub", "", "not a regular file"},
-		{"missing file", base, "nope.pdf", "", "not found"},
-		{"empty path", base, "", "", "empty"},
-		{"unset LOCAL_MEDIA_DIR", "", filepath.Join(base, "a.pdf"), "", soham_whatsapp_client_env.LOCAL_MEDIA_DIR_KEY},
-		{"missing base directory", filepath.Join(root, "missing"), filepath.Join(base, "a.pdf"), "", "invalid local media directory"},
+		{"file in any directory", filepath.Join(other, "invoice.pdf"), real(filepath.Join(other, "invoice.pdf")), ""},
+		{"dot-dot path elsewhere", filepath.Join(other, "folder", "..", "invoice.pdf"), real(filepath.Join(other, "invoice.pdf")), ""},
+		{"system file", "/etc/hosts", real("/etc/hosts"), ""},
+		{"symlink to normal file", filepath.Join(other, "link.pdf"), real(filepath.Join(other, "invoice.pdf")), ""},
+		{"relative file in app dir", "photo.pdf", real(filepath.Join(app, "photo.pdf")), ""},
+		{"session database", filepath.Join(app, "WhatsappSuperSecrete.db"), "", "protected"},
+		{"database wal", filepath.Join(app, "WhatsappSuperSecrete.db-wal"), "", "protected"},
+		{"database relative", "WhatsappSuperSecrete.db", "", "protected"},
+		{"database via dot-dot", filepath.Join(other, "..", "..", "app", "WhatsappSuperSecrete.db"), "", "protected"},
+		{"env file", filepath.Join(app, "whatsapp-client.env"), "", "protected"},
+		{"env file upper case", filepath.Join(app, "WHATSAPP-CLIENT.ENV"), "", "protected"},
+		{"server config", filepath.Join(app, "server.config.json"), "", "protected"},
+		{"any env file", filepath.Join(other, "copy.env"), "", "protected"},
+		{"dot env", filepath.Join(other, ".env"), "", "protected"},
+		{"dot env variant", filepath.Join(other, ".env.local"), "", "protected"},
+		{"any db file", filepath.Join(other, "data.db"), "", "protected"},
+		{"any sqlite file", filepath.Join(other, "data.sqlite"), "", "protected"},
+		{"symlink to database", filepath.Join(other, "innocent.pdf"), "", "protected"},
+		{"hard link to env", filepath.Join(other, "hardlink.pdf"), "", "protected"},
+		{"directory", filepath.Join(other, "folder"), "", "not a regular file"},
+		{"missing file", filepath.Join(other, "nope.pdf"), "", "not found"},
+		{"empty path", "", "", "empty"},
+		{"blank path", "   ", "", "empty"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := resolveLocalMediaPath(tc.baseDir, tc.requested)
+			got, err := resolveLocalMediaPath(app, tc.requested)
 			if tc.wantErr != "" {
 				if err == nil {
 					t.Fatalf("got %q, want error containing %q", got, tc.wantErr)
@@ -167,45 +182,6 @@ func TestResolveLocalMediaPath(t *testing.T) {
 				t.Fatalf("got %q, want %q", got, tc.want)
 			}
 		})
-	}
-}
-
-func TestResolveLocalMediaPathPrefixSibling(t *testing.T) {
-	// "/x/media" must not allow "/x/media-other/file".
-	root := t.TempDir()
-	base := filepath.Join(root, "media")
-	other := filepath.Join(root, "media-other")
-	for _, d := range []string{base, other} {
-		if err := os.MkdirAll(d, 0o755); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if err := os.WriteFile(filepath.Join(other, "f.pdf"), []byte("x"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := resolveLocalMediaPath(base, filepath.Join(other, "f.pdf")); err == nil {
-		t.Fatal("file in sibling directory with the same prefix was allowed")
-	}
-}
-
-func TestParseLocalMediaDir(t *testing.T) {
-	dir := t.TempDir()
-	if got, err := soham_whatsapp_client_env.ParseLocalMediaDir(""); err != nil || got != "" {
-		t.Fatalf("empty value: got %q, %v", got, err)
-	}
-	got, err := soham_whatsapp_client_env.ParseLocalMediaDir(dir)
-	if err != nil || !filepath.IsAbs(got) {
-		t.Fatalf("directory: got %q, %v", got, err)
-	}
-	file := filepath.Join(dir, "f")
-	if err := os.WriteFile(file, nil, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := soham_whatsapp_client_env.ParseLocalMediaDir(file); err == nil {
-		t.Fatal("file accepted as LOCAL_MEDIA_DIR")
-	}
-	if _, err := soham_whatsapp_client_env.ParseLocalMediaDir(filepath.Join(dir, "missing")); err == nil {
-		t.Fatal("missing directory accepted as LOCAL_MEDIA_DIR")
 	}
 }
 
@@ -291,8 +267,7 @@ func TestSendResultNilRepliesWithError(t *testing.T) {
 	}
 }
 
-func TestFilePathMediaRejectedWhenDirUnset(t *testing.T) {
-	setVar(t, &soham_whatsapp_client_env.LocalMediaDir, "")
+func TestFilePathMediaRejectsProtectedFile(t *testing.T) {
 	send := make(chan any, 1)
 	srv, u, replies := echoServer(t, send)
 	defer srv.Close()
@@ -306,20 +281,19 @@ func TestFilePathMediaRejectedWhenDirUnset(t *testing.T) {
 		Type:  soham_common_req_keys.SEND_FILE_PATH_MEDIA,
 		Message: soham_common_req_keys.SendFilePathMediaType{
 			ApiSendRequestBase: soham_common_req_keys.ApiSendRequestBase{From: 1, To: []string{"911234567890"}},
-			LocalMediaPath:     "/etc/hosts",
+			LocalMediaPath:     filepath.Join(t.TempDir(), "whatsapp-client.env"),
 		},
 	}
 	r := waitReply(t, replies)
 	if r.ReqId != "req-file" || r.Message.Message != "Local media path rejected" {
 		t.Fatalf("unexpected reply %+v", r)
 	}
-	if extra, _ := r.Message.Extra.(string); !strings.Contains(extra, soham_whatsapp_client_env.LOCAL_MEDIA_DIR_KEY) {
-		t.Fatalf("extra %q does not name %s", extra, soham_whatsapp_client_env.LOCAL_MEDIA_DIR_KEY)
+	if extra, _ := r.Message.Extra.(string); !strings.Contains(extra, "protected") {
+		t.Fatalf("extra %q does not say the file is protected", extra)
 	}
 }
 
 func TestHandlersWaitForFreeSlot(t *testing.T) {
-	setVar(t, &soham_whatsapp_client_env.LocalMediaDir, "")
 	send := make(chan any, 64)
 	srv, u, replies := echoServer(t, send)
 	defer srv.Close()
