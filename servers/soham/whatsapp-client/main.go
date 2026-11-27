@@ -131,8 +131,8 @@ func InitFiberServer() *fiber.App {
 	app := fiber.New(fiber.Config{
 		BodyLimit: 200 * 1024 * 1024,
 		ErrorHandler: func(c fiber.Ctx, err error) error {
-			mappedError, ok := err.(*interfaces.RequestError)
-			if !ok {
+			var mappedError *interfaces.RequestError
+			if !errors.As(err, &mappedError) {
 				log.Printf("Internal Server Error: %v", err)
 				return c.Status(500).JSON(interfaces.RequestError{
 					Code:    interfaces.ERROR_INTERNAL_SERVER,
