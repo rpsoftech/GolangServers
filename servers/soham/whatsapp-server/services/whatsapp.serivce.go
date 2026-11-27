@@ -39,29 +39,42 @@ func GetWhatsappService() *WhatsappService {
 
 // --- Thread-Safe State Managers ---
 
+// AddConnection registers conn for number. A connection already registered
+// for the number is replaced and closed, so its handler exits; its later
+// RemoveConnection call does not touch conn.
 func (w *WhatsappService) AddConnection(number int, conn *soham_whatsapp_server_env.WebsocketConnection) {
 	w.mu.Lock()
-	defer w.mu.Unlock()
+	old := w.connMap[number]
 	w.connMap[number] = conn
 	w.statusMap[number] = soham_common_req_keys.NOT_LOGGED_IN
+	w.mu.Unlock()
+	if old != nil && old != conn {
+		log.Infof("Replacing existing connection for %d", number)
+		_ = old.Conn.Close()
+	}
 }
 
-func (w *WhatsappService) RemoveConnection(number int) {
+// RemoveConnection unregisters conn for number. It does nothing when number
+// is now served by another connection.
+func (w *WhatsappService) RemoveConnection(number int, conn *soham_whatsapp_server_env.WebsocketConnection) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	if w.connMap[number] != conn {
+		return
+	}
 	delete(w.connMap, number)
 	delete(w.statusMap, number)
 }
 
-func (w *WhatsappService) UpdateStatus(number int, status soham_common_req_keys.ConnectionStatus) {
+// UpdateStatus sets the status of number when conn is its current connection.
+func (w *WhatsappService) UpdateStatus(number int, conn *soham_whatsapp_server_env.WebsocketConnection, status soham_common_req_keys.ConnectionStatus) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	if _, exists := w.connMap[number]; exists {
+	if w.connMap[number] == conn {
 		w.statusMap[number] = status
 	}
 }
 
-// Add this to soham_whatsapp_server_services/services.go
 func (w *WhatsappService) GetStatus(number int) (soham_common_req_keys.ConnectionStatus, bool) {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
@@ -69,16 +82,23 @@ func (w *WhatsappService) GetStatus(number int) (soham_common_req_keys.Connectio
 	return status, exists
 }
 
+// RouteResponse delivers data to the request waiting on reqId. It returns
+// false when no request is waiting (it timed out, or the reply is a
+// duplicate). The waiting entry is removed on delivery, so a request gets at
+// most one reply, and the send never blocks the websocket read loop.
 func (w *WhatsappService) RouteResponse(reqId string, data any) bool {
-	w.mu.RLock()
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	ch, exists := w.reqIdMap[reqId]
-	w.mu.RUnlock()
-
-	if exists {
-		ch <- data
-		return true
+	if !exists {
+		return false
 	}
-	return false
+	delete(w.reqIdMap, reqId)
+	select {
+	case ch <- data:
+	default:
+	}
+	return true
 }
 
 // --- Message Sending logic ---
@@ -118,11 +138,12 @@ func (w *WhatsappService) sendMessage(ctx context.Context, messageType soham_com
 	w.reqIdMap[reqId] = responseChan
 	w.mu.Unlock()
 
+	// The channel is never closed: RouteResponse may still hold it. It is
+	// garbage collected once both sides drop it.
 	defer func() {
 		w.mu.Lock()
 		delete(w.reqIdMap, reqId)
 		w.mu.Unlock()
-		close(responseChan)
 	}()
 
 	if err := conn.SendMessage(reqId, messageType, s); err != nil {
