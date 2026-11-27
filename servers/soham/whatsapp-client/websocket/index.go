@@ -19,7 +19,6 @@ import (
 	whatsapp_core "github.com/rpsoftech/golang-servers/functions/whatsapp/core"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	soham_common_req_keys "github.com/rpsoftech/golang-servers/servers/soham/common"
-	soham_whatsapp_client_env "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/env"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 )
 
@@ -57,7 +56,7 @@ var (
 	reconnectDelay = 10 * time.Second
 )
 
-var errLocalMediaDisabled = errors.New("sending local media is disabled: " + soham_whatsapp_client_env.LOCAL_MEDIA_DIR_KEY + " is not configured")
+var errLocalMediaProtected = errors.New("local media path points to a protected client file")
 
 type WebsocketConnectionObject struct {
 	mu                       sync.RWMutex
@@ -274,43 +273,66 @@ func sendTimeout(base time.Duration, recipients int) time.Duration {
 	return base * time.Duration(recipients)
 }
 
-// resolveLocalMediaPath checks that requested names a regular file inside
-// baseDir and returns its resolved path. Relative paths are taken relative
-// to baseDir. Paths that leave baseDir through "..", an absolute path or a
-// symlink are rejected, as are directories and other non-regular files.
-func resolveLocalMediaPath(baseDir, requested string) (string, error) {
-	if baseDir == "" {
-		return "", errLocalMediaDisabled
-	}
-	if requested == "" {
-		return "", errors.New("local media path is empty")
-	}
+// protectedFiles are the client's own secret files in its app directory:
+// the WhatsApp session database (with its SQLite sidecar files), the env
+// file and the number config. They are never sent, wherever they are found.
+var protectedFiles = []string{
+	"WhatsappSuperSecrete.db",
+	"WhatsappSuperSecrete.db-wal",
+	"WhatsappSuperSecrete.db-shm",
+	"WhatsappSuperSecrete.db-journal",
+	"whatsapp-client.env",
+	"server.config.json",
+}
 
-	base, err := filepath.Abs(filepath.Clean(baseDir))
-	if err != nil {
-		return "", fmt.Errorf("invalid local media directory: %w", err)
+// protectedExtensions block any env or SQLite database file by extension.
+var protectedExtensions = []string{".env", ".db", ".db-wal", ".db-shm", ".db-journal", ".sqlite", ".sqlite3"}
+
+// isProtectedFileName reports whether name (a base name) is a secret file.
+func isProtectedFileName(name string) bool {
+	lower := strings.ToLower(name)
+	if lower == ".env" || strings.HasPrefix(lower, ".env.") {
+		return true
 	}
-	base, err = filepath.EvalSymlinks(base)
-	if err != nil {
-		return "", fmt.Errorf("invalid local media directory: %w", err)
+	for _, f := range protectedFiles {
+		if lower == strings.ToLower(f) {
+			return true
+		}
+	}
+	for _, ext := range protectedExtensions {
+		if strings.HasSuffix(lower, ext) {
+			return true
+		}
+	}
+	return false
+}
+
+// resolveLocalMediaPath checks that requested names a readable regular file
+// and returns its resolved path. Any directory is allowed, because the
+// server may send files from anywhere on the machine. Relative paths are
+// taken relative to appDir. The client's own secret files (see
+// protectedFiles) are rejected by name, after symlinks are resolved, and
+// by identity, so a symlink or hard link under another name to a file in
+// appDir cannot expose them either.
+func resolveLocalMediaPath(appDir, requested string) (string, error) {
+	if strings.TrimSpace(requested) == "" {
+		return "", errors.New("local media path is empty")
 	}
 
 	target := requested
 	if !filepath.IsAbs(target) {
-		target = filepath.Join(base, target)
+		target = filepath.Join(appDir, target)
 	}
 	target = filepath.Clean(target)
+	if isProtectedFileName(filepath.Base(target)) {
+		return "", errLocalMediaProtected
+	}
 	resolved, err := filepath.EvalSymlinks(target)
 	if err != nil {
 		return "", fmt.Errorf("local media file not found: %s", requested)
 	}
-
-	prefix := base
-	if !strings.HasSuffix(prefix, string(filepath.Separator)) {
-		prefix += string(filepath.Separator)
-	}
-	if !strings.HasPrefix(resolved, prefix) {
-		return "", fmt.Errorf("local media path is outside the allowed directory: %s", requested)
+	if isProtectedFileName(filepath.Base(resolved)) {
+		return "", errLocalMediaProtected
 	}
 
 	info, err := os.Stat(resolved)
@@ -320,7 +342,24 @@ func resolveLocalMediaPath(baseDir, requested string) (string, error) {
 	if !info.Mode().IsRegular() {
 		return "", fmt.Errorf("local media path is not a regular file: %s", requested)
 	}
+	if isSameAsProtectedFile(appDir, info) {
+		return "", errLocalMediaProtected
+	}
 	return resolved, nil
+}
+
+// isSameAsProtectedFile reports whether info is one of the protected files
+// in appDir (catches hard links with an innocent name).
+func isSameAsProtectedFile(appDir string, info os.FileInfo) bool {
+	if appDir == "" {
+		return false
+	}
+	for _, name := range protectedFiles {
+		if p, err := os.Stat(filepath.Join(appDir, name)); err == nil && os.SameFile(p, info) {
+			return true
+		}
+	}
+	return false
 }
 
 func (w *WebsocketConnectionObject) getWhatsappConnection() (*whatsapp_core.WhatsappConnection, error) {
@@ -453,9 +492,9 @@ func (w *WebsocketConnectionObject) SendMediaWithFilePath(wcm *soham_common_req_
 		return
 	}
 
-	// The path comes from the websocket peer. Only files inside
-	// LOCAL_MEDIA_DIR may be read.
-	filePath, err := resolveLocalMediaPath(soham_whatsapp_client_env.LocalMediaDir, body.LocalMediaPath)
+	// The path comes from the websocket peer. Any file may be sent except
+	// the client's own secret files.
+	filePath, err := resolveLocalMediaPath(env.FindAndReturnCurrentDir(), body.LocalMediaPath)
 	if err != nil {
 		w.sendErrorResponseWithExtra(reqId, "Local media path rejected", err)
 		return
