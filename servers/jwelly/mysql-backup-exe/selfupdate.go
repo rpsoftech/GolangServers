@@ -53,6 +53,9 @@ func updateAndRestart() (int, bool) {
 	if !shouldCheckUpdate(updater.Published(), os.Getenv(skipUpdateEnv)) {
 		return 0, false
 	}
+	// Resolve the path before updating: on Linux os.Executable follows the
+	// running file, which the update renames to "<exe>.old" and then removes.
+	exe, exeErr := os.Executable()
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
 	updated, err := updater.SelfUpdate(ctx, updater.Config{
@@ -67,9 +70,8 @@ func updateAndRestart() (int, bool) {
 		return 0, false
 	}
 	log.Println("[updater] update installed, restarting")
-	exe, err := os.Executable()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "ERROR: updated, but cannot find the new executable:", err)
+	if exeErr != nil {
+		fmt.Fprintln(os.Stderr, "ERROR: updated, but cannot find the new executable:", exeErr)
 		return 1, true
 	}
 	return runChild(exe, restartArgs(os.Args[1:])), true
