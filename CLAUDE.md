@@ -16,3 +16,7 @@ Go monorepo (module `github.com/rpsoftech/golang-servers`).
 - Never add `Co-Authored-By: Claude ...` trailers, "Generated with Claude Code" lines, or any other AI attribution.
 - Never use `claude/` or any AI-related prefix in branch names. Use plain names such as `feat/<topic>` or `fix/<topic>`.
 - Commits are authored only by the repository owner's configured git identity.
+
+## Knowledge base
+
+- `docs/knowledge-base/` holds reference notes per component (design decisions, lessons, release process). Read the matching file before changing that component and update it with the change.

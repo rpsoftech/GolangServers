@@ -96,13 +96,15 @@ func runQuick(cfg *Config, notifier Notifier) int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	var results []*Result
-	for _, db := range cfg.Databases {
+	all := runPool(ctx, cfg.Parallel, cfg.Databases, func(db *DatabaseConfig) *Result {
 		res := RunBackup(ctx, db, notifier)
-		results = append(results, res)
 		notifyTelegram(ctx, cfg, res)
-		if ctx.Err() != nil {
-			break
+		return res
+	})
+	var results []*Result
+	for _, r := range all {
+		if r != nil {
+			results = append(results, r)
 		}
 	}
 
@@ -163,6 +165,9 @@ func runDaemon(cfg *Config, notifier Notifier) {
 	}, cancel)
 
 	c := cron.New()
+	// With "parallel" set, at most that many backups run at once, however
+	// many schedules fire together. Unset keeps the old behaviour.
+	slots := newGate(cfg.Parallel)
 	skipIfRunning := cron.SkipIfStillRunning(cron.DiscardLogger)
 	scheduled := 0
 	var startup []cron.Job
@@ -174,6 +179,10 @@ func runDaemon(cfg *Config, notifier Notifier) {
 		// The same wrapped job runs from cron and at startup, so one database
 		// is never backed up twice at the same time.
 		job := skipIfRunning(cron.FuncJob(func() {
+			if !slots.acquire(ctx) {
+				return
+			}
+			defer slots.release()
 			res := RunBackup(ctx, db, notifier)
 			reportDaemonResult(res, notifier)
 			notifyTelegram(ctx, cfg, res)
@@ -197,15 +206,22 @@ func runDaemon(cfg *Config, notifier Notifier) {
 	c.Start()
 	log.Println("backup daemon started")
 	var wg sync.WaitGroup
-	wg.Go(func() {
-		// One after another, so the database server carries one dump at a time.
+	if cfg.Parallel > 1 {
+		// The gate keeps these within the configured number.
 		for _, job := range startup {
-			if ctx.Err() != nil {
-				return
-			}
-			job.Run()
+			wg.Go(job.Run)
 		}
-	})
+	} else {
+		wg.Go(func() {
+			// One after another, so the database server carries one dump at a time.
+			for _, job := range startup {
+				if ctx.Err() != nil {
+					return
+				}
+				job.Run()
+			}
+		})
+	}
 	<-ctx.Done()
 	log.Println("shutting down, waiting for running backups to finish...")
 	<-c.Stop().Done()

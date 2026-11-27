@@ -29,7 +29,13 @@ const (
 
 type Config struct {
 	// Telegram, when set, sends every backup result to a chat.
-	Telegram  *TelegramConfig   `json:"telegram"`
+	Telegram *TelegramConfig `json:"telegram"`
+	// Parallel is how many databases are backed up at the same time (1 to 16).
+	// 0 or unset keeps the old behaviour: a quick run goes one database after
+	// another, and the daemon puts no limit on schedules that fire together.
+	// It speeds up backups over a remote link, where each dump mostly waits on
+	// the network; every running backup is one more connection to the server.
+	Parallel  int               `json:"parallel"`
 	Databases []*DatabaseConfig `json:"databases"`
 }
 
@@ -163,10 +169,37 @@ func LoadConfig(path string) (*Config, error) {
 	if err := json.Unmarshal(data, cfg); err != nil {
 		return nil, fmt.Errorf("config %s is not valid JSON: %w", path, err)
 	}
+	cfg.trimSpaces()
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("config %s is invalid:\n%w", path, err)
 	}
 	return cfg, nil
+}
+
+// trimSpaces removes stray spaces around host names, user names, URLs and
+// similar values, which are easy to leave in when copying (a trailing space in
+// a host made the lookup fail). Passwords and tokens are left exactly as given.
+func (c *Config) trimSpaces() {
+	for _, db := range c.Databases {
+		if db == nil {
+			continue
+		}
+		for _, s := range []*string{
+			&db.Name, &db.MysqlConfig.Host, &db.MysqlConfig.Username,
+			&db.MysqlConfig.Database, &db.Engine, &db.MysqldumpPath, &db.Cron,
+		} {
+			*s = strings.TrimSpace(*s)
+		}
+		for i := range db.Destinations {
+			d := &db.Destinations[i]
+			for _, s := range []*string{
+				&d.Type, &d.URL, &d.FolderPath, &d.AccountID, &d.Endpoint,
+				&d.Bucket, &d.Path,
+			} {
+				*s = strings.TrimSpace(*s)
+			}
+		}
+	}
 }
 
 func (c *Config) Validate() error {
@@ -175,6 +208,9 @@ func (c *Config) Validate() error {
 		for _, e := range c.Telegram.validate() {
 			errs = append(errs, fmt.Errorf("  %s", e))
 		}
+	}
+	if c.Parallel < 0 || c.Parallel > maxParallel {
+		errs = append(errs, fmt.Errorf("  parallel: must be between 1 and %d (or 0 to leave it unset)", maxParallel))
 	}
 	if len(c.Databases) == 0 {
 		errs = append(errs, errors.New("  databases: at least one entry is required"))
