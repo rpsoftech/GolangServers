@@ -3,12 +3,14 @@ package soham_whatsapp_client_websocket
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,12 +19,45 @@ import (
 	whatsapp_core "github.com/rpsoftech/golang-servers/functions/whatsapp/core"
 	"github.com/rpsoftech/golang-servers/interfaces"
 	soham_common_req_keys "github.com/rpsoftech/golang-servers/servers/soham/common"
+	soham_whatsapp_client_env "github.com/rpsoftech/golang-servers/servers/soham/whatsapp-client/env"
 	utility_functions "github.com/rpsoftech/golang-servers/utility/functions"
 )
 
 const (
-	pongWait = 60 * time.Second
+	// maxMessageSize caps one incoming websocket message. Base64 media is the
+	// largest payload the server sends.
+	maxMessageSize = 64 << 20 // 64 MiB
+
+	// maxConcurrentHandlers caps how many incoming messages are handled at
+	// once. When all slots are busy the reader waits for a free slot.
+	maxConcurrentHandlers = 16
+
+	// writeWait is the deadline for a single websocket write.
+	writeWait = 10 * time.Second
+
+	// Base send timeouts per recipient, and the overall cap.
+	textSendTimeout     = 10 * time.Second
+	mediaSendTimeout    = 30 * time.Second
+	webMediaSendTimeout = 45 * time.Second
+	maxSendTimeout      = 5 * time.Minute
 )
+
+// These are variables so tests can shorten them.
+var (
+	// pongWait is how long the connection may stay silent (no message and no
+	// pong) before the read fails.
+	pongWait = 60 * time.Second
+	// pingPeriod must be shorter than pongWait so the peer has time to answer.
+	pingPeriod = 50 * time.Second
+	// readLimit is the limit passed to SetReadLimit.
+	readLimit int64 = maxMessageSize
+	// statusCheckInterval is the tick of CheckStatusAndSendResponse.
+	statusCheckInterval = 5 * time.Second
+	// reconnectDelay is the pause between connection attempts.
+	reconnectDelay = 10 * time.Second
+)
+
+var errLocalMediaDisabled = errors.New("sending local media is disabled: " + soham_whatsapp_client_env.LOCAL_MEDIA_DIR_KEY + " is not configured")
 
 type WebsocketConnectionObject struct {
 	mu                       sync.RWMutex
@@ -35,9 +70,20 @@ type WebsocketConnectionObject struct {
 	NUMBER                   string
 	WhatsappConnectionMap    *whatsapp_core.IWhatsappConnectionMap
 	WhatsappConnection       *whatsapp_core.WhatsappConnection
+
+	// ctx is the context given to InitalizeWebsocket. It also stops
+	// CheckStatusAndSendResponse. Guarded by mu.
+	ctx context.Context
+
+	handlerSlotsOnce sync.Once
+	handlerSlots     chan struct{}
 }
 
 func (w *WebsocketConnectionObject) InitalizeWebsocket(ctx context.Context) {
+	w.mu.Lock()
+	w.ctx = ctx
+	w.mu.Unlock()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -46,20 +92,40 @@ func (w *WebsocketConnectionObject) InitalizeWebsocket(ctx context.Context) {
 		default:
 			err := w.connectAndRead(ctx)
 			if err != nil {
-				log.Printf("Websocket connection error for %s: %v. Retrying in 10s...", w.NUMBER, err)
+				log.Printf("Websocket connection error for %s: %v. Retrying in %s...", w.NUMBER, err, reconnectDelay)
 			} else {
-				log.Printf("Websocket disconnected gracefully for %s. Reconnecting in 10s...", w.NUMBER)
+				log.Printf("Websocket disconnected gracefully for %s. Reconnecting in %s...", w.NUMBER, reconnectDelay)
 			}
 
 			// Sleep that respects context cancellation
+			timer := time.NewTimer(reconnectDelay)
 			select {
-			case <-time.After(10 * time.Second):
+			case <-timer.C:
 				// Continue loop
 			case <-ctx.Done():
+				timer.Stop()
 				return
 			}
 		}
 	}
+}
+
+// shutdownDone returns the Done channel of the context given to
+// InitalizeWebsocket, or nil (blocks forever) when it has not been set yet.
+func (w *WebsocketConnectionObject) shutdownDone() <-chan struct{} {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	if w.ctx == nil {
+		return nil
+	}
+	return w.ctx.Done()
+}
+
+func (w *WebsocketConnectionObject) slots() chan struct{} {
+	w.handlerSlotsOnce.Do(func() {
+		w.handlerSlots = make(chan struct{}, maxConcurrentHandlers)
+	})
+	return w.handlerSlots
 }
 
 func (w *WebsocketConnectionObject) connectAndRead(ctx context.Context) error {
@@ -68,7 +134,7 @@ func (w *WebsocketConnectionObject) connectAndRead(ctx context.Context) error {
 	w.WhatsappConnectionStatus = soham_common_req_keys.DISCONNECTED
 	w.mu.Unlock()
 
-	con, _, err := websocket.DefaultDialer.Dial(w.Url.String(), http.Header{
+	con, _, err := websocket.DefaultDialer.DialContext(ctx, w.Url.String(), http.Header{
 		soham_common_req_keys.WHATSAPP_CLIENT_NUM_KEY:   []string{w.NUMBER},
 		soham_common_req_keys.WHATSAPP_CLIENT_TOKEN_KEY: []string{w.UUID},
 	})
@@ -79,35 +145,51 @@ func (w *WebsocketConnectionObject) connectAndRead(ctx context.Context) error {
 	w.mu.Lock()
 	w.Conn = con
 	w.connected = true
+	log.Printf("Websocket connected for %s", w.NUMBER)
 	w.mu.Unlock()
 
-	// Side-goroutine to force-close the socket if the app receives a shutdown signal.
-	// This unblocks con.ReadMessage() instantly.
-	go func() {
-		<-ctx.Done()
-		w.mu.Lock()
-		if w.Conn != nil {
-			w.Conn.Close()
-		}
-		w.mu.Unlock()
-	}()
+	// done is closed when this function returns. It stops the helper
+	// goroutines started for this connection.
+	done := make(chan struct{})
+	var helpers sync.WaitGroup
 
 	// Ensure cleanup on exit
 	defer func() {
+		close(done)
+		con.Close()
+		helpers.Wait()
 		w.mu.Lock()
-		if w.Conn != nil {
-			w.Conn.Close()
+		if w.Conn == con {
+			w.connected = false
 		}
-		w.connected = false
 		w.mu.Unlock()
 	}()
 
+	// Force-close the socket on shutdown. This unblocks con.ReadMessage()
+	// at once. The goroutine also ends when the connection ends.
+	helpers.Add(2)
+	go func() {
+		defer helpers.Done()
+		select {
+		case <-ctx.Done():
+			con.Close()
+		case <-done:
+		}
+	}()
+
+	go func() {
+		defer helpers.Done()
+		keepAlive(con, done, pingPeriod)
+	}()
+
+	con.SetReadLimit(readLimit)
 	con.SetReadDeadline(time.Now().Add(pongWait))
 	con.SetPongHandler(func(string) error {
 		con.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
 
+	slots := w.slots()
 	for {
 		_, msg, err := con.ReadMessage()
 		if err != nil {
@@ -122,17 +204,123 @@ func (w *WebsocketConnectionObject) connectAndRead(ctx context.Context) error {
 			continue
 		}
 
-		switch whatsappClientMessage.Type {
-		case soham_common_req_keys.SEND_TEXT_MESSAGE:
-			go w.SendTextMessage(&whatsappClientMessage)
-		case soham_common_req_keys.SEND_BASE64_IMAGE:
-			go w.SendBase64Image(&whatsappClientMessage)
-		case soham_common_req_keys.SEND_WEB_MEDIA:
-			go w.SendWebMedia(&whatsappClientMessage)
-		case soham_common_req_keys.SEND_FILE_PATH_MEDIA:
-			go w.SendMediaWithFilePath(&whatsappClientMessage)
+		handler := w.handlerFor(whatsappClientMessage.Type)
+		if handler == nil {
+			continue
+		}
+
+		// Wait for a free handler slot. The message is never dropped.
+		select {
+		case slots <- struct{}{}:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+		// Waiting may have taken a while; restart the silence timer.
+		con.SetReadDeadline(time.Now().Add(pongWait))
+
+		go func(m *soham_common_req_keys.WhatsappClientMessage) {
+			defer func() { <-slots }()
+			handler(m)
+		}(&whatsappClientMessage)
+	}
+}
+
+// keepAlive sends a ping every period until done is closed. The peer's
+// pong resets the read deadline through the pong handler.
+func keepAlive(con *websocket.Conn, done <-chan struct{}, period time.Duration) {
+	ticker := time.NewTicker(period)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-done:
+			return
+		case <-ticker.C:
+			// WriteControl may run concurrently with the other write methods.
+			if err := con.WriteControl(websocket.PingMessage, nil, time.Now().Add(writeWait)); err != nil {
+				log.Printf("Websocket ping failed: %v", err)
+				con.Close()
+				return
+			}
 		}
 	}
+}
+
+func (w *WebsocketConnectionObject) handlerFor(t soham_common_req_keys.MessageType) func(*soham_common_req_keys.WhatsappClientMessage) {
+	switch t {
+	case soham_common_req_keys.SEND_TEXT_MESSAGE:
+		return w.SendTextMessage
+	case soham_common_req_keys.SEND_BASE64_IMAGE:
+		return w.SendBase64Image
+	case soham_common_req_keys.SEND_WEB_MEDIA:
+		return w.SendWebMedia
+	case soham_common_req_keys.SEND_FILE_PATH_MEDIA:
+		return w.SendMediaWithFilePath
+	}
+	return nil
+}
+
+// sendTimeout scales base with the number of recipients, capped at
+// maxSendTimeout. Fewer than one recipient counts as one.
+func sendTimeout(base time.Duration, recipients int) time.Duration {
+	if recipients < 1 {
+		recipients = 1
+	}
+	if base <= 0 {
+		return maxSendTimeout
+	}
+	if int64(recipients) > int64(maxSendTimeout/base) {
+		return maxSendTimeout
+	}
+	return base * time.Duration(recipients)
+}
+
+// resolveLocalMediaPath checks that requested names a regular file inside
+// baseDir and returns its resolved path. Relative paths are taken relative
+// to baseDir. Paths that leave baseDir through "..", an absolute path or a
+// symlink are rejected, as are directories and other non-regular files.
+func resolveLocalMediaPath(baseDir, requested string) (string, error) {
+	if baseDir == "" {
+		return "", errLocalMediaDisabled
+	}
+	if requested == "" {
+		return "", errors.New("local media path is empty")
+	}
+
+	base, err := filepath.Abs(filepath.Clean(baseDir))
+	if err != nil {
+		return "", fmt.Errorf("invalid local media directory: %w", err)
+	}
+	base, err = filepath.EvalSymlinks(base)
+	if err != nil {
+		return "", fmt.Errorf("invalid local media directory: %w", err)
+	}
+
+	target := requested
+	if !filepath.IsAbs(target) {
+		target = filepath.Join(base, target)
+	}
+	target = filepath.Clean(target)
+	resolved, err := filepath.EvalSymlinks(target)
+	if err != nil {
+		return "", fmt.Errorf("local media file not found: %s", requested)
+	}
+
+	prefix := base
+	if !strings.HasSuffix(prefix, string(filepath.Separator)) {
+		prefix += string(filepath.Separator)
+	}
+	if !strings.HasPrefix(resolved, prefix) {
+		return "", fmt.Errorf("local media path is outside the allowed directory: %s", requested)
+	}
+
+	info, err := os.Stat(resolved)
+	if err != nil {
+		return "", fmt.Errorf("local media file not found: %s", requested)
+	}
+	if !info.Mode().IsRegular() {
+		return "", fmt.Errorf("local media path is not a regular file: %s", requested)
+	}
+	return resolved, nil
 }
 
 func (w *WebsocketConnectionObject) getWhatsappConnection() (*whatsapp_core.WhatsappConnection, error) {
@@ -142,8 +330,11 @@ func (w *WebsocketConnectionObject) getWhatsappConnection() (*whatsapp_core.What
 	if w.WhatsappConnection != nil {
 		return w.WhatsappConnection, nil
 	}
+	if w.WhatsappConnectionMap == nil {
+		return nil, fmt.Errorf("invalid from number mapping")
+	}
 	wc, ok := w.WhatsappConnectionMap.Get(w.UUID)
-	if !ok {
+	if !ok || wc == nil {
 		return nil, fmt.Errorf("invalid from number mapping")
 	}
 	w.WhatsappConnection = wc
@@ -169,15 +360,11 @@ func (w *WebsocketConnectionObject) SendTextMessage(wcm *soham_common_req_keys.W
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), sendTimeout(textSendTimeout, len(body.To)))
 	defer cancel()
 
 	resp := wc.SendTextMessage(ctx, body.To, body.Message)
-	w.SendResponse(&soham_common_req_keys.WhatsappClientMessage{
-		ReqId:   reqId,
-		Type:    soham_common_req_keys.REPSONSE_MESSAGE,
-		Message: resp,
-	})
+	w.sendResult(reqId, resp, "Failed to send text message")
 }
 
 func (w *WebsocketConnectionObject) SendBase64Image(wcm *soham_common_req_keys.WhatsappClientMessage) {
@@ -199,15 +386,11 @@ func (w *WebsocketConnectionObject) SendBase64Image(wcm *soham_common_req_keys.W
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), sendTimeout(mediaSendTimeout, len(body.To)))
 	defer cancel()
 
 	resp := wc.SendMediaFileBase64(ctx, body.To, body.Base64, body.Media, body.ImageDesc)
-	w.SendResponse(&soham_common_req_keys.WhatsappClientMessage{
-		ReqId:   reqId,
-		Type:    soham_common_req_keys.REPSONSE_MESSAGE,
-		Message: resp,
-	})
+	w.sendResult(reqId, resp, "Failed to send base64 media: invalid base64 data")
 }
 
 func (w *WebsocketConnectionObject) SendWebMedia(wcm *soham_common_req_keys.WhatsappClientMessage) {
@@ -246,20 +429,15 @@ func (w *WebsocketConnectionObject) SendWebMedia(wcm *soham_common_req_keys.What
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), sendTimeout(webMediaSendTimeout, len(body.To)))
 	defer cancel()
 
 	resp := wc.SendMediaFileWithPath(ctx, body.To, filePath, mediaName, body.ImageDesc)
 
 	// Clean up temp file when done
 	go os.Remove(filePath)
-	// go utility_functions.DeleteFile(filePath)
 
-	w.SendResponse(&soham_common_req_keys.WhatsappClientMessage{
-		ReqId:   reqId,
-		Type:    soham_common_req_keys.REPSONSE_MESSAGE,
-		Message: resp,
-	})
+	w.sendResult(reqId, resp, "Failed to send web media: downloaded file could not be read")
 }
 
 func (w *WebsocketConnectionObject) SendMediaWithFilePath(wcm *soham_common_req_keys.WhatsappClientMessage) {
@@ -275,16 +453,34 @@ func (w *WebsocketConnectionObject) SendMediaWithFilePath(wcm *soham_common_req_
 		return
 	}
 
+	// The path comes from the websocket peer. Only files inside
+	// LOCAL_MEDIA_DIR may be read.
+	filePath, err := resolveLocalMediaPath(soham_whatsapp_client_env.LocalMediaDir, body.LocalMediaPath)
+	if err != nil {
+		w.sendErrorResponseWithExtra(reqId, "Local media path rejected", err)
+		return
+	}
+
 	wc, err := w.getWhatsappConnection()
 	if err != nil || wc.Status() != 1 {
 		w.sendErrorResponse(reqId, "WhatsApp client not connected to phone")
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), sendTimeout(mediaSendTimeout, len(body.To)))
 	defer cancel()
 
-	resp := wc.SendMediaFileWithPath(ctx, body.To, body.LocalMediaPath, filepath.Base(body.LocalMediaPath), body.ImageDesc)
+	resp := wc.SendMediaFileWithPath(ctx, body.To, filePath, filepath.Base(filePath), body.ImageDesc)
+	w.sendResult(reqId, resp, "Failed to send local media: file could not be read")
+}
+
+// sendResult replies with the per-recipient result, or with failMsg when the
+// core returned no result.
+func (w *WebsocketConnectionObject) sendResult(reqId string, resp *map[string]bool, failMsg string) {
+	if resp == nil {
+		w.sendErrorResponse(reqId, failMsg)
+		return
+	}
 	w.SendResponse(&soham_common_req_keys.WhatsappClientMessage{
 		ReqId:   reqId,
 		Type:    soham_common_req_keys.REPSONSE_MESSAGE,
@@ -325,7 +521,7 @@ func (w *WebsocketConnectionObject) SendResponse(wcm *soham_common_req_keys.What
 	defer w.writeMu.Unlock()
 
 	// Add write deadline to prevent server blockage
-	con.SetWriteDeadline(time.Now().Add(10 * time.Second))
+	con.SetWriteDeadline(time.Now().Add(writeWait))
 	err := con.WriteJSON(wcm)
 	if err != nil {
 		log.Printf("Error writing to websocket (%s): %v", w.NUMBER, err)
@@ -334,11 +530,25 @@ func (w *WebsocketConnectionObject) SendResponse(wcm *soham_common_req_keys.What
 	return true
 }
 
+// CheckStatusAndSendResponse reports WhatsApp login status changes to the
+// server. It stops once the context given to InitalizeWebsocket is done.
 func (w *WebsocketConnectionObject) CheckStatusAndSendResponse() {
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(statusCheckInterval)
 	defer ticker.Stop()
 
-	for range ticker.C {
+	for {
+		select {
+		case <-ticker.C:
+		case <-w.shutdownDone():
+			return
+		}
+		// The context may have been set or cancelled since the select began.
+		select {
+		case <-w.shutdownDone():
+			return
+		default:
+		}
+
 		w.mu.Lock()
 		if w.WhatsappConnectionStatus == "" {
 			w.WhatsappConnectionStatus = soham_common_req_keys.NOT_LOGGED_IN
