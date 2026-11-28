@@ -1,6 +1,6 @@
 # #95: Hub built-in TLS and secure defaults
 
-Status: in review
+Status: done
 Branch: feat/hub-tls
 PR: #110
 Issue: https://github.com/rpsoftech/GolangServers/issues/95

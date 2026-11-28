@@ -1,6 +1,6 @@
 # #93: CLI unit tests and testable command layer
 
-Status: in review
+Status: done
 Branch: test/pm2go-cli
 PR: #111
 Issue: https://github.com/rpsoftech/GolangServers/issues/93

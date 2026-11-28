@@ -1,6 +1,6 @@
 # #98: Shared listening socket and `wait_ready`
 
-Status: in review
+Status: done
 Branch: feat/daemon-shared-socket
 PR: #112
 Issue: https://github.com/rpsoftech/GolangServers/issues/98

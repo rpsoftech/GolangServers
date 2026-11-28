@@ -19,4 +19,6 @@ Go monorepo (module `github.com/rpsoftech/golang-servers`).
 
 ## Knowledge base
 
+- `docs/knowledge-base/graph/` holds a generated code graph and knowledge graph for `servers/pm2go` (start with `GRAPH.md`). Read it before exploring that component; regenerate with `go run docs/knowledge-base/graph/gen.go`.
+
 - `docs/knowledge-base/` holds reference notes per component (design decisions, lessons, release process). Read the matching file before changing that component and update it with the change.

@@ -10,6 +10,8 @@ One file per GitHub issue (`<NNN>-<slug>.md`), plus `000-project.md` (coordinato
 4. Hot code files: keep changes small, put new code in new files, rebase before opening the PR. Adding a dashboard page means adding one `page-<name>.js` file plus (until the loader is automatic) one `<script>` line in `hub/ui/index.html`, keep that line in alphabetical order among the `page-*` lines.
 5. When done: `Status: done`, `PR:` link, list the checklist lines to tick under "Status-doc ticks".
 
+6. Do not regenerate or commit `docs/knowledge-base/graph/*` (generated; the coordinator does it after merges).
+
 ## See the board
 
 ```bash

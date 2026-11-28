@@ -1,0 +1,2069 @@
+{
+ "generated_by": "docs/knowledge-base/graph/gen.go (curated part: knowledge-graph.curated.json)",
+ "note": "Node id prefixes: comp: component, ext: external system, con: concept, flow: flow, doc: document, issue: GitHub issue, code: code reference (ids of code-graph.json). Edge kinds are free text verbs.",
+ "nodes": [
+  {
+   "id": "comp:cli",
+   "kind": "component",
+   "name": "CLI",
+   "summary": "pm2go command line: start, stop, restart, reload, scale, logs, save, resurrect, link, startup, hub. Talks to the daemon over a unix socket and spawns it on demand.",
+   "code": [
+    "pkg:cli"
+   ],
+   "docs": [
+    "pm2go.md",
+    "pm2go-dev-guide.md"
+   ]
+  },
+  {
+   "id": "comp:daemon",
+   "kind": "component",
+   "name": "Daemon",
+   "summary": "Long-lived process (pm2go daemon). Owns the process table, serves JSON-RPC on ~/.pm2go/rpc.sock, hosts the agent and the monitor loop.",
+   "code": [
+    "pkg:daemon"
+   ],
+   "docs": [
+    "pm2go.md"
+   ]
+  },
+  {
+   "id": "comp:supervisor",
+   "kind": "component",
+   "name": "Supervisor (Proc, Manager)",
+   "summary": "Proc.supervise runs one child: restart policy, soft restarts (watch, cron, memory), graceful stop, readiness wait. Manager keeps instances, scale, rolling reload, save/resurrect and shared listeners.",
+   "code": [
+    "type:daemon.Proc",
+    "type:daemon.Manager"
+   ],
+   "docs": [
+    "pm2go.md"
+   ]
+  },
+  {
+   "id": "comp:logging",
+   "kind": "component",
+   "name": "Rotating log writer",
+   "summary": "Children write through RotatingFile: size rotation, gzip, per-line callback that feeds the agent. Source of the 'children die with the daemon' limitation (#99).",
+   "code": [
+    "type:daemon.RotatingFile"
+   ],
+   "docs": [
+    "pm2go.md"
+   ]
+  },
+  {
+   "id": "comp:sampler",
+   "kind": "component",
+   "name": "Sampler",
+   "summary": "CPU and RSS per process group and host metrics read from /proc (Linux). A ps based fallback exists only for macOS development.",
+   "code": [
+    "type:daemon.Sampler"
+   ],
+   "docs": [
+    "pm2go.md"
+   ]
+  },
+  {
+   "id": "comp:rpc",
+   "kind": "component",
+   "name": "CLI to daemon RPC",
+   "summary": "Newline-delimited JSON over a unix socket. Method names and params in common/rpc.go.",
+   "code": [
+    "file:servers/pm2go/common/rpc.go"
+   ],
+   "docs": [
+    "pm2go-dev-guide.md"
+   ]
+  },
+  {
+   "id": "comp:ecosystem",
+   "kind": "component",
+   "name": "Ecosystem and AppConfig",
+   "summary": "AppConfig is the per-app configuration, also the dump file format. LoadEcosystem reads JSON ecosystem files with env_\u003cprofile\u003e blocks.",
+   "code": [
+    "type:common.AppConfig",
+    "func:common.LoadEcosystem"
+   ],
+   "docs": [
+    "pm2go.md"
+   ]
+  },
+  {
+   "id": "comp:agent",
+   "kind": "component",
+   "name": "Agent",
+   "summary": "Runs inside the daemon. Dials the hub outbound over WebSocket and sends snapshots (2 s), events and log batches; executes hub commands.",
+   "code": [
+    "pkg:agent"
+   ],
+   "docs": [
+    "pm2go.md"
+   ]
+  },
+  {
+   "id": "comp:protocol",
+   "kind": "component",
+   "name": "Agent to hub protocol",
+   "summary": "Envelope messages: hello, snapshot, event, logs, command, result. Defined in common/proto.go. Hot file.",
+   "code": [
+    "file:servers/pm2go/common/proto.go"
+   ],
+   "docs": [
+    "pm2go-dev-guide.md"
+   ]
+  },
+  {
+   "id": "comp:hub",
+   "kind": "component",
+   "name": "Hub",
+   "summary": "Web dashboard server (pm2go hub): accepts agents, stores data, evaluates alerts, notifies Telegram, serves the UI. Single static binary, SQLite storage.",
+   "code": [
+    "pkg:hub"
+   ],
+   "docs": [
+    "pm2go.md",
+    "pm2go-deploy.md"
+   ]
+  },
+  {
+   "id": "comp:registry",
+   "kind": "component",
+   "name": "Registry",
+   "summary": "Connected agents, latest snapshot per server, per-process log rings (5000 lines), crash tracking, live log subscribers, command dispatch.",
+   "code": [
+    "type:hub.Registry"
+   ],
+   "docs": [
+    "pm2go.md"
+   ]
+  },
+  {
+   "id": "comp:alert-engine",
+   "kind": "component",
+   "name": "Alert engine",
+   "summary": "Rules per (type, level). State machine pending, firing, resolved. Sustained thresholds, reminders, escalation (higher level covers lower).",
+   "code": [
+    "type:hub.Engine",
+    "type:hub.Rule"
+   ],
+   "docs": [
+    "pm2go.md"
+   ]
+  },
+  {
+   "id": "comp:notifier-telegram",
+   "kind": "component",
+   "name": "Telegram notifier",
+   "summary": "Sends alert messages through the Telegram Bot API with per-chat minimum level, rate limit and retry. Token is write-only in the API.",
+   "code": [
+    "type:hub.Notifier"
+   ],
+   "docs": [
+    "pm2go.md"
+   ]
+  },
+  {
+   "id": "comp:issues",
+   "kind": "component",
+   "name": "Issues grouping",
+   "summary": "Error log lines are fingerprinted (numbers, ids, timestamps removed) and grouped with counts and a status.",
+   "code": [
+    "type:hub.Issues"
+   ],
+   "docs": [
+    "pm2go.md"
+   ]
+  },
+  {
+   "id": "comp:store",
+   "kind": "component",
+   "name": "Store (SQLite)",
+   "summary": "Pure Go SQLite (modernc). Tables: servers, sys_metrics, proc_metrics, events, issues, alert_rules, alert_history, settings.",
+   "code": [
+    "type:hub.Store"
+   ],
+   "docs": [
+    "pm2go.md"
+   ]
+  },
+  {
+   "id": "comp:migrations",
+   "kind": "component",
+   "name": "Schema migrations",
+   "summary": "Versioned, append-only migration list applied in transactions (#89). Add a migration instead of editing old ones.",
+   "code": [
+    "file:servers/pm2go/hub/migrations.go"
+   ],
+   "docs": [
+    "pm2go-dev-guide.md"
+   ]
+  },
+  {
+   "id": "comp:api",
+   "kind": "component",
+   "name": "HTTP API and auth",
+   "summary": "net/http mux with session cookie or bearer auth for the dashboard, agent key for /agent/ws, trust-proxy support, optional TLS (#95).",
+   "code": [
+    "type:hub.API"
+   ],
+   "docs": [
+    "pm2go.md",
+    "pm2go-deploy.md"
+   ]
+  },
+  {
+   "id": "comp:dashboard-ui",
+   "kind": "component",
+   "name": "Dashboard UI",
+   "summary": "Vanilla JS, no build, strict CSP, DOM built with h(). Pages register themselves (registerPage, registerNav). Servers, server, process with live logs, issues, alerts, settings.",
+   "code": [
+    "dir:servers/pm2go/hub/ui"
+   ],
+   "docs": [
+    "pm2go-dev-guide.md"
+   ]
+  },
+  {
+   "id": "comp:sdk-runtime",
+   "kind": "component",
+   "name": "sdk/runtime helper",
+   "summary": "Stdlib-only helper for apps managed by pm2go: inherited shared listener (fd 3, LISTEN_FDS) and Ready() signal.",
+   "code": [
+    "pkg:sdk/runtime"
+   ],
+   "docs": [
+    "pm2go.md"
+   ]
+  },
+  {
+   "id": "comp:deploy-files",
+   "kind": "component",
+   "name": "Docker and Caddy files",
+   "summary": "Dockerfile, compose (host Caddy or bundled Caddy profile), Caddyfile examples, .env.example in servers/pm2go/deploy.",
+   "code": [
+    "dir:servers/pm2go/deploy"
+   ],
+   "docs": [
+    "pm2go-deploy.md"
+   ]
+  },
+  {
+   "id": "comp:ci",
+   "kind": "component",
+   "name": "CI and release workflow",
+   "summary": "GitHub Actions pm2go.yml: gofmt, vet, race tests, Linux build, image build with /healthz smoke test, Linux binaries and image on tags.",
+   "code": [
+    "dir:.github/workflows"
+   ],
+   "docs": [
+    "pm2go-deploy.md"
+   ]
+  },
+  {
+   "id": "ext:telegram",
+   "kind": "external",
+   "name": "Telegram Bot API",
+   "summary": "Alert delivery channel. Only tested against a fake server so far (#106)."
+  },
+  {
+   "id": "ext:caddy",
+   "kind": "external",
+   "name": "Caddy",
+   "summary": "Reverse proxy and TLS terminator in front of the hub; already installed on the platform."
+  },
+  {
+   "id": "ext:docker",
+   "kind": "external",
+   "name": "Docker",
+   "summary": "Runs the hub image; not installed on the dev machine, image never run by hand yet."
+  },
+  {
+   "id": "ext:systemd",
+   "kind": "external",
+   "name": "systemd",
+   "summary": "Starts the daemon and the hub on boot via generated units (pm2go startup)."
+  },
+  {
+   "id": "ext:sqlite",
+   "kind": "external",
+   "name": "SQLite",
+   "summary": "Embedded storage engine for the hub (modernc.org/sqlite, no cgo)."
+  },
+  {
+   "id": "ext:procfs",
+   "kind": "external",
+   "name": "Linux /proc",
+   "summary": "Source of CPU, memory, load and network numbers. Verified on macOS only through the ps fallback (#106)."
+  },
+  {
+   "id": "ext:browser",
+   "kind": "external",
+   "name": "Browser",
+   "summary": "Operator view: dashboard, live logs over WebSocket, rule editor, settings."
+  },
+  {
+   "id": "ext:github",
+   "kind": "external",
+   "name": "GitHub",
+   "summary": "Issues #89 to #106, PR #88 (integration branch to main), Actions."
+  },
+  {
+   "id": "con:restart-policy",
+   "kind": "concept",
+   "name": "Restart policy",
+   "summary": "A run shorter than min_uptime is unstable. max_restarts counts consecutive unstable runs, then status errored. Backoff doubles up to 15 s. stop_exit_codes end supervision."
+  },
+  {
+   "id": "con:soft-restart",
+   "kind": "concept",
+   "name": "Soft restart",
+   "summary": "watch, cron_restart and max_memory_restart restart at once, count in restarts, never count as unstable, report their own reason."
+  },
+  {
+   "id": "con:instances",
+   "kind": "concept",
+   "name": "Instances",
+   "summary": "instances: N runs N processes under one name with PMGO_INSTANCE_ID. scale changes the count live; reload restarts one at a time."
+  },
+  {
+   "id": "con:shared-socket",
+   "kind": "concept",
+   "name": "Shared listening socket",
+   "summary": "Daemon opens the listener once per app and passes it as fd 3 (LISTEN_FDS=1) to every instance. Gives cluster-style port sharing and zero-downtime reload (#98)."
+  },
+  {
+   "id": "con:wait-ready",
+   "kind": "concept",
+   "name": "wait_ready",
+   "summary": "App signals readiness through a pipe; reload waits for it before stopping the old instance (#98)."
+  },
+  {
+   "id": "con:agent-outbound",
+   "kind": "concept",
+   "name": "Agent connects outbound",
+   "summary": "Hosts dial the hub; the hub never connects to hosts, so monitored hosts need no inbound port."
+  },
+  {
+   "id": "con:sustained-threshold",
+   "kind": "concept",
+   "name": "Sustained threshold",
+   "summary": "A metric rule fires only after the condition holds for duration_s. repeat_s sends reminders while firing; resolve needs 10 s of false."
+  },
+  {
+   "id": "con:escalation",
+   "kind": "concept",
+   "name": "Escalation",
+   "summary": "Several rules of one type with rising thresholds and levels. While the higher level fires for the same target, the lower level stays quiet."
+  },
+  {
+   "id": "con:issue-fingerprint",
+   "kind": "concept",
+   "name": "Issue fingerprint",
+   "summary": "Error lines reduced to a stable shape (timestamps, numbers, hex ids, quoted values removed) so repeats group together."
+  },
+  {
+   "id": "con:trust-proxy",
+   "kind": "concept",
+   "name": "Trusted proxy",
+   "summary": "PMGO_TRUST_PROXY=1 makes the hub believe X-Forwarded-For and X-Forwarded-Proto. Only safe behind Caddy on a private port."
+  },
+  {
+   "id": "con:schema-migrations",
+   "kind": "concept",
+   "name": "Schema migrations",
+   "summary": "Append-only versioned migrations; downgrade is refused."
+  },
+  {
+   "id": "con:per-issue-files",
+   "kind": "concept",
+   "name": "Per-issue work files",
+   "summary": "Each session writes status, decisions and notes only to its own pm2go-work/\u003cNNN\u003e-*.md file so parallel PRs never conflict on shared docs."
+  },
+  {
+   "id": "con:integration-branch",
+   "kind": "concept",
+   "name": "Integration branch",
+   "summary": "feat/pm2go-process-manager collects every feature PR; PR #88 merges it to main once, because main runs release workflows on every push."
+  },
+  {
+   "id": "con:children-tied-to-daemon",
+   "kind": "concept",
+   "name": "Children tied to the daemon",
+   "summary": "Child output goes through daemon pipes, so children die with the daemon. KillMode=control-group in the unit. Fix tracked in #99."
+  },
+  {
+   "id": "flow:start",
+   "kind": "flow",
+   "name": "Start an app",
+   "summary": "CLI builds AppConfig (flags or ecosystem) -\u003e RPC start -\u003e Manager.Start creates or updates Procs by name -\u003e Proc.Start spawns the supervise loop."
+  },
+  {
+   "id": "flow:telemetry",
+   "kind": "flow",
+   "name": "Telemetry",
+   "summary": "Monitor samples /proc every 2 s -\u003e Proc caches usage -\u003e Agent builds Snapshot every 2 s -\u003e Hub Registry.OnSnapshot -\u003e SQLite every 10 s -\u003e dashboard charts."
+  },
+  {
+   "id": "flow:log-stream",
+   "kind": "flow",
+   "name": "Log stream",
+   "summary": "Child output -\u003e RotatingFile (file + line hook) -\u003e Agent batch (500 ms) -\u003e Registry ring + issue grouping + live subscribers -\u003e dashboard WebSocket."
+  },
+  {
+   "id": "flow:alerting",
+   "kind": "flow",
+   "name": "Alerting",
+   "summary": "Engine.Evaluate every 2 s over Registry states -\u003e per rule state machine -\u003e level suppression -\u003e Notifier -\u003e Telegram; history stored in SQLite."
+  },
+  {
+   "id": "flow:remote-command",
+   "kind": "flow",
+   "name": "Remote command",
+   "summary": "Browser POST /api/servers/{name}/command -\u003e Registry.Command -\u003e agent exec -\u003e Manager method -\u003e CommandResult back to the browser."
+  },
+  {
+   "id": "code:pkg:cli",
+   "kind": "code",
+   "name": "pkg:cli",
+   "extra": {
+    "file": "",
+    "line": "0"
+   }
+  },
+  {
+   "id": "code:pkg:daemon",
+   "kind": "code",
+   "name": "pkg:daemon",
+   "extra": {
+    "file": "",
+    "line": "0"
+   }
+  },
+  {
+   "id": "code:type:daemon.Proc",
+   "kind": "code",
+   "name": "type:daemon.Proc",
+   "summary": "Proc is one supervised process.",
+   "extra": {
+    "file": "servers/pm2go/daemon/proc.go",
+    "line": "19"
+   }
+  },
+  {
+   "id": "code:type:daemon.Manager",
+   "kind": "code",
+   "name": "type:daemon.Manager",
+   "summary": "Manager owns the process table.",
+   "extra": {
+    "file": "servers/pm2go/daemon/manager.go",
+    "line": "20"
+   }
+  },
+  {
+   "id": "code:type:daemon.RotatingFile",
+   "kind": "code",
+   "name": "type:daemon.RotatingFile",
+   "summary": "RotatingFile is an append-only log file that rotates by size.",
+   "extra": {
+    "file": "servers/pm2go/daemon/logfile.go",
+    "line": "16"
+   }
+  },
+  {
+   "id": "code:type:daemon.Sampler",
+   "kind": "code",
+   "name": "type:daemon.Sampler",
+   "extra": {
+    "file": "servers/pm2go/daemon/sampler_other.go",
+    "line": "21"
+   }
+  },
+  {
+   "id": "code:file:servers/pm2go/common/rpc.go",
+   "kind": "code",
+   "name": "file:servers/pm2go/common/rpc.go",
+   "extra": {
+    "file": "servers/pm2go/common/rpc.go",
+    "line": "0"
+   }
+  },
+  {
+   "id": "code:type:common.AppConfig",
+   "kind": "code",
+   "name": "type:common.AppConfig",
+   "summary": "AppConfig is one managed application.",
+   "extra": {
+    "file": "servers/pm2go/common/types.go",
+    "line": "30"
+   }
+  },
+  {
+   "id": "code:func:common.LoadEcosystem",
+   "kind": "code",
+   "name": "func:common.LoadEcosystem",
+   "summary": "LoadEcosystem reads a JSON ecosystem file.",
+   "extra": {
+    "file": "servers/pm2go/common/ecosystem.go",
+    "line": "18"
+   }
+  },
+  {
+   "id": "code:pkg:agent",
+   "kind": "code",
+   "name": "pkg:agent",
+   "summary": "Package agent connects the daemon to a hub: it streams snapshots, events and log lines out, and runs commands the hub sends back.",
+   "extra": {
+    "file": "",
+    "line": "0"
+   }
+  },
+  {
+   "id": "code:file:servers/pm2go/common/proto.go",
+   "kind": "code",
+   "name": "file:servers/pm2go/common/proto.go",
+   "extra": {
+    "file": "servers/pm2go/common/proto.go",
+    "line": "0"
+   }
+  },
+  {
+   "id": "code:pkg:hub",
+   "kind": "code",
+   "name": "pkg:hub",
+   "summary": "Package hub is the web dashboard server: it accepts agent connections, stores metrics and events, evaluates alert rules and notifies Telegram.",
+   "extra": {
+    "file": "",
+    "line": "0"
+   }
+  },
+  {
+   "id": "code:type:hub.Registry",
+   "kind": "code",
+   "name": "type:hub.Registry",
+   "extra": {
+    "file": "servers/pm2go/hub/registry.go",
+    "line": "116"
+   }
+  },
+  {
+   "id": "code:type:hub.Engine",
+   "kind": "code",
+   "name": "type:hub.Engine",
+   "summary": "Engine evaluates rules against registry state on a timer.",
+   "extra": {
+    "file": "servers/pm2go/hub/alerts.go",
+    "line": "112"
+   }
+  },
+  {
+   "id": "code:type:hub.Rule",
+   "kind": "code",
+   "name": "type:hub.Rule",
+   "summary": "Rule is one alert definition.",
+   "extra": {
+    "file": "servers/pm2go/hub/alerts.go",
+    "line": "33"
+   }
+  },
+  {
+   "id": "code:type:hub.Notifier",
+   "kind": "code",
+   "name": "type:hub.Notifier",
+   "summary": "Notifier sends alert messages through the Telegram Bot API.",
+   "extra": {
+    "file": "servers/pm2go/hub/telegram.go",
+    "line": "38"
+   }
+  },
+  {
+   "id": "code:type:hub.Issues",
+   "kind": "code",
+   "name": "type:hub.Issues",
+   "extra": {
+    "file": "servers/pm2go/hub/issues.go",
+    "line": "53"
+   }
+  },
+  {
+   "id": "code:type:hub.Store",
+   "kind": "code",
+   "name": "type:hub.Store",
+   "summary": "Store wraps the SQLite database.",
+   "extra": {
+    "file": "servers/pm2go/hub/store.go",
+    "line": "14"
+   }
+  },
+  {
+   "id": "code:file:servers/pm2go/hub/migrations.go",
+   "kind": "code",
+   "name": "file:servers/pm2go/hub/migrations.go",
+   "extra": {
+    "file": "servers/pm2go/hub/migrations.go",
+    "line": "0"
+   }
+  },
+  {
+   "id": "code:type:hub.API",
+   "kind": "code",
+   "name": "type:hub.API",
+   "extra": {
+    "file": "servers/pm2go/hub/api.go",
+    "line": "21"
+   }
+  },
+  {
+   "id": "code:dir:servers/pm2go/hub/ui",
+   "kind": "code",
+   "name": "dir:servers/pm2go/hub/ui"
+  },
+  {
+   "id": "code:pkg:sdk/runtime",
+   "kind": "code",
+   "name": "pkg:sdk/runtime",
+   "summary": "Package runtime lets an application started by pm2go use the shared listening socket and the readiness protocol.",
+   "extra": {
+    "file": "",
+    "line": "0"
+   }
+  },
+  {
+   "id": "code:dir:servers/pm2go/deploy",
+   "kind": "code",
+   "name": "dir:servers/pm2go/deploy"
+  },
+  {
+   "id": "code:dir:.github/workflows",
+   "kind": "code",
+   "name": "dir:.github/workflows"
+  },
+  {
+   "id": "doc:pm2go-assessment.md",
+   "kind": "doc",
+   "name": "pm2go assessment: done, pending, improvements",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-assessment.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-deploy.md",
+   "kind": "doc",
+   "name": "pm2go deployment",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-deploy.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-dev-guide.md",
+   "kind": "doc",
+   "name": "pm2go developer guide",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-dev-guide.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-status.md",
+   "kind": "doc",
+   "name": "pm2go status checklist",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-status.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work-log.md",
+   "kind": "doc",
+   "name": "pm2go work log",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work-log.md"
+   }
+  },
+  {
+   "id": "doc:pm2go.md",
+   "kind": "doc",
+   "name": "pm2go knowledge base",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go.md"
+   }
+  },
+  {
+   "id": "doc:pm2-go-feature-analysis.md",
+   "kind": "doc",
+   "name": "PM2 and PM2 Plus: feature analysis for a Go rewrite",
+   "extra": {
+    "path": "docs/knowledge-base/pm2-go-feature-analysis.md"
+   }
+  },
+  {
+   "id": "doc:graph/GRAPH.md",
+   "kind": "doc",
+   "name": "pm2go graphs",
+   "extra": {
+    "path": "docs/knowledge-base/graph/GRAPH.md"
+   }
+  },
+  {
+   "id": "issue:89",
+   "kind": "issue",
+   "name": "#89 Hub schema versioning and migrations",
+   "status": "done",
+   "extra": {
+    "branch": "feat/hub-schema-migrations",
+    "issue": "https://github.com/rpsoftech/GolangServers/issues/89",
+    "pr": "#108",
+    "size_lane_needs": "S | Lane: hub | Needs first: none",
+    "work_file": "docs/knowledge-base/pm2go-work/089-hub-schema-versioning-and-migrations.md"
+   }
+  },
+  {
+   "id": "issue:90",
+   "kind": "issue",
+   "name": "#90 Hub UI: split `app.js` into modules",
+   "status": "done",
+   "extra": {
+    "branch": "feat/hub-ui-modules",
+    "issue": "https://github.com/rpsoftech/GolangServers/issues/90",
+    "pr": "#109",
+    "size_lane_needs": "S-M | Lane: hub UI | Needs first: none",
+    "work_file": "docs/knowledge-base/pm2go-work/090-hub-ui-split-app-js-into-modules.md"
+   }
+  },
+  {
+   "id": "issue:91",
+   "kind": "issue",
+   "name": "#91 GitHub Actions: tests, binaries, Docker image",
+   "status": "done",
+   "extra": {
+    "branch": "feat/pm2go-ci-release",
+    "issue": "https://github.com/rpsoftech/GolangServers/issues/91",
+    "pr": "#107",
+    "size_lane_needs": "S-M | Lane: tooling | Needs first: none",
+    "work_file": "docs/knowledge-base/pm2go-work/091-github-actions-tests-binaries-docker-ima.md"
+   }
+  },
+  {
+   "id": "issue:92",
+   "kind": "issue",
+   "name": "#92 YAML ecosystem files, `ignore_watch` globs",
+   "status": "open",
+   "extra": {
+    "branch": "",
+    "issue": "https://github.com/rpsoftech/GolangServers/issues/92",
+    "pr": "",
+    "size_lane_needs": "S | Lane: cli/common | Needs first: none",
+    "work_file": "docs/knowledge-base/pm2go-work/092-yaml-ecosystem-files-ignore-watch-globs.md"
+   }
+  },
+  {
+   "id": "issue:93",
+   "kind": "issue",
+   "name": "#93 CLI unit tests and testable command layer",
+   "status": "done",
+   "extra": {
+    "branch": "test/pm2go-cli",
+    "issue": "https://github.com/rpsoftech/GolangServers/issues/93",
+    "pr": "#111",
+    "size_lane_needs": "S-M | Lane: cli | Needs first: none",
+    "work_file": "docs/knowledge-base/pm2go-work/093-cli-unit-tests-and-testable-command-laye.md"
+   }
+  },
+  {
+   "id": "issue:94",
+   "kind": "issue",
+   "name": "#94 `monit` terminal dashboard",
+   "status": "open",
+   "extra": {
+    "branch": "",
+    "issue": "https://github.com/rpsoftech/GolangServers/issues/94",
+    "pr": "",
+    "size_lane_needs": "M | Lane: cli | Needs first: #93 (soft)",
+    "work_file": "docs/knowledge-base/pm2go-work/094-monit-terminal-dashboard.md"
+   }
+  },
+  {
+   "id": "issue:95",
+   "kind": "issue",
+   "name": "#95 Hub built-in TLS and secure defaults",
+   "status": "done",
+   "extra": {
+    "branch": "feat/hub-tls",
+    "issue": "https://github.com/rpsoftech/GolangServers/issues/95",
+    "pr": "#110",
+    "size_lane_needs": "S-M | Lane: hub | Needs first: none",
+    "work_file": "docs/knowledge-base/pm2go-work/095-hub-built-in-tls-and-secure-defaults.md"
+   }
+  },
+  {
+   "id": "issue:96",
+   "kind": "issue",
+   "name": "#96 Deployment tracking (git revision, deploy markers)",
+   "status": "open",
+   "extra": {
+    "branch": "",
+    "issue": "https://github.com/rpsoftech/GolangServers/issues/96",
+    "pr": "",
+    "size_lane_needs": "M | Lane: daemon+hub | Needs first: #89, #90",
+    "work_file": "docs/knowledge-base/pm2go-work/096-deployment-tracking-git-revision-deploy.md"
+   }
+  },
+  {
+   "id": "issue:97",
+   "kind": "issue",
+   "name": "#97 `deploy` command (git + ssh)",
+   "status": "open",
+   "extra": {
+    "branch": "",
+    "issue": "https://github.com/rpsoftech/GolangServers/issues/97",
+    "pr": "",
+    "size_lane_needs": "M-L | Lane: cli | Needs first: none (YAML #92 soft)",
+    "work_file": "docs/knowledge-base/pm2go-work/097-deploy-command-git-ssh.md"
+   }
+  },
+  {
+   "id": "issue:98",
+   "kind": "issue",
+   "name": "#98 Shared listening socket and `wait_ready`",
+   "status": "done",
+   "extra": {
+    "branch": "feat/daemon-shared-socket",
+    "issue": "https://github.com/rpsoftech/GolangServers/issues/98",
+    "pr": "#112",
+    "size_lane_needs": "L | Lane: daemon | Needs first: none",
+    "work_file": "docs/knowledge-base/pm2go-work/098-shared-listening-socket-and-wait-ready.md"
+   }
+  },
+  {
+   "id": "issue:99",
+   "kind": "issue",
+   "name": "#99 Restart daemon without stopping children",
+   "status": "open",
+   "extra": {
+    "branch": "",
+    "issue": "https://github.com/rpsoftech/GolangServers/issues/99",
+    "pr": "",
+    "size_lane_needs": "L | Lane: daemon | Needs first: #98 (order)",
+    "work_file": "docs/knowledge-base/pm2go-work/099-restart-daemon-without-stopping-children.md"
+   }
+  },
+  {
+   "id": "issue:100",
+   "kind": "issue",
+   "name": "#100 More alert channels, silences, quiet hours",
+   "status": "open",
+   "extra": {
+    "branch": "",
+    "issue": "https://github.com/rpsoftech/GolangServers/issues/100",
+    "pr": "",
+    "size_lane_needs": "L | Lane: hub | Needs first: #89, #90",
+    "work_file": "docs/knowledge-base/pm2go-work/100-more-alert-channels-silences-quiet-hours.md"
+   }
+  },
+  {
+   "id": "issue:101",
+   "kind": "issue",
+   "name": "#101 Persistent log storage and search",
+   "status": "open",
+   "extra": {
+    "branch": "",
+    "issue": "https://github.com/rpsoftech/GolangServers/issues/101",
+    "pr": "",
+    "size_lane_needs": "L | Lane: hub | Needs first: #89, #90",
+    "work_file": "docs/knowledge-base/pm2go-work/101-persistent-log-storage-and-search.md"
+   }
+  },
+  {
+   "id": "issue:102",
+   "kind": "issue",
+   "name": "#102 User accounts, roles, API tokens, audit log",
+   "status": "open",
+   "extra": {
+    "branch": "",
+    "issue": "https://github.com/rpsoftech/GolangServers/issues/102",
+    "pr": "",
+    "size_lane_needs": "L | Lane: hub | Needs first: #89, #90",
+    "work_file": "docs/knowledge-base/pm2go-work/102-user-accounts-roles-api-tokens-audit-log.md"
+   }
+  },
+  {
+   "id": "issue:103",
+   "kind": "issue",
+   "name": "#103 Go SDK: custom metrics, actions, error reports",
+   "status": "open",
+   "extra": {
+    "branch": "",
+    "issue": "https://github.com/rpsoftech/GolangServers/issues/103",
+    "pr": "",
+    "size_lane_needs": "L | Lane: sdk+hub | Needs first: #89, #90",
+    "work_file": "docs/knowledge-base/pm2go-work/103-go-sdk-custom-metrics-actions-error-repo.md"
+   }
+  },
+  {
+   "id": "issue:104",
+   "kind": "issue",
+   "name": "#104 Transaction tracing",
+   "status": "open",
+   "extra": {
+    "branch": "",
+    "issue": "https://github.com/rpsoftech/GolangServers/issues/104",
+    "pr": "",
+    "size_lane_needs": "L | Lane: sdk+hub | Needs first: #103",
+    "work_file": "docs/knowledge-base/pm2go-work/104-transaction-tracing.md"
+   }
+  },
+  {
+   "id": "issue:105",
+   "kind": "issue",
+   "name": "#105 Remote CPU and heap profiling",
+   "status": "open",
+   "extra": {
+    "branch": "",
+    "issue": "https://github.com/rpsoftech/GolangServers/issues/105",
+    "pr": "",
+    "size_lane_needs": "L | Lane: sdk+hub | Needs first: #103",
+    "work_file": "docs/knowledge-base/pm2go-work/105-remote-cpu-and-heap-profiling.md"
+   }
+  },
+  {
+   "id": "issue:106",
+   "kind": "issue",
+   "name": "#106 Verify on real infrastructure (Docker, Caddy, Linux, Telegram)",
+   "status": "open",
+   "extra": {
+    "branch": "",
+    "issue": "https://github.com/rpsoftech/GolangServers/issues/106",
+    "pr": "",
+    "size_lane_needs": "M | Lane: human | Needs first: none",
+    "work_file": "docs/knowledge-base/pm2go-work/106-verify-on-real-infrastructure-docker-cad.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/000-project.md",
+   "kind": "doc",
+   "name": "000-project.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/000-project.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/089-hub-schema-versioning-and-migrations.md",
+   "kind": "doc",
+   "name": "089-hub-schema-versioning-and-migrations.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/089-hub-schema-versioning-and-migrations.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/090-hub-ui-split-app-js-into-modules.md",
+   "kind": "doc",
+   "name": "090-hub-ui-split-app-js-into-modules.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/090-hub-ui-split-app-js-into-modules.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/091-github-actions-tests-binaries-docker-ima.md",
+   "kind": "doc",
+   "name": "091-github-actions-tests-binaries-docker-ima.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/091-github-actions-tests-binaries-docker-ima.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/092-yaml-ecosystem-files-ignore-watch-globs.md",
+   "kind": "doc",
+   "name": "092-yaml-ecosystem-files-ignore-watch-globs.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/092-yaml-ecosystem-files-ignore-watch-globs.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/093-cli-unit-tests-and-testable-command-laye.md",
+   "kind": "doc",
+   "name": "093-cli-unit-tests-and-testable-command-laye.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/093-cli-unit-tests-and-testable-command-laye.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/094-monit-terminal-dashboard.md",
+   "kind": "doc",
+   "name": "094-monit-terminal-dashboard.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/094-monit-terminal-dashboard.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/095-hub-built-in-tls-and-secure-defaults.md",
+   "kind": "doc",
+   "name": "095-hub-built-in-tls-and-secure-defaults.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/095-hub-built-in-tls-and-secure-defaults.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/096-deployment-tracking-git-revision-deploy.md",
+   "kind": "doc",
+   "name": "096-deployment-tracking-git-revision-deploy.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/096-deployment-tracking-git-revision-deploy.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/097-deploy-command-git-ssh.md",
+   "kind": "doc",
+   "name": "097-deploy-command-git-ssh.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/097-deploy-command-git-ssh.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/098-shared-listening-socket-and-wait-ready.md",
+   "kind": "doc",
+   "name": "098-shared-listening-socket-and-wait-ready.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/098-shared-listening-socket-and-wait-ready.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/099-restart-daemon-without-stopping-children.md",
+   "kind": "doc",
+   "name": "099-restart-daemon-without-stopping-children.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/099-restart-daemon-without-stopping-children.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/100-more-alert-channels-silences-quiet-hours.md",
+   "kind": "doc",
+   "name": "100-more-alert-channels-silences-quiet-hours.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/100-more-alert-channels-silences-quiet-hours.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/101-persistent-log-storage-and-search.md",
+   "kind": "doc",
+   "name": "101-persistent-log-storage-and-search.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/101-persistent-log-storage-and-search.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/102-user-accounts-roles-api-tokens-audit-log.md",
+   "kind": "doc",
+   "name": "102-user-accounts-roles-api-tokens-audit-log.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/102-user-accounts-roles-api-tokens-audit-log.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/103-go-sdk-custom-metrics-actions-error-repo.md",
+   "kind": "doc",
+   "name": "103-go-sdk-custom-metrics-actions-error-repo.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/103-go-sdk-custom-metrics-actions-error-repo.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/104-transaction-tracing.md",
+   "kind": "doc",
+   "name": "104-transaction-tracing.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/104-transaction-tracing.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/105-remote-cpu-and-heap-profiling.md",
+   "kind": "doc",
+   "name": "105-remote-cpu-and-heap-profiling.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/105-remote-cpu-and-heap-profiling.md"
+   }
+  },
+  {
+   "id": "doc:pm2go-work/106-verify-on-real-infrastructure-docker-cad.md",
+   "kind": "doc",
+   "name": "106-verify-on-real-infrastructure-docker-cad.md",
+   "extra": {
+    "path": "docs/knowledge-base/pm2go-work/106-verify-on-real-infrastructure-docker-cad.md"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "from": "comp:cli",
+   "to": "comp:rpc",
+   "kind": "uses"
+  },
+  {
+   "from": "comp:rpc",
+   "to": "comp:daemon",
+   "kind": "talks_to"
+  },
+  {
+   "from": "comp:cli",
+   "to": "comp:hub",
+   "kind": "launches"
+  },
+  {
+   "from": "comp:daemon",
+   "to": "comp:supervisor",
+   "kind": "contains"
+  },
+  {
+   "from": "comp:supervisor",
+   "to": "comp:logging",
+   "kind": "uses"
+  },
+  {
+   "from": "comp:supervisor",
+   "to": "comp:ecosystem",
+   "kind": "consumes"
+  },
+  {
+   "from": "comp:daemon",
+   "to": "comp:sampler",
+   "kind": "uses"
+  },
+  {
+   "from": "comp:sampler",
+   "to": "ext:procfs",
+   "kind": "reads"
+  },
+  {
+   "from": "comp:daemon",
+   "to": "comp:agent",
+   "kind": "contains"
+  },
+  {
+   "from": "comp:agent",
+   "to": "comp:protocol",
+   "kind": "uses"
+  },
+  {
+   "from": "comp:agent",
+   "to": "comp:hub",
+   "kind": "talks_to"
+  },
+  {
+   "from": "comp:hub",
+   "to": "comp:registry",
+   "kind": "contains"
+  },
+  {
+   "from": "comp:hub",
+   "to": "comp:alert-engine",
+   "kind": "contains"
+  },
+  {
+   "from": "comp:hub",
+   "to": "comp:notifier-telegram",
+   "kind": "contains"
+  },
+  {
+   "from": "comp:hub",
+   "to": "comp:issues",
+   "kind": "contains"
+  },
+  {
+   "from": "comp:hub",
+   "to": "comp:store",
+   "kind": "contains"
+  },
+  {
+   "from": "comp:hub",
+   "to": "comp:api",
+   "kind": "contains"
+  },
+  {
+   "from": "comp:hub",
+   "to": "comp:dashboard-ui",
+   "kind": "serves"
+  },
+  {
+   "from": "comp:store",
+   "to": "comp:migrations",
+   "kind": "uses"
+  },
+  {
+   "from": "comp:store",
+   "to": "ext:sqlite",
+   "kind": "built_on"
+  },
+  {
+   "from": "comp:registry",
+   "to": "comp:store",
+   "kind": "writes"
+  },
+  {
+   "from": "comp:registry",
+   "to": "comp:issues",
+   "kind": "feeds"
+  },
+  {
+   "from": "comp:alert-engine",
+   "to": "comp:registry",
+   "kind": "reads"
+  },
+  {
+   "from": "comp:alert-engine",
+   "to": "comp:notifier-telegram",
+   "kind": "notifies"
+  },
+  {
+   "from": "comp:notifier-telegram",
+   "to": "ext:telegram",
+   "kind": "talks_to"
+  },
+  {
+   "from": "comp:api",
+   "to": "comp:registry",
+   "kind": "uses"
+  },
+  {
+   "from": "comp:api",
+   "to": "comp:alert-engine",
+   "kind": "uses"
+  },
+  {
+   "from": "ext:browser",
+   "to": "comp:dashboard-ui",
+   "kind": "uses"
+  },
+  {
+   "from": "comp:dashboard-ui",
+   "to": "comp:api",
+   "kind": "talks_to"
+  },
+  {
+   "from": "ext:caddy",
+   "to": "comp:hub",
+   "kind": "proxies"
+  },
+  {
+   "from": "comp:deploy-files",
+   "to": "ext:docker",
+   "kind": "targets"
+  },
+  {
+   "from": "comp:deploy-files",
+   "to": "ext:caddy",
+   "kind": "documents"
+  },
+  {
+   "from": "comp:deploy-files",
+   "to": "comp:hub",
+   "kind": "packages"
+  },
+  {
+   "from": "comp:cli",
+   "to": "ext:systemd",
+   "kind": "generates_units_for"
+  },
+  {
+   "from": "comp:ci",
+   "to": "comp:deploy-files",
+   "kind": "builds"
+  },
+  {
+   "from": "comp:ci",
+   "to": "ext:github",
+   "kind": "runs_on"
+  },
+  {
+   "from": "comp:sdk-runtime",
+   "to": "con:shared-socket",
+   "kind": "implements"
+  },
+  {
+   "from": "comp:sdk-runtime",
+   "to": "con:wait-ready",
+   "kind": "implements"
+  },
+  {
+   "from": "comp:supervisor",
+   "to": "con:restart-policy",
+   "kind": "implements"
+  },
+  {
+   "from": "comp:supervisor",
+   "to": "con:soft-restart",
+   "kind": "implements"
+  },
+  {
+   "from": "comp:supervisor",
+   "to": "con:instances",
+   "kind": "implements"
+  },
+  {
+   "from": "comp:supervisor",
+   "to": "con:shared-socket",
+   "kind": "implements"
+  },
+  {
+   "from": "comp:supervisor",
+   "to": "con:wait-ready",
+   "kind": "implements"
+  },
+  {
+   "from": "comp:agent",
+   "to": "con:agent-outbound",
+   "kind": "implements"
+  },
+  {
+   "from": "comp:alert-engine",
+   "to": "con:sustained-threshold",
+   "kind": "implements"
+  },
+  {
+   "from": "comp:alert-engine",
+   "to": "con:escalation",
+   "kind": "implements"
+  },
+  {
+   "from": "comp:issues",
+   "to": "con:issue-fingerprint",
+   "kind": "implements"
+  },
+  {
+   "from": "comp:api",
+   "to": "con:trust-proxy",
+   "kind": "implements"
+  },
+  {
+   "from": "comp:migrations",
+   "to": "con:schema-migrations",
+   "kind": "implements"
+  },
+  {
+   "from": "comp:logging",
+   "to": "con:children-tied-to-daemon",
+   "kind": "causes"
+  },
+  {
+   "from": "flow:start",
+   "to": "comp:cli",
+   "kind": "starts_at"
+  },
+  {
+   "from": "flow:start",
+   "to": "comp:supervisor",
+   "kind": "ends_at"
+  },
+  {
+   "from": "flow:telemetry",
+   "to": "comp:sampler",
+   "kind": "starts_at"
+  },
+  {
+   "from": "flow:telemetry",
+   "to": "comp:store",
+   "kind": "ends_at"
+  },
+  {
+   "from": "flow:log-stream",
+   "to": "comp:logging",
+   "kind": "starts_at"
+  },
+  {
+   "from": "flow:log-stream",
+   "to": "comp:dashboard-ui",
+   "kind": "ends_at"
+  },
+  {
+   "from": "flow:alerting",
+   "to": "comp:alert-engine",
+   "kind": "starts_at"
+  },
+  {
+   "from": "flow:alerting",
+   "to": "ext:telegram",
+   "kind": "ends_at"
+  },
+  {
+   "from": "flow:remote-command",
+   "to": "comp:dashboard-ui",
+   "kind": "starts_at"
+  },
+  {
+   "from": "flow:remote-command",
+   "to": "comp:supervisor",
+   "kind": "ends_at"
+  },
+  {
+   "from": "con:per-issue-files",
+   "to": "con:integration-branch",
+   "kind": "supports"
+  },
+  {
+   "from": "comp:cli",
+   "to": "code:pkg:cli",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:daemon",
+   "to": "code:pkg:daemon",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:supervisor",
+   "to": "code:type:daemon.Proc",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:supervisor",
+   "to": "code:type:daemon.Manager",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:logging",
+   "to": "code:type:daemon.RotatingFile",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:sampler",
+   "to": "code:type:daemon.Sampler",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:rpc",
+   "to": "code:file:servers/pm2go/common/rpc.go",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:ecosystem",
+   "to": "code:type:common.AppConfig",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:ecosystem",
+   "to": "code:func:common.LoadEcosystem",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:agent",
+   "to": "code:pkg:agent",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:protocol",
+   "to": "code:file:servers/pm2go/common/proto.go",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:hub",
+   "to": "code:pkg:hub",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:registry",
+   "to": "code:type:hub.Registry",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:alert-engine",
+   "to": "code:type:hub.Engine",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:alert-engine",
+   "to": "code:type:hub.Rule",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:notifier-telegram",
+   "to": "code:type:hub.Notifier",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:issues",
+   "to": "code:type:hub.Issues",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:store",
+   "to": "code:type:hub.Store",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:migrations",
+   "to": "code:file:servers/pm2go/hub/migrations.go",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:api",
+   "to": "code:type:hub.API",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:dashboard-ui",
+   "to": "code:dir:servers/pm2go/hub/ui",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:sdk-runtime",
+   "to": "code:pkg:sdk/runtime",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:deploy-files",
+   "to": "code:dir:servers/pm2go/deploy",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:ci",
+   "to": "code:dir:.github/workflows",
+   "kind": "implemented_in"
+  },
+  {
+   "from": "comp:cli",
+   "to": "doc:pm2go.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:cli",
+   "to": "doc:pm2go-dev-guide.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:daemon",
+   "to": "doc:pm2go.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:supervisor",
+   "to": "doc:pm2go.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:logging",
+   "to": "doc:pm2go.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:sampler",
+   "to": "doc:pm2go.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:rpc",
+   "to": "doc:pm2go-dev-guide.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:ecosystem",
+   "to": "doc:pm2go.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:agent",
+   "to": "doc:pm2go.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:protocol",
+   "to": "doc:pm2go-dev-guide.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:hub",
+   "to": "doc:pm2go.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:hub",
+   "to": "doc:pm2go-deploy.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:registry",
+   "to": "doc:pm2go.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:alert-engine",
+   "to": "doc:pm2go.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:notifier-telegram",
+   "to": "doc:pm2go.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:issues",
+   "to": "doc:pm2go.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:store",
+   "to": "doc:pm2go.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:migrations",
+   "to": "doc:pm2go-dev-guide.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:api",
+   "to": "doc:pm2go.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:api",
+   "to": "doc:pm2go-deploy.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:dashboard-ui",
+   "to": "doc:pm2go-dev-guide.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:sdk-runtime",
+   "to": "doc:pm2go.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:deploy-files",
+   "to": "doc:pm2go-deploy.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "comp:ci",
+   "to": "doc:pm2go-deploy.md",
+   "kind": "documented_in"
+  },
+  {
+   "from": "issue:89",
+   "to": "comp:migrations",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:89",
+   "to": "comp:store",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:89",
+   "to": "doc:pm2go-work/089-hub-schema-versioning-and-migrations.md",
+   "kind": "tracked_in"
+  },
+  {
+   "from": "issue:90",
+   "to": "comp:dashboard-ui",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:90",
+   "to": "doc:pm2go-work/090-hub-ui-split-app-js-into-modules.md",
+   "kind": "tracked_in"
+  },
+  {
+   "from": "issue:91",
+   "to": "comp:ci",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:91",
+   "to": "comp:deploy-files",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:91",
+   "to": "doc:pm2go-work/091-github-actions-tests-binaries-docker-ima.md",
+   "kind": "tracked_in"
+  },
+  {
+   "from": "issue:92",
+   "to": "comp:ecosystem",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:92",
+   "to": "doc:pm2go-work/092-yaml-ecosystem-files-ignore-watch-globs.md",
+   "kind": "tracked_in"
+  },
+  {
+   "from": "issue:93",
+   "to": "comp:cli",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:93",
+   "to": "doc:pm2go-work/093-cli-unit-tests-and-testable-command-laye.md",
+   "kind": "tracked_in"
+  },
+  {
+   "from": "issue:94",
+   "to": "issue:93",
+   "kind": "depends_on"
+  },
+  {
+   "from": "issue:94",
+   "to": "comp:cli",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:94",
+   "to": "doc:pm2go-work/094-monit-terminal-dashboard.md",
+   "kind": "tracked_in"
+  },
+  {
+   "from": "issue:95",
+   "to": "comp:api",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:95",
+   "to": "comp:hub",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:95",
+   "to": "comp:agent",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:95",
+   "to": "doc:pm2go-work/095-hub-built-in-tls-and-secure-defaults.md",
+   "kind": "tracked_in"
+  },
+  {
+   "from": "issue:96",
+   "to": "issue:89",
+   "kind": "depends_on"
+  },
+  {
+   "from": "issue:96",
+   "to": "issue:90",
+   "kind": "depends_on"
+  },
+  {
+   "from": "issue:96",
+   "to": "comp:supervisor",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:96",
+   "to": "comp:registry",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:96",
+   "to": "comp:dashboard-ui",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:96",
+   "to": "comp:store",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:96",
+   "to": "doc:pm2go-work/096-deployment-tracking-git-revision-deploy.md",
+   "kind": "tracked_in"
+  },
+  {
+   "from": "issue:97",
+   "to": "issue:92",
+   "kind": "depends_on"
+  },
+  {
+   "from": "issue:97",
+   "to": "comp:cli",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:97",
+   "to": "comp:ecosystem",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:97",
+   "to": "doc:pm2go-work/097-deploy-command-git-ssh.md",
+   "kind": "tracked_in"
+  },
+  {
+   "from": "issue:98",
+   "to": "comp:supervisor",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:98",
+   "to": "comp:sdk-runtime",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:98",
+   "to": "doc:pm2go-work/098-shared-listening-socket-and-wait-ready.md",
+   "kind": "tracked_in"
+  },
+  {
+   "from": "issue:99",
+   "to": "issue:98",
+   "kind": "depends_on"
+  },
+  {
+   "from": "issue:99",
+   "to": "comp:supervisor",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:99",
+   "to": "comp:logging",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:99",
+   "to": "comp:cli",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:99",
+   "to": "doc:pm2go-work/099-restart-daemon-without-stopping-children.md",
+   "kind": "tracked_in"
+  },
+  {
+   "from": "issue:100",
+   "to": "issue:89",
+   "kind": "depends_on"
+  },
+  {
+   "from": "issue:100",
+   "to": "issue:90",
+   "kind": "depends_on"
+  },
+  {
+   "from": "issue:100",
+   "to": "comp:notifier-telegram",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:100",
+   "to": "comp:alert-engine",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:100",
+   "to": "comp:api",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:100",
+   "to": "comp:dashboard-ui",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:100",
+   "to": "comp:store",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:100",
+   "to": "doc:pm2go-work/100-more-alert-channels-silences-quiet-hours.md",
+   "kind": "tracked_in"
+  },
+  {
+   "from": "issue:101",
+   "to": "issue:89",
+   "kind": "depends_on"
+  },
+  {
+   "from": "issue:101",
+   "to": "issue:90",
+   "kind": "depends_on"
+  },
+  {
+   "from": "issue:101",
+   "to": "comp:registry",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:101",
+   "to": "comp:store",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:101",
+   "to": "comp:api",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:101",
+   "to": "comp:dashboard-ui",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:101",
+   "to": "doc:pm2go-work/101-persistent-log-storage-and-search.md",
+   "kind": "tracked_in"
+  },
+  {
+   "from": "issue:102",
+   "to": "issue:89",
+   "kind": "depends_on"
+  },
+  {
+   "from": "issue:102",
+   "to": "issue:90",
+   "kind": "depends_on"
+  },
+  {
+   "from": "issue:102",
+   "to": "comp:api",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:102",
+   "to": "comp:store",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:102",
+   "to": "comp:dashboard-ui",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:102",
+   "to": "doc:pm2go-work/102-user-accounts-roles-api-tokens-audit-log.md",
+   "kind": "tracked_in"
+  },
+  {
+   "from": "issue:103",
+   "to": "issue:89",
+   "kind": "depends_on"
+  },
+  {
+   "from": "issue:103",
+   "to": "issue:90",
+   "kind": "depends_on"
+  },
+  {
+   "from": "issue:103",
+   "to": "comp:protocol",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:103",
+   "to": "comp:agent",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:103",
+   "to": "comp:daemon",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:103",
+   "to": "comp:hub",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:103",
+   "to": "comp:alert-engine",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:103",
+   "to": "comp:dashboard-ui",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:103",
+   "to": "doc:pm2go-work/103-go-sdk-custom-metrics-actions-error-repo.md",
+   "kind": "tracked_in"
+  },
+  {
+   "from": "issue:104",
+   "to": "issue:103",
+   "kind": "depends_on"
+  },
+  {
+   "from": "issue:104",
+   "to": "comp:protocol",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:104",
+   "to": "comp:hub",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:104",
+   "to": "comp:alert-engine",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:104",
+   "to": "comp:dashboard-ui",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:104",
+   "to": "doc:pm2go-work/104-transaction-tracing.md",
+   "kind": "tracked_in"
+  },
+  {
+   "from": "issue:105",
+   "to": "issue:103",
+   "kind": "depends_on"
+  },
+  {
+   "from": "issue:105",
+   "to": "comp:protocol",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:105",
+   "to": "comp:hub",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:105",
+   "to": "comp:dashboard-ui",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:105",
+   "to": "doc:pm2go-work/105-remote-cpu-and-heap-profiling.md",
+   "kind": "tracked_in"
+  },
+  {
+   "from": "issue:106",
+   "to": "comp:deploy-files",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:106",
+   "to": "comp:sampler",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:106",
+   "to": "comp:notifier-telegram",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:106",
+   "to": "ext:caddy",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:106",
+   "to": "ext:docker",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:106",
+   "to": "ext:systemd",
+   "kind": "changes"
+  },
+  {
+   "from": "issue:106",
+   "to": "doc:pm2go-work/106-verify-on-real-infrastructure-docker-cad.md",
+   "kind": "tracked_in"
+  }
+ ]
+}

@@ -1,6 +1,6 @@
 # #90: Hub UI: split `app.js` into modules
 
-Status: in review
+Status: done
 Branch: feat/hub-ui-modules
 PR: #109
 Issue: https://github.com/rpsoftech/GolangServers/issues/90

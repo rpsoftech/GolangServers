@@ -2,6 +2,10 @@
 
 Read this instead of re-reading the whole code. It is the map: what each package owns, the types that cross package borders, how to add the common kinds of change, and the rules every change follows. Behaviour and design reasons are in `pm2go.md`, deployment in `pm2go-deploy.md`, what is done or open in `pm2go-status.md`, and who is working on what in `pm2go-work-log.md`.
 
+## Graphs for agents
+
+Before reading code, read `docs/knowledge-base/graph/GRAPH.md` (architecture, package imports, issue dependencies, HTTP routes to handlers) and query `graph/code-graph.json` (packages, files, types, functions, calls) or `graph/knowledge-graph.json` (components, concepts, flows, issues, docs and how they relate). **Do not regenerate or commit the generated graph files in feature PRs** (they would conflict between PRs); the coordinator regenerates them after merges with `go run docs/knowledge-base/graph/gen.go`. Add new concepts or components by editing `graph/knowledge-graph.curated.json` only when the coordinator asks.
+
 ## Process model
 
 ```
