@@ -78,7 +78,7 @@ CLI ──unix socket JSON-RPC──> daemon (Manager, Procs) ──hooks──>
 - UI: build DOM with the `h()` helper and `textContent`. Never use `innerHTML` with data from logs, process names or API fields. The CSP forbids inline scripts.
 - Secrets never leave the hub through the API (the Telegram token is shown only as `token_set`). Keep it that way for any new secret.
 - Every hub or daemon behaviour change gets a test. Alert logic is tested with the fake clock in `hub/hub_test.go` (`setup`, `setSnapshot`, `advance`).
-- Update `docs/knowledge-base/pm2go.md` (behaviour), `pm2go-status.md` (tick boxes), and add your entry to `pm2go-work-log.md` in the same PR.
+- Docs, without creating merge conflicts for other open PRs: put new behaviour documentation in a **new** file `docs/knowledge-base/pm2go-<topic>.md`; correct existing text in `pm2go.md` in place but never append rows or list items to shared files; record your status, decisions and notes only in your own file `docs/knowledge-base/pm2go-work/<NNN>-<slug>.md`; do not edit `pm2go-work-log.md` or `pm2go-status.md` (write the boxes to tick in your issue file, the coordinator ticks them). Details: `pm2go-work/README.md`.
 - Keep the Linux production build green.
 
 ## Commands you will need
