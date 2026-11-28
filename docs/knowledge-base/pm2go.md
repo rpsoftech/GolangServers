@@ -14,7 +14,7 @@ One binary, `servers/pm2go`, runs in three roles:
  host C: pm2go daemon + agent ──ws──┘          └──> Telegram Bot API
 ```
 
-Agents dial out to the hub (no inbound port on hosts). The hub never connects to hosts.
+Agents dial out to the hub (no inbound port on hosts). The hub never connects to hosts. While the hub is unreachable the agent keeps the newest 500 process events and replays them, with their original timestamps, right after the next hello, so a crash during a short network gap still alerts.
 
 ## Code map (`servers/pm2go`)
 
@@ -46,7 +46,8 @@ Agents dial out to the hub (no inbound port on hosts). The hub never connects to
 - **Instances**: `instances: N` runs N processes under one name (`PMGO_INSTANCE_ID` 0..N-1). `scale` changes the count live. `reload` restarts one instance at a time and waits for each to stay up for `min_uptime` (or to signal ready with `wait_ready`). To share one port between instances see **Shared socket and `wait_ready`**.
 - **Logs**: children write straight to their log files (`O_APPEND`, no pipe). The daemon follows the files (200 ms polling, by offset) and sends every new line to the agent hook, and rotates by copy-truncate (default 10 MB, keep 5 gzip files, `log_max_size` -1 turns rotation off; lines written during the copy can be lost). **Consequence**: children do not depend on the daemon; see `pm2go-daemon-restart.md` for adoption, the state file and the systemd unit (`KillMode=process`).
 - **Metrics**: every 2 s the monitor reads `/proc` and sums CPU and RSS over each child's process group, plus host CPU, memory, load, disk (`/`), network (non-loopback) and uptime.
-- **Start with an existing name** updates its config and restarts, so re-applying an ecosystem file is idempotent. Ecosystem files are JSON (`{"apps":[...]}`, `env_<profile>`, `--env-profile`, `--only`).
+- **Start with an existing name** updates its config and restarts, so re-applying an ecosystem file is idempotent. Ecosystem files are JSON or YAML (`.json`, `.yaml`, `.yml`; an unknown extension is tried as JSON, then YAML) with one schema: `{"apps":[...]}`, `env_<profile>`, `--env-profile`, `--only`. YAML is parsed into generic data and re-marshalled to JSON, so both formats share one decoder (`common/ecosystem_yaml.go`); scalar `env` values such as `PORT: 3000` become strings. Unknown keys (for example `max_restart`) print `warning:` lines from the CLI and never fail the start; invalid YAML errors name the file and line.
+- **`ignore_watch` patterns** (`daemon/glob.go`) are relative to `cwd`: `*` matches within one path segment, `**` matches across directories, a leading `/` anchors to `cwd`, a trailing `/` matches directories only, a pattern with an inner `/` (`a/b/c`) is anchored to `cwd`, and a bare name (`*.swp`, `cache`) matches at any depth. A match on a directory ignores everything below it. `.git`, `node_modules` and `.pm2go` are always ignored.
 - **Environment**: the caller's environment is sent with each start request and never saved in the dump file. Children also get `PMGO_NAME`, `PMGO_ID`, `PMGO_INSTANCE_ID`, `PMGO_NAMESPACE`.
 
 ## Shared socket and `wait_ready`
@@ -91,7 +92,7 @@ Start it with `pm2go start ./app --name web --instances 3 --listen :8080 --wait-
 
 ## Alerts and Telegram
 
-- A **rule** has a level (`info`, `warning`, `critical`), a type, a scope (server and process, empty = all) and type-specific limits. Types: `system_cpu`, `system_memory`, `system_disk`, `system_load`, `proc_cpu`, `proc_memory`, `proc_status` (a process is `errored`), `restart_loop` (N crashes in a window), `log_errors` (N matching lines in a window, optional regex and stream), `server_offline`.
+- A **rule** has a level (`info`, `warning`, `critical`), a type, a scope (server and process, empty = all) and type-specific limits. Types: `system_cpu`, `system_memory`, `system_disk`, `system_load`, `proc_cpu`, `proc_memory`, `proc_status` (a process is `errored`), `restart_loop` (N crashes or `wait_ready` timeouts in a window), `log_errors` (N matching lines in a window, optional regex and stream), `server_offline`.
 - **Sustained resource alerts**: a metric rule only fires after the condition holds continuously for `duration_s`. A brief spike resets the timer. With `repeat_s` the alert reminds you every N seconds while still firing ("still firing after 1h 5m").
 - **Multiple levels**: create several rules of one type with rising thresholds, for example CPU > 80% for 5 min (warning) and CPU > 95% for 2 min (critical). While the higher level fires for the same target, the lower one stays quiet; if the higher clears first, the lower one then notifies.
 - **Resolve**: the condition must be false for 10 s before the alert resolves. With `notify_resolved` and only if a firing message was sent, a "RESOLVED" message follows.
@@ -106,7 +107,7 @@ Start it with `pm2go start ./app --name web --instances 3 --listen :8080 --wait-
 
 The full checklist is in `pm2go-status.md`. Summary:
 
-- `ignore_watch` globs beyond name patterns, YAML ecosystem files, ssh `deploy`.
+- ssh `deploy`.
 - Transaction tracing, CPU and heap profiling from the dashboard, deployment tracking (git revision per process), custom app metrics and actions SDK.
 - Multi-user accounts, SSO, other alert channels (email, Slack, webhook).
 - Log search across history (only the live ring is searchable by eye).

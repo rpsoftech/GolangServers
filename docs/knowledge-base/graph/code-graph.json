@@ -1,13 +1,13 @@
 {
  "generated_by": "docs/knowledge-base/graph/gen.go",
  "stats": {
-  "edges": 1120,
-  "files": 37,
-  "funcs": 295,
-  "nodes": 425,
+  "edges": 1132,
+  "files": 39,
+  "funcs": 301,
+  "nodes": 427,
   "packages": 7,
   "routes": 24,
-  "types": 69
+  "types": 72
  },
  "nodes": [
   {
@@ -17,7 +17,7 @@
    "package": "agent",
    "file": "servers/pm2go/agent/agent.go",
    "extra": {
-    "lines": "323"
+    "lines": "355"
    }
   },
   {
@@ -127,7 +127,7 @@
    "package": "daemon",
    "file": "servers/pm2go/daemon/child.go",
    "extra": {
-    "lines": "250"
+    "lines": "253"
    }
   },
   {
@@ -157,7 +157,7 @@
    "package": "daemon",
    "file": "servers/pm2go/daemon/manager.go",
    "extra": {
-    "lines": "529"
+    "lines": "535"
    }
   },
   {
@@ -191,6 +191,16 @@
    }
   },
   {
+   "id": "file:servers/pm2go/daemon/sampler_windows.go",
+   "kind": "file",
+   "name": "sampler_windows.go",
+   "package": "daemon",
+   "file": "servers/pm2go/daemon/sampler_windows.go",
+   "extra": {
+    "lines": "26"
+   }
+  },
+  {
    "id": "file:servers/pm2go/daemon/server.go",
    "kind": "file",
    "name": "server.go",
@@ -218,6 +228,16 @@
    "file": "servers/pm2go/daemon/sys_unix.go",
    "extra": {
     "lines": "25"
+   }
+  },
+  {
+   "id": "file:servers/pm2go/daemon/sys_windows.go",
+   "kind": "file",
+   "name": "sys_windows.go",
+   "package": "daemon",
+   "file": "servers/pm2go/daemon/sys_windows.go",
+   "extra": {
+    "lines": "27"
    }
   },
   {
@@ -297,7 +317,7 @@
    "package": "hub",
    "file": "servers/pm2go/hub/registry.go",
    "extra": {
-    "lines": "421"
+    "lines": "450"
    }
   },
   {
@@ -394,7 +414,7 @@
    "name": "New",
    "package": "agent",
    "file": "servers/pm2go/agent/agent.go",
-   "line": 41,
+   "line": 43,
    "exported": true
   },
   {
@@ -403,7 +423,7 @@
    "name": "dialer",
    "package": "agent",
    "file": "servers/pm2go/agent/agent.go",
-   "line": 149,
+   "line": 169,
    "doc": "dialer builds the WebSocket dialer; link.CAFile adds a private CA to the system roots for https:// hubs."
   },
   {
@@ -412,7 +432,7 @@
    "name": "wsURL",
    "package": "agent",
    "file": "servers/pm2go/agent/agent.go",
-   "line": 107
+   "line": 127
   },
   {
    "id": "func:cli.Main",
@@ -816,9 +836,10 @@
    "kind": "func",
    "name": "DetachAttr",
    "package": "daemon",
-   "file": "servers/pm2go/daemon/sys_unix.go",
+   "file": "servers/pm2go/daemon/sys_windows.go",
    "line": 25,
-   "exported": true
+   "exported": true,
+   "doc": "DetachAttr starts the daemon detached from the console (CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS)."
   },
   {
    "id": "func:daemon.NewManager",
@@ -834,8 +855,8 @@
    "kind": "func",
    "name": "NewSampler",
    "package": "daemon",
-   "file": "servers/pm2go/daemon/sampler_other.go",
-   "line": 23,
+   "file": "servers/pm2go/daemon/sampler_windows.go",
+   "line": 20,
    "exported": true
   },
   {
@@ -952,7 +973,7 @@
    "name": "parallel",
    "package": "daemon",
    "file": "servers/pm2go/daemon/manager.go",
-   "line": 360
+   "line": 366
   },
   {
    "id": "func:daemon.readCPUTimes",
@@ -984,7 +1005,7 @@
    "name": "readReady",
    "package": "daemon",
    "file": "servers/pm2go/daemon/child.go",
-   "line": 89,
+   "line": 90,
    "doc": "readReady closes ready when the pipe delivers a \"ready\" line."
   },
   {
@@ -1008,9 +1029,8 @@
    "kind": "func",
    "name": "setProcAttr",
    "package": "daemon",
-   "file": "servers/pm2go/daemon/sys_unix.go",
-   "line": 11,
-   "doc": "Each child runs in its own process group so signals reach its descendants."
+   "file": "servers/pm2go/daemon/sys_windows.go",
+   "line": 15
   },
   {
    "id": "func:daemon.shellCommand",
@@ -1025,8 +1045,8 @@
    "kind": "func",
    "name": "signalGroup",
    "package": "daemon",
-   "file": "servers/pm2go/daemon/sys_unix.go",
-   "line": 15
+   "file": "servers/pm2go/daemon/sys_windows.go",
+   "line": 17
   },
   {
    "id": "func:daemon.validate",
@@ -1042,7 +1062,7 @@
    "name": "waitStable",
    "package": "daemon",
    "file": "servers/pm2go/daemon/manager.go",
-   "line": 295
+   "line": 301
   },
   {
    "id": "func:hub.Fingerprint",
@@ -1451,7 +1471,7 @@
    "name": "Reload",
    "package": "agent",
    "file": "servers/pm2go/agent/agent.go",
-   "line": 80,
+   "line": 100,
    "exported": true,
    "doc": "Reload re-reads link.json and (re)connects, or disconnects if it is gone.",
    "extra": {
@@ -1464,7 +1484,7 @@
    "name": "Stop",
    "package": "agent",
    "file": "servers/pm2go/agent/agent.go",
-   "line": 98,
+   "line": 118,
    "exported": true,
    "extra": {
     "receiver": "Agent"
@@ -1476,7 +1496,7 @@
    "name": "exec",
    "package": "agent",
    "file": "servers/pm2go/agent/agent.go",
-   "line": 292,
+   "line": 324,
    "doc": "exec runs one hub command against the local manager.",
    "extra": {
     "receiver": "Agent"
@@ -1488,7 +1508,8 @@
    "name": "onEvent",
    "package": "agent",
    "file": "servers/pm2go/agent/agent.go",
-   "line": 47,
+   "line": 55,
+   "doc": "onEvent forwards a process event.",
    "extra": {
     "receiver": "Agent"
    }
@@ -1499,7 +1520,7 @@
    "name": "onLog",
    "package": "agent",
    "file": "servers/pm2go/agent/agent.go",
-   "line": 49,
+   "line": 69,
    "extra": {
     "receiver": "Agent"
    }
@@ -1510,7 +1531,7 @@
    "name": "run",
    "package": "agent",
    "file": "servers/pm2go/agent/agent.go",
-   "line": 124,
+   "line": 144,
    "extra": {
     "receiver": "Agent"
    }
@@ -1521,7 +1542,7 @@
    "name": "send",
    "package": "agent",
    "file": "servers/pm2go/agent/agent.go",
-   "line": 62,
+   "line": 82,
    "extra": {
     "receiver": "Agent"
    }
@@ -1532,7 +1553,7 @@
    "name": "sendSnapshot",
    "package": "agent",
    "file": "servers/pm2go/agent/agent.go",
-   "line": 285,
+   "line": 317,
    "extra": {
     "receiver": "Agent"
    }
@@ -1543,7 +1564,7 @@
    "name": "session",
    "package": "agent",
    "file": "servers/pm2go/agent/agent.go",
-   "line": 161,
+   "line": 181,
    "extra": {
     "receiver": "Agent"
    }
@@ -1700,7 +1721,7 @@
    "name": "Delete",
    "package": "daemon",
    "file": "servers/pm2go/daemon/manager.go",
-   "line": 350,
+   "line": 356,
    "exported": true,
    "extra": {
     "receiver": "Manager"
@@ -1712,7 +1733,7 @@
    "name": "Describe",
    "package": "daemon",
    "file": "servers/pm2go/daemon/manager.go",
-   "line": 385,
+   "line": 391,
    "exported": true,
    "extra": {
     "receiver": "Manager"
@@ -1724,7 +1745,7 @@
    "name": "Flush",
    "package": "daemon",
    "file": "servers/pm2go/daemon/manager.go",
-   "line": 448,
+   "line": 454,
    "exported": true,
    "doc": "Flush truncates the log files of the targets.",
    "extra": {
@@ -1737,7 +1758,7 @@
    "name": "List",
    "package": "daemon",
    "file": "servers/pm2go/daemon/manager.go",
-   "line": 378,
+   "line": 384,
    "exported": true,
    "extra": {
     "receiver": "Manager"
@@ -1774,7 +1795,7 @@
    "name": "Resurrect",
    "package": "daemon",
    "file": "servers/pm2go/daemon/manager.go",
-   "line": 499,
+   "line": 505,
    "exported": true,
    "doc": "Resurrect starts every app from the dump file that is not already known.",
    "extra": {
@@ -1787,7 +1808,7 @@
    "name": "RunMonitor",
    "package": "daemon",
    "file": "servers/pm2go/daemon/manager.go",
-   "line": 402,
+   "line": 408,
    "exported": true,
    "doc": "RunMonitor samples host and process usage until ctx ends, and enforces max_memory_restart.",
    "extra": {
@@ -1800,7 +1821,7 @@
    "name": "Save",
    "package": "daemon",
    "file": "servers/pm2go/daemon/manager.go",
-   "line": 472,
+   "line": 478,
    "exported": true,
    "doc": "Save writes every configured app to the dump file (one entry per name).",
    "extra": {
@@ -1813,7 +1834,7 @@
    "name": "Scale",
    "package": "daemon",
    "file": "servers/pm2go/daemon/manager.go",
-   "line": 310,
+   "line": 316,
    "exported": true,
    "doc": "Scale changes the instance count of an app without restarting existing ones.",
    "extra": {
@@ -1864,7 +1885,7 @@
    "name": "StopAll",
    "package": "daemon",
    "file": "servers/pm2go/daemon/manager.go",
-   "line": 526,
+   "line": 532,
    "exported": true,
    "doc": "StopAll stops every process; used on daemon shutdown.",
    "extra": {
@@ -1877,7 +1898,7 @@
    "name": "System",
    "package": "daemon",
    "file": "servers/pm2go/daemon/manager.go",
-   "line": 394,
+   "line": 400,
    "exported": true,
    "doc": "System returns the latest host sample.",
    "extra": {
@@ -1924,7 +1945,7 @@
    "name": "infos",
    "package": "daemon",
    "file": "servers/pm2go/daemon/manager.go",
-   "line": 369,
+   "line": 375,
    "extra": {
     "receiver": "Manager"
    }
@@ -1969,7 +1990,7 @@
    "name": "sample",
    "package": "daemon",
    "file": "servers/pm2go/daemon/manager.go",
-   "line": 416,
+   "line": 422,
    "extra": {
     "receiver": "Manager"
    }
@@ -1980,7 +2001,7 @@
    "name": "Reload",
    "package": "daemon",
    "file": "servers/pm2go/daemon/child.go",
-   "line": 228,
+   "line": 231,
    "exported": true,
    "doc": "Reload replaces the running child without a gap.",
    "extra": {
@@ -2146,7 +2167,7 @@
    "name": "markReady",
    "package": "daemon",
    "file": "servers/pm2go/daemon/child.go",
-   "line": 113,
+   "line": 114,
    "doc": "markReady switches a launching child to online.",
    "extra": {
     "receiver": "Proc"
@@ -2169,7 +2190,7 @@
    "name": "overlap",
    "package": "daemon",
    "file": "servers/pm2go/daemon/child.go",
-   "line": 175,
+   "line": 177,
    "doc": "overlap starts a replacement child next to the running one, waits until it is ready (or alive for min_uptime without wait_ready), then swaps and drains the old one with SIGTERM.",
    "extra": {
     "receiver": "Proc"
@@ -2204,7 +2225,7 @@
    "name": "spawn",
    "package": "daemon",
    "file": "servers/pm2go/daemon/child.go",
-   "line": 39,
+   "line": 40,
    "doc": "spawn starts a new OS process for the proc.",
    "extra": {
     "receiver": "Proc"
@@ -2216,7 +2237,7 @@
    "name": "supervise",
    "package": "daemon",
    "file": "servers/pm2go/daemon/child.go",
-   "line": 133,
+   "line": 134,
    "doc": "supervise blocks until the child exits, a soft restart or stop arrives, or the readiness window expires.",
    "extra": {
     "receiver": "Proc"
@@ -2228,7 +2249,7 @@
    "name": "terminate",
    "package": "daemon",
    "file": "servers/pm2go/daemon/child.go",
-   "line": 98,
+   "line": 99,
    "doc": "terminate sends SIGTERM to the child's group and escalates to SIGKILL after the kill timeout.",
    "extra": {
     "receiver": "Proc"
@@ -2323,8 +2344,8 @@
    "kind": "method",
    "name": "SampleProcs",
    "package": "daemon",
-   "file": "servers/pm2go/daemon/sampler_other.go",
-   "line": 40,
+   "file": "servers/pm2go/daemon/sampler_windows.go",
+   "line": 26,
    "exported": true,
    "extra": {
     "receiver": "Sampler"
@@ -2335,8 +2356,8 @@
    "kind": "method",
    "name": "SampleSystem",
    "package": "daemon",
-   "file": "servers/pm2go/daemon/sampler_other.go",
-   "line": 27,
+   "file": "servers/pm2go/daemon/sampler_windows.go",
+   "line": 24,
    "exported": true,
    "extra": {
     "receiver": "Sampler"
@@ -2348,7 +2369,7 @@
    "name": "closeReadPipe",
    "package": "daemon",
    "file": "servers/pm2go/daemon/child.go",
-   "line": 31,
+   "line": 32,
    "extra": {
     "receiver": "child"
    }
@@ -2989,7 +3010,7 @@
    "name": "Command",
    "package": "hub",
    "file": "servers/pm2go/hub/registry.go",
-   "line": 381,
+   "line": 410,
    "exported": true,
    "doc": "Command sends a command to a connected agent and waits for its result.",
    "extra": {
@@ -3002,7 +3023,7 @@
    "name": "CrashCount",
    "package": "hub",
    "file": "servers/pm2go/hub/registry.go",
-   "line": 286,
+   "line": 290,
    "exported": true,
    "doc": "CrashCount counts unplanned exits of an app within the window.",
    "extra": {
@@ -3027,7 +3048,7 @@
    "name": "LogsSince",
    "package": "hub",
    "file": "servers/pm2go/hub/registry.go",
-   "line": 345,
+   "line": 374,
    "exported": true,
    "doc": "LogsSince returns lines newer than the time, used by log alert rules.",
    "extra": {
@@ -3052,7 +3073,7 @@
    "name": "OnLogs",
    "package": "hub",
    "file": "servers/pm2go/hub/registry.go",
-   "line": 299,
+   "line": 303,
    "exported": true,
    "extra": {
     "receiver": "Registry"
@@ -3076,7 +3097,7 @@
    "name": "RecentLogs",
    "package": "hub",
    "file": "servers/pm2go/hub/registry.go",
-   "line": 334,
+   "line": 363,
    "exported": true,
    "doc": "RecentLogs returns up to n lines of one app, oldest first.",
    "extra": {
@@ -3089,7 +3110,7 @@
    "name": "State",
    "package": "hub",
    "file": "servers/pm2go/hub/registry.go",
-   "line": 371,
+   "line": 400,
    "exported": true,
    "extra": {
     "receiver": "Registry"
@@ -3101,7 +3122,7 @@
    "name": "States",
    "package": "hub",
    "file": "servers/pm2go/hub/registry.go",
-   "line": 356,
+   "line": 385,
    "exported": true,
    "doc": "States returns a copy of every known server, marking stale ones offline.",
    "extra": {
@@ -3114,7 +3135,7 @@
    "name": "Subscribe",
    "package": "hub",
    "file": "servers/pm2go/hub/registry.go",
-   "line": 319,
+   "line": 348,
    "exported": true,
    "extra": {
     "receiver": "Registry"
@@ -3126,7 +3147,7 @@
    "name": "Unsubscribe",
    "package": "hub",
    "file": "servers/pm2go/hub/registry.go",
-   "line": 327,
+   "line": 356,
    "exported": true,
    "extra": {
     "receiver": "Registry"
@@ -3257,7 +3278,7 @@
    "name": "resolve",
    "package": "hub",
    "file": "servers/pm2go/hub/registry.go",
-   "line": 413,
+   "line": 442,
    "extra": {
     "receiver": "agentConn"
    }
@@ -3875,8 +3896,8 @@
    "kind": "struct",
    "name": "Sampler",
    "package": "daemon",
-   "file": "servers/pm2go/daemon/sampler_other.go",
-   "line": 21,
+   "file": "servers/pm2go/daemon/sampler_windows.go",
+   "line": 18,
    "exported": true
   },
   {
@@ -3884,8 +3905,8 @@
    "kind": "type",
    "name": "SystemSample",
    "package": "daemon",
-   "file": "servers/pm2go/daemon/sampler_other.go",
-   "line": 25,
+   "file": "servers/pm2go/daemon/sampler_windows.go",
+   "line": 22,
    "exported": true
   },
   {
@@ -3894,7 +3915,7 @@
    "name": "child",
    "package": "daemon",
    "file": "servers/pm2go/daemon/child.go",
-   "line": 18,
+   "line": 19,
    "doc": "child is one running OS process of a Proc: the command, its exit channel and the readiness state."
   },
   {
@@ -3961,7 +3982,7 @@
    "name": "superviseResult",
    "package": "daemon",
    "file": "servers/pm2go/daemon/child.go",
-   "line": 125,
+   "line": 126,
    "doc": "superviseResult tells loop how the current child ended."
   },
   {
@@ -3969,8 +3990,8 @@
    "kind": "struct",
    "name": "usage",
    "package": "daemon",
-   "file": "servers/pm2go/daemon/sampler_other.go",
-   "line": 16
+   "file": "servers/pm2go/daemon/sampler_windows.go",
+   "line": 13
   },
   {
    "id": "type:hub.API",
@@ -5166,6 +5187,36 @@
    "kind": "contains"
   },
   {
+   "from": "file:servers/pm2go/daemon/sampler_windows.go",
+   "to": "func:daemon.NewSampler",
+   "kind": "contains"
+  },
+  {
+   "from": "file:servers/pm2go/daemon/sampler_windows.go",
+   "to": "method:daemon.Sampler.SampleProcs",
+   "kind": "contains"
+  },
+  {
+   "from": "file:servers/pm2go/daemon/sampler_windows.go",
+   "to": "method:daemon.Sampler.SampleSystem",
+   "kind": "contains"
+  },
+  {
+   "from": "file:servers/pm2go/daemon/sampler_windows.go",
+   "to": "type:daemon.Sampler",
+   "kind": "contains"
+  },
+  {
+   "from": "file:servers/pm2go/daemon/sampler_windows.go",
+   "to": "type:daemon.SystemSample",
+   "kind": "contains"
+  },
+  {
+   "from": "file:servers/pm2go/daemon/sampler_windows.go",
+   "to": "type:daemon.usage",
+   "kind": "contains"
+  },
+  {
    "from": "file:servers/pm2go/daemon/server.go",
    "to": "func:daemon.Run",
    "kind": "contains"
@@ -5217,6 +5268,21 @@
   },
   {
    "from": "file:servers/pm2go/daemon/sys_unix.go",
+   "to": "func:daemon.signalGroup",
+   "kind": "contains"
+  },
+  {
+   "from": "file:servers/pm2go/daemon/sys_windows.go",
+   "to": "func:daemon.DetachAttr",
+   "kind": "contains"
+  },
+  {
+   "from": "file:servers/pm2go/daemon/sys_windows.go",
+   "to": "func:daemon.setProcAttr",
+   "kind": "contains"
+  },
+  {
+   "from": "file:servers/pm2go/daemon/sys_windows.go",
    "to": "func:daemon.signalGroup",
    "kind": "contains"
   },
@@ -8334,12 +8400,12 @@
   },
   {
    "from": "method:hub.Registry.OnLogs",
-   "to": "method:hub.Issues.Observe",
+   "to": "func:hub.ringKey",
    "kind": "calls"
   },
   {
    "from": "method:hub.Registry.OnLogs",
-   "to": "method:hub.Registry.ringFor",
+   "to": "method:hub.Issues.Observe",
    "kind": "calls"
   },
   {
@@ -8586,6 +8652,11 @@
   },
   {
    "from": "pkg:daemon",
+   "to": "file:servers/pm2go/daemon/sampler_windows.go",
+   "kind": "contains"
+  },
+  {
+   "from": "pkg:daemon",
    "to": "file:servers/pm2go/daemon/server.go",
    "kind": "contains"
   },
@@ -8597,6 +8668,11 @@
   {
    "from": "pkg:daemon",
    "to": "file:servers/pm2go/daemon/sys_unix.go",
+   "kind": "contains"
+  },
+  {
+   "from": "pkg:daemon",
+   "to": "file:servers/pm2go/daemon/sys_windows.go",
    "kind": "contains"
   },
   {
@@ -8823,6 +8899,11 @@
    "from": "type:agent.Agent",
    "to": "method:agent.Agent.session",
    "kind": "has_method"
+  },
+  {
+   "from": "type:agent.Agent",
+   "to": "type:common.Event",
+   "kind": "field_type"
   },
   {
    "from": "type:agent.Agent",

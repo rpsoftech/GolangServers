@@ -12,18 +12,36 @@ type Ecosystem struct {
 	Apps []AppConfig `json:"apps"`
 }
 
-// LoadEcosystem reads a JSON ecosystem file. A relative cwd is resolved against
-// the file's directory; a missing cwd defaults to that directory. When env is
-// not empty, the matching env_<env> block is merged over env.
+// LoadEcosystem reads an ecosystem file (JSON, or YAML for .yaml/.yml). A
+// relative cwd is resolved against the file's directory; a missing cwd
+// defaults to that directory. When env is not empty, the matching env_<env>
+// block is merged over env. Warnings are dropped; use LoadEcosystemWarn to
+// see them.
 func LoadEcosystem(path, env string) ([]AppConfig, error) {
+	apps, _, err := LoadEcosystemWarn(path, env)
+	return apps, err
+}
+
+// LoadEcosystemWarn is LoadEcosystem plus warnings for unknown keys.
+func LoadEcosystemWarn(path, env string) ([]AppConfig, []string, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	b, err = ecosystemJSON(path, b)
+	if err != nil {
+		return nil, nil, err
 	}
 	var eco Ecosystem
 	if err := json.Unmarshal(b, &eco); err != nil {
-		return nil, fmt.Errorf("parse %s: %w", path, err)
+		return nil, nil, fmt.Errorf("parse %s: %w", path, err)
 	}
+	warns := unknownKeyWarnings(b)
+	apps, err := finishEcosystem(path, env, eco)
+	return apps, warns, err
+}
+
+func finishEcosystem(path, env string, eco Ecosystem) ([]AppConfig, error) {
 	if len(eco.Apps) == 0 {
 		return nil, fmt.Errorf("%s: no apps defined", path)
 	}

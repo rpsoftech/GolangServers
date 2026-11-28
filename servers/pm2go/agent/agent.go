@@ -36,6 +36,8 @@ type Agent struct {
 	cancel context.CancelFunc
 	out    chan common.Envelope // current connection's queue; nil when offline
 	logs   chan common.LogLine
+	// pending holds events raised while offline; replayed after the next hello.
+	pending []common.Event
 }
 
 func New(m *daemon.Manager, version string) *Agent {
@@ -44,7 +46,25 @@ func New(m *daemon.Manager, version string) *Agent {
 	return a
 }
 
-func (a *Agent) onEvent(e common.Event) { a.send(common.MsgEvent, e) }
+// maxPendingEvents bounds the events kept while the hub is unreachable.
+const maxPendingEvents = 500
+
+// onEvent forwards a process event. While disconnected it keeps the newest
+// maxPendingEvents and replays them after the next hello, so a crash during a
+// short network gap still raises its alert.
+func (a *Agent) onEvent(e common.Event) {
+	a.mu.Lock()
+	if a.out == nil {
+		a.pending = append(a.pending, e)
+		if n := len(a.pending) - maxPendingEvents; n > 0 {
+			a.pending = append([]common.Event(nil), a.pending[n:]...)
+		}
+		a.mu.Unlock()
+		return
+	}
+	a.mu.Unlock()
+	a.send(common.MsgEvent, e)
+}
 
 func (a *Agent) onLog(l common.LogLine) {
 	a.mu.Lock()
@@ -174,9 +194,29 @@ func (a *Agent) session(ctx context.Context, link common.LinkConfig) error {
 	}
 	defer conn.Close()
 
+	host, _ := os.Hostname()
+	machine := link.Machine
+	if machine == "" {
+		machine = host
+	}
 	out := make(chan common.Envelope, 4096)
 	logs := make(chan common.LogLine, 8192)
+	// The hello must be the first message, then the backlog of events from the
+	// offline period, then live traffic. Fill the queue before publishing it.
+	if b, err := json.Marshal(common.Hello{Machine: machine, Hostname: host, OS: runtime.GOOS,
+		Version: a.version, CPUCount: runtime.NumCPU()}); err == nil {
+		out <- common.Envelope{Type: common.MsgHello, Data: b}
+	}
 	a.mu.Lock()
+	for _, e := range a.pending {
+		if b, err := json.Marshal(e); err == nil {
+			select {
+			case out <- common.Envelope{Type: common.MsgEvent, Data: b}:
+			default:
+			}
+		}
+	}
+	a.pending = nil
 	a.out, a.logs = out, logs
 	a.mu.Unlock()
 	defer func() {
@@ -184,14 +224,6 @@ func (a *Agent) session(ctx context.Context, link common.LinkConfig) error {
 		a.out, a.logs = nil, nil
 		a.mu.Unlock()
 	}()
-
-	host, _ := os.Hostname()
-	machine := link.Machine
-	if machine == "" {
-		machine = host
-	}
-	a.send(common.MsgHello, common.Hello{Machine: machine, Hostname: host, OS: runtime.GOOS,
-		Version: a.version, CPUCount: runtime.NumCPU()})
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
