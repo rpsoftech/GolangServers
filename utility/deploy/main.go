@@ -6,7 +6,8 @@
 //	go run ./utility/deploy -component all -env PRODUCTION
 //	go run ./utility/deploy -component soham-whatsapp-client -env PRODUCTION -version 48
 //	go run ./utility/deploy -component all -dry-run   # build only, no upload
-//	go run ./utility/deploy keygen                    # one-time signing key setup
+//	go run ./utility/deploy -component all -parallel 2 # build 2 components per target at once (default 3)
+//	go run ./utility/deploy keygen                 # one-time signing key setup
 //	go run ./utility/deploy affected <before> <after> # components changed between two commits
 package main
 
@@ -31,6 +32,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/rpsoftech/golang-servers/utility/updater"
@@ -52,6 +54,8 @@ type options struct {
 	env        string
 	version    int
 	dryRun     bool
+	// parallel is how many components of one target build at once.
+	parallel int
 }
 
 func main() {
@@ -85,10 +89,8 @@ func main() {
 		}
 	}
 
-	for _, comp := range opts.components {
-		if err := release(comp, opts, signingKey, fileServerToken, kvToken); err != nil {
-			log.Fatalf("❌ %s: %v", comp.Name, err)
-		}
+	if err := releaseAll(opts, signingKey, fileServerToken, kvToken); err != nil {
+		log.Fatalf("❌ %v", err)
 	}
 }
 
@@ -97,11 +99,13 @@ func parseFlags() options {
 	envFlag := flag.String("env", os.Getenv("DEPLOY_ENV"), "release channel: "+strings.Join(allowedEnvs, ", ")+" (default $DEPLOY_ENV, else STAGING)")
 	versionFlag := flag.Int("version", 0, "version number to publish; 0 = next after the highest published")
 	dryRun := flag.Bool("dry-run", false, "build, compress and hash only; no signing, upload or KV update")
+	parallelFlag := flag.Int("parallel", 3, "how many components of one target to build at once")
 	flag.Parse()
 
 	var opts options
 	opts.dryRun = *dryRun
 	opts.version = *versionFlag
+	opts.parallel = max(1, *parallelFlag)
 
 	opts.env = strings.ToUpper(strings.TrimSpace(*envFlag))
 	if opts.env == "" {
@@ -149,69 +153,208 @@ func kvKeys(comp Component, envName string, t Target) []string {
 	return keys
 }
 
-// release builds every target of comp and publishes them under one version.
-func release(comp Component, opts options, signingKey ed25519.PrivateKey, fileServerToken, kvToken string) error {
-	version, err := resolveVersion(comp, opts)
+// artifact is one built, compressed binary waiting to be published.
+type artifact struct {
+	comp    Component
+	target  Target
+	version int
+	binName string
+	gzPath  string
+	hash    string
+}
+
+// buildJob is one component build for a target.
+type buildJob struct {
+	comp    Component
+	version int
+}
+
+// releaseAll resolves versions, builds everything, then publishes.
+//
+// Builds are grouped by target and the targets run one after another. Go
+// caches compiled packages per GOOS/GOARCH, so the first build of a target
+// compiles the shared libraries alone, then the remaining components of that
+// target build in parallel on the warm cache. Nothing is published unless
+// every build succeeded.
+func releaseAll(opts options, signingKey ed25519.PrivateKey, fileServerToken, kvToken string) error {
+	versions, err := resolveVersions(opts)
 	if err != nil {
 		return err
 	}
-	log.Printf("🚀 %s v%d → %s (%d targets)", comp.Name, version, opts.env, len(comp.Targets))
+	for _, comp := range opts.components {
+		log.Printf("🚀 %s v%d → %s (%d targets)", comp.Name, versions[comp.Name], opts.env, len(comp.Targets))
+	}
 
-	for _, t := range comp.Targets {
-		binName := comp.Binary
-		if t.OS == "windows" {
-			binName += ".exe"
-		}
-		outDir := filepath.Join(buildOutputRoot, comp.Name, opts.env, t.String())
-		if err := os.MkdirAll(outDir, 0755); err != nil {
-			return err
-		}
-		binPath := filepath.Join(outDir, binName)
-
-		// 1. Build. No CGO, so one machine cross-compiles every target.
-		ldflags := fmt.Sprintf("-s -w -X main.version=%d -X %s=%s", version, buildEnvLDFlag, opts.env)
-		cmd := exec.Command("go", "build", "-trimpath", "-ldflags", ldflags, "-o", binPath, comp.Package)
-		cmd.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS="+t.OS, "GOARCH="+t.Arch)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("build %s: %w", t, err)
-		}
-
-		// 2. Compress and hash.
-		gzPath := binPath + ".gz"
-		if err := compress(binPath, gzPath); err != nil {
-			return fmt.Errorf("compress %s: %w", t, err)
-		}
-		hash, err := hashFile(gzPath)
-		if err != nil {
-			return fmt.Errorf("hash %s: %w", t, err)
-		}
-		log.Printf("📦 %s %s sha256=%s", comp.Name, t, hash)
-		if opts.dryRun {
-			continue
-		}
-
-		// 3. Upload to <component>/<ENV>/<os>_<arch>/<binary>.gz.
-		uploadFolder := fmt.Sprintf("%s/%s/%s", comp.Name, opts.env, t)
-		uploadName := binName + ".gz"
-		if err := uploadFile(gzPath, uploadName, uploadFolder, fileServerToken); err != nil {
-			return fmt.Errorf("upload %s: %w", t, err)
-		}
-		fileURL := FileStaticURL + uploadFolder + "/" + uploadName
-
-		// 4. Sign and publish. Each KV key gets its own signature because the
-		// key name is part of the signed message.
-		for _, kvKey := range kvKeys(comp, opts.env, t) {
-			sig := ed25519.Sign(signingKey, updater.SignedMessage(kvKey, version, hash))
-			entry := updater.KVResponse{Version: version, URL: fileURL, SHA256: hash, Signature: base64.StdEncoding.EncodeToString(sig)}
-			if err := putKV(kvKey, entry, kvToken); err != nil {
-				return fmt.Errorf("publish %s: %w", kvKey, err)
+	// Group by target, keeping first-seen order.
+	var order []Target
+	groups := map[Target][]buildJob{}
+	for _, comp := range opts.components {
+		for _, t := range comp.Targets {
+			if _, ok := groups[t]; !ok {
+				order = append(order, t)
 			}
-			log.Printf("✅ %s = v%d", kvKey, version)
+			groups[t] = append(groups[t], buildJob{comp, versions[comp.Name]})
 		}
 	}
+
+	var (
+		mu        sync.Mutex
+		artifacts []artifact
+	)
+	build := func(t Target, job buildJob) error {
+		art, err := buildArtifact(job.comp, t, job.version, opts)
+		if err != nil {
+			return fmt.Errorf("%s %s: %w", job.comp.Name, t, err)
+		}
+		mu.Lock()
+		artifacts = append(artifacts, art)
+		mu.Unlock()
+		return nil
+	}
+	for _, t := range order {
+		jobs := groups[t]
+		// First build alone: parallel builds of one target would all compile
+		// the same libraries at once instead of sharing the cache.
+		if err := build(t, jobs[0]); err != nil {
+			return err
+		}
+		rest := jobs[1:]
+		if err := runLimited(opts.parallel, len(rest), func(i int) error { return build(t, rest[i]) }); err != nil {
+			return err
+		}
+	}
+	if opts.dryRun {
+		return nil
+	}
+
+	// Uploads are network bound, so more of them run at once than builds.
+	return runLimited(max(opts.parallel, 4), len(artifacts), func(i int) error {
+		a := artifacts[i]
+		if err := publishArtifact(a, opts.env, signingKey, fileServerToken, kvToken); err != nil {
+			return fmt.Errorf("%s %s: %w", a.comp.Name, a.target, err)
+		}
+		return nil
+	})
+}
+
+// runLimited calls fn(0..n-1) with at most limit running at once. After the
+// first error it starts no new calls, waits for the running ones and returns
+// every error seen.
+func runLimited(limit, n int, fn func(i int) error) error {
+	var (
+		wg     sync.WaitGroup
+		mu     sync.Mutex
+		errs   []error
+		failed bool
+		sem    = make(chan struct{}, limit)
+	)
+	for i := range n {
+		sem <- struct{}{}
+		mu.Lock()
+		stop := failed
+		mu.Unlock()
+		if stop {
+			<-sem
+			break
+		}
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			if err := fn(i); err != nil {
+				mu.Lock()
+				errs = append(errs, err)
+				failed = true
+				mu.Unlock()
+			}
+		}(i)
+	}
+	wg.Wait()
+	return errors.Join(errs...)
+}
+
+var logMu sync.Mutex
+
+// buildArtifact builds, compresses and hashes one component for one target.
+func buildArtifact(comp Component, t Target, version int, opts options) (artifact, error) {
+	binName := comp.Binary
+	if t.OS == "windows" {
+		binName += ".exe"
+	}
+	outDir := filepath.Join(buildOutputRoot, comp.Name, opts.env, t.String())
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		return artifact{}, err
+	}
+	binPath := filepath.Join(outDir, binName)
+
+	// 1. Build. No CGO, so one machine cross-compiles every target. Output is
+	// captured and printed in one piece so parallel builds do not interleave.
+	ldflags := fmt.Sprintf("-s -w -X main.version=%d -X %s=%s", version, buildEnvLDFlag, opts.env)
+	cmd := exec.Command("go", "build", "-trimpath", "-ldflags", ldflags, "-o", binPath, comp.Package)
+	cmd.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS="+t.OS, "GOARCH="+t.Arch)
+	start := time.Now()
+	out, err := cmd.CombinedOutput()
+	if len(out) > 0 {
+		logMu.Lock()
+		os.Stdout.Write(out)
+		logMu.Unlock()
+	}
+	if err != nil {
+		return artifact{}, fmt.Errorf("build: %w", err)
+	}
+
+	// 2. Compress and hash.
+	gzPath := binPath + ".gz"
+	if err := compress(binPath, gzPath); err != nil {
+		return artifact{}, fmt.Errorf("compress: %w", err)
+	}
+	hash, err := hashFile(gzPath)
+	if err != nil {
+		return artifact{}, fmt.Errorf("hash: %w", err)
+	}
+	log.Printf("📦 %s %s built in %s sha256=%s", comp.Name, t, time.Since(start).Round(100*time.Millisecond), hash)
+	return artifact{comp, t, version, binName, gzPath, hash}, nil
+}
+
+// publishArtifact uploads to <component>/<ENV>/<os>_<arch>/<binary>.gz, then
+// signs and writes every KV key. Each key gets its own signature because the
+// key name is part of the signed message.
+func publishArtifact(a artifact, env string, signingKey ed25519.PrivateKey, fileServerToken, kvToken string) error {
+	uploadFolder := fmt.Sprintf("%s/%s/%s", a.comp.Name, env, a.target)
+	uploadName := a.binName + ".gz"
+	if err := uploadFile(a.gzPath, uploadName, uploadFolder, fileServerToken); err != nil {
+		return fmt.Errorf("upload: %w", err)
+	}
+	fileURL := FileStaticURL + uploadFolder + "/" + uploadName
+
+	for _, kvKey := range kvKeys(a.comp, env, a.target) {
+		sig := ed25519.Sign(signingKey, updater.SignedMessage(kvKey, a.version, a.hash))
+		entry := updater.KVResponse{Version: a.version, URL: fileURL, SHA256: a.hash, Signature: base64.StdEncoding.EncodeToString(sig)}
+		if err := putKV(kvKey, entry, kvToken); err != nil {
+			return fmt.Errorf("publish %s: %w", kvKey, err)
+		}
+		log.Printf("✅ %s = v%d", kvKey, a.version)
+	}
 	return nil
+}
+
+// resolveVersions picks a version for every component, looking them up in
+// parallel.
+func resolveVersions(opts options) (map[string]int, error) {
+	versions := make(map[string]int, len(opts.components))
+	var mu sync.Mutex
+	err := runLimited(8, len(opts.components), func(i int) error {
+		comp := opts.components[i]
+		v, err := resolveVersion(comp, opts)
+		if err != nil {
+			return fmt.Errorf("%s: %w", comp.Name, err)
+		}
+		mu.Lock()
+		versions[comp.Name] = v
+		mu.Unlock()
+		return nil
+	})
+	return versions, err
 }
 
 // resolveVersion picks the version for this release. Updaters only move to a
