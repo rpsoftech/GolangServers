@@ -6,14 +6,15 @@ require (
 	cloud.google.com/go/firestore v1.29.2
 	filippo.io/age v1.3.2
 	firebase.google.com/go/v4 v4.23.0
-	fyne.io/fyne/v2 v2.8.2
+	fyne.io/fyne/v2 v2.8.3
+	github.com/fasthttp/websocket v1.5.12
 	github.com/fxamacker/cbor/v2 v2.10.0
 	github.com/gen2brain/go-fitz v1.28.3
 	github.com/go-faker/faker/v4 v4.12.0
 	github.com/go-playground/validator/v10 v10.30.6
-	github.com/go-sql-driver/mysql v1.10.2
+	github.com/go-sql-driver/mysql v1.11.0
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
-	github.com/gofiber/contrib/v3/websocket v1.2.16
+	github.com/gofiber/contrib/v3/websocket v1.3.1
 	github.com/gofiber/fiber/v3 v3.7.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
@@ -24,17 +25,17 @@ require (
 	github.com/minio/minio-go/v7 v7.4.1
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/prplecake/go-thumbnail v0.1.6
-	github.com/redis/go-redis/v9 v9.23.0
+	github.com/redis/go-redis/v9 v9.24.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rpsoftech/mysqldump v0.0.0-20250611190005-213bcf343081
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/surrealdb/surrealdb.go v1.8.0
-	go.mau.fi/whatsmeow v0.0.0-20261116172437-19d61352436f
+	go.mau.fi/whatsmeow v0.0.0-20261127144454-3fe87b230cba
 	go.mongodb.org/mongo-driver/v2 v2.10.1
 	golang.org/x/crypto v0.59.0
 	golang.org/x/net v0.63.0
 	golang.org/x/sys v0.50.0
-	google.golang.org/api v0.316.0
+	google.golang.org/api v0.317.0
 	google.golang.org/protobuf v1.36.12
 	modernc.org/sqlite v1.63.0
 )
@@ -42,13 +43,13 @@ require (
 require (
 	cel.dev/expr v0.26.0 // indirect
 	cloud.google.com/go v0.123.0 // indirect
-	cloud.google.com/go/auth v0.24.4 // indirect
+	cloud.google.com/go/auth v0.24.5 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.3.1 // indirect
 	cloud.google.com/go/compute/metadata v0.10.0 // indirect
 	cloud.google.com/go/iam v1.15.1 // indirect
 	cloud.google.com/go/longrunning v1.5.0 // indirect
 	cloud.google.com/go/monitoring v1.32.1 // indirect
-	cloud.google.com/go/storage v1.71.0 // indirect
+	cloud.google.com/go/storage v1.71.1 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
 	filippo.io/hpke v0.4.0 // indirect
 	fyne.io/systray v1.12.3-0.20260810170012-af4e8e793ec4 // indirect
@@ -65,10 +66,9 @@ require (
 	github.com/coder/websocket v1.8.15 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/ebitengine/purego v0.11.3 // indirect
-	github.com/elliotchance/orderedmap/v3 v3.1.1 // indirect
+	github.com/elliotchance/orderedmap/v3 v3.2.0 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.40.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.3.3 // indirect
-	github.com/fasthttp/websocket v1.5.12 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/fyne-io/gl-js v0.2.1-0.20260315212741-029c47fd27e8 // indirect
@@ -86,7 +86,7 @@ require (
 	github.com/go-text/render v0.2.1 // indirect
 	github.com/go-text/typesetting v0.3.5 // indirect
 	github.com/godbus/dbus/v5 v5.2.4 // indirect
-	github.com/gofiber/schema v1.10.0 // indirect
+	github.com/gofiber/schema v1.10.2 // indirect
 	github.com/gofiber/utils/v2 v2.6.5 // indirect
 	github.com/gofrs/uuid v4.4.0+incompatible // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
@@ -113,7 +113,7 @@ require (
 	github.com/ncruces/go-strftime v1.1.0 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.7.0 // indirect
-	github.com/petermattis/goid v0.0.0-20261120131106-3f141f74aebc // indirect
+	github.com/petermattis/goid v0.0.0-20261125140513-578663ba5663 // indirect
 	github.com/philhofer/fwd v1.2.1 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
@@ -122,7 +122,7 @@ require (
 	github.com/rymdport/portal v0.4.2 // indirect
 	github.com/savsgio/gotils v0.0.0-20250924091648-bce9a52d7761 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.9.0 // indirect
-	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
+	github.com/srwiley/oksvg v0.0.0-20261126071609-7c888656762b // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/tinylib/msgp v1.6.5 // indirect
@@ -162,8 +162,8 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20261123191846-1e707ab9fbc2 // indirect
 	google.golang.org/grpc v1.85.0 // indirect
 	gopkg.in/ini.v1 v1.68.0 // indirect
-	modernc.org/libc v1.82.13 // indirect
+	modernc.org/libc v1.82.14 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
-	modernc.org/memory v1.13.0 // indirect
+	modernc.org/memory v1.13.1 // indirect
 	rsc.io/qr v0.2.0 // indirect
 )
