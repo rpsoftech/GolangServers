@@ -53,20 +53,33 @@ func roundTrip(conn net.Conn, method string, params any, out any) error {
 	return nil
 }
 
-func connect(spawn bool) (net.Conn, error) {
-	conn, err := net.DialTimeout("unix", common.SocketPath(), time.Second)
+// dial opens a connection to the daemon. Tests replace it.
+var dial = defaultDial
+
+// spawn starts a detached daemon. Tests replace it.
+var spawn = spawnDaemon
+
+// spawnWait is how long connect waits for a freshly spawned daemon.
+var spawnWait = 5 * time.Second
+
+func defaultDial() (net.Conn, error) {
+	return net.DialTimeout("unix", common.SocketPath(), time.Second)
+}
+
+func connect(autoSpawn bool) (net.Conn, error) {
+	conn, err := dial()
 	if err == nil {
 		return conn, nil
 	}
-	if !spawn {
+	if !autoSpawn {
 		return nil, errors.New("daemon is not running")
 	}
-	if err := spawnDaemon(); err != nil {
+	if err := spawn(); err != nil {
 		return nil, err
 	}
-	deadline := time.Now().Add(5 * time.Second)
+	deadline := time.Now().Add(spawnWait)
 	for time.Now().Before(deadline) {
-		if conn, err := net.DialTimeout("unix", common.SocketPath(), time.Second); err == nil {
+		if conn, err := dial(); err == nil {
 			return conn, nil
 		}
 		time.Sleep(50 * time.Millisecond)

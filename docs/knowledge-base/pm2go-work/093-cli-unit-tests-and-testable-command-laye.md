@@ -28,4 +28,4 @@ Fill this only if you stop before the work is done: stopped at, done, next, gotc
 
 ## Status-doc ticks to apply (the coordinator ticks `pm2go-status.md` later)
 
-- (none yet)
+- [ ] hub schema migrations (#89), dashboard `app.js` split into modules (#90), CLI unit tests (#93, done in PR)

@@ -34,8 +34,8 @@ CLI ──unix socket JSON-RPC──> daemon (Manager, Procs) ──hooks──>
 | | `sys_unix.go`, `shell.go` | process group attrs, signal helpers, `detachAttr` |
 | `agent` | `agent.go` | `Agent`: reads `link.json`, dials the hub, sends snapshots (2 s), events, log batches (500 ms), executes hub commands (`exec`) |
 | `sdk/runtime` | `runtime.go` | stdlib-only helper for apps: inherited listener, `Ready()` |
-| `cli` | `commands.go` | subcommand dispatch (`Main`), flag parsing (`parseInterspersed`), `cmdStart` and friends |
-| | `client.go` | `call()` RPC client, daemon auto-spawn |
+| `cli` | `commands.go` | subcommand dispatch (`Main`), flag parsing (`parseInterspersed`), `cmdStart` (flags in `startOpts`, config built by `buildStartConfig`) and friends |
+| | `client.go` | `call()` RPC client, daemon auto-spawn, injectable `dial` and `spawn` |
 | | `startup.go` | systemd unit rendering, `Version` variable (set with `-ldflags -X`) |
 | | `format.go`, `logs.go` | table output, `logs` tail |
 | `hub` | `server.go` | `Run`: wires store, registry, engine, notifier, HTTP server, background tickers |
@@ -115,7 +115,7 @@ Merge conflicts happen here, so keep edits small and in separate functions or ne
 
 ## Known gaps in the base code (fix when your issue touches them)
 
-- `cli` has no tests.
+- `cli` tests (`cli/*_test.go`) swap the package variables `dial` and `spawn` (`client.go`) for a fake daemon; `TestEndToEnd` runs a real daemon in-process. Use `shortHome(t)` for a short `PMGO_HOME`, `capture(t, f)` for stdout. Start flags live in `startOpts` (`buildStartConfig`, `resolveStartTargets`).
 - The hub UI has no automated tests (checked by hand in a browser).
 - Hub restart loses the live log ring.
 - `Registry.OnLogs` holds the registry lock while fanning out to subscribers (non-blocking sends, but still a lock on the hot path).
