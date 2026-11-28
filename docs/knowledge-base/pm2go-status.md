@@ -2,6 +2,8 @@
 
 Last updated with the Docker and Caddy deployment files. Tick boxes as you verify. Deployment steps are in `pm2go-deploy.md`, design in `pm2go.md`.
 
+Every open item below is tracked as a GitHub issue (#89 to #106). The issue board, order of work and decisions are in `pm2go-work-log.md`; the code map is in `pm2go-dev-guide.md`.
+
 ## Built (in the repository, covered by tests unless noted)
 
 ### Process manager (daemon and CLI)
@@ -46,7 +48,7 @@ Last updated with the Docker and Caddy deployment files. Tick boxes as you verif
 
 ## Pending work
 
-### Verify first (nothing here is proven on real infrastructure)
+### Verify first (nothing here is proven on real infrastructure) (#106)
 - [ ] build the Docker image and run the compose stack
 - [ ] reload host Caddy with the new block and open the dashboard over HTTPS
 - [ ] run the daemon on a real Linux host and check `/proc` CPU and memory numbers against `top`
@@ -55,23 +57,26 @@ Last updated with the Docker and Caddy deployment files. Tick boxes as you verif
 - [ ] load test: many processes and chatty logs, watch hub CPU and database size
 
 ### Features not built yet
-- [ ] SDK for custom app metrics and custom actions (PM2 Plus custom metrics / actions)
-- [ ] transaction tracing (HTTP request traces)
-- [ ] CPU and heap profiling from the dashboard (pprof)
-- [ ] deployment tracking (git revision per process, deploy markers on charts)
-- [ ] `pm2go deploy` over ssh
-- [ ] daemon restart without stopping children (today children are tied to the daemon by log pipes)
-- [ ] cluster-style port sharing and `wait_ready` readiness
-- [ ] YAML ecosystem files, richer `ignore_watch` globs
-- [ ] more alert channels (email, Slack, webhook), quiet hours, alert silencing
-- [ ] multi-user accounts, roles, SSO, audit log
-- [ ] TLS inside the hub (today Caddy terminates TLS)
-- [ ] long-range log storage and search (today: 5000-line in-memory ring per process)
-- [ ] `monit` terminal dashboard
-- [ ] GitHub Actions workflow to build and publish the image and Linux binaries
+- [ ] SDK for custom app metrics and custom actions (PM2 Plus custom metrics / actions) (#103)
+- [ ] transaction tracing (HTTP request traces) (#104)
+- [ ] CPU and heap profiling from the dashboard (pprof) (#105)
+- [ ] deployment tracking (git revision per process, deploy markers on charts) (#96)
+- [ ] `pm2go deploy` over ssh (#97)
+- [ ] daemon restart without stopping children (today children are tied to the daemon by log pipes) (#99)
+- [ ] cluster-style port sharing and `wait_ready` readiness (#98)
+- [ ] YAML ecosystem files, richer `ignore_watch` globs (#92)
+- [ ] more alert channels (email, Slack, webhook), quiet hours, alert silencing (#100)
+- [ ] multi-user accounts, roles, SSO, audit log (#102)
+- [ ] TLS inside the hub (today Caddy terminates TLS) (#95)
+- [ ] long-range log storage and search (today: 5000-line in-memory ring per process) (#101)
+- [ ] `monit` terminal dashboard (#94)
+- [ ] GitHub Actions workflow to build and publish the image and Linux binaries (#91)
 
 ### Known limits
 - Hub restart loses the in-memory live log history (metrics, events, issues, alerts persist).
 - One admin password for the whole dashboard.
 - `startup` installs a system-level unit; user-level systemd units are not generated.
 - The `ps`-based fallback sampler is for development on macOS only.
+
+### Also tracked
+- [ ] hub schema migrations (#89), dashboard `app.js` split into modules (#90), CLI unit tests (#93)
