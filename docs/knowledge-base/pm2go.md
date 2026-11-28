@@ -46,7 +46,8 @@ Agents dial out to the hub (no inbound port on hosts). The hub never connects to
 - **Instances**: `instances: N` runs N processes under one name (`PMGO_INSTANCE_ID` 0..N-1). `scale` changes the count live. `reload` restarts one instance at a time and waits for each to stay up for `min_uptime` (or to signal ready with `wait_ready`). To share one port between instances see **Shared socket and `wait_ready`**.
 - **Logs**: the daemon pipes child stdout and stderr through a rotating writer (default 10 MB, keep 5 gzip files, `log_max_size` -1 turns rotation off). Every line also goes to the agent hook. **Consequence**: children are tied to the daemon. If the daemon dies, children get SIGPIPE on their next write. The systemd unit uses `KillMode=control-group` and `--resurrect` so a daemon restart brings everything back.
 - **Metrics**: every 2 s the monitor reads `/proc` and sums CPU and RSS over each child's process group, plus host CPU, memory, load, disk (`/`), network (non-loopback) and uptime.
-- **Start with an existing name** updates its config and restarts, so re-applying an ecosystem file is idempotent. Ecosystem files are JSON (`{"apps":[...]}`, `env_<profile>`, `--env-profile`, `--only`).
+- **Start with an existing name** updates its config and restarts, so re-applying an ecosystem file is idempotent. Ecosystem files are JSON or YAML (`.json`, `.yaml`, `.yml`; an unknown extension is tried as JSON, then YAML) with one schema: `{"apps":[...]}`, `env_<profile>`, `--env-profile`, `--only`. YAML is parsed into generic data and re-marshalled to JSON, so both formats share one decoder (`common/ecosystem_yaml.go`); scalar `env` values such as `PORT: 3000` become strings. Unknown keys (for example `max_restart`) print `warning:` lines from the CLI and never fail the start; invalid YAML errors name the file and line.
+- **`ignore_watch` patterns** (`daemon/glob.go`) are relative to `cwd`: `*` matches within one path segment, `**` matches across directories, a leading `/` anchors to `cwd`, a trailing `/` matches directories only, a pattern with an inner `/` (`a/b/c`) is anchored to `cwd`, and a bare name (`*.swp`, `cache`) matches at any depth. A match on a directory ignores everything below it. `.git`, `node_modules` and `.pm2go` are always ignored.
 - **Environment**: the caller's environment is sent with each start request and never saved in the dump file. Children also get `PMGO_NAME`, `PMGO_ID`, `PMGO_INSTANCE_ID`, `PMGO_NAMESPACE`.
 
 ## Shared socket and `wait_ready`
@@ -106,7 +107,7 @@ Start it with `pm2go start ./app --name web --instances 3 --listen :8080 --wait-
 
 The full checklist is in `pm2go-status.md`. Summary:
 
-- `ignore_watch` globs beyond name patterns, YAML ecosystem files, ssh `deploy`.
+- ssh `deploy`.
 - Transaction tracing, CPU and heap profiling from the dashboard, deployment tracking (git revision per process), custom app metrics and actions SDK.
 - Multi-user accounts, SSO, other alert channels (email, Slack, webhook).
 - Log search across history (only the live ring is searchable by eye).

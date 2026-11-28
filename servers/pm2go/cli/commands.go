@@ -21,7 +21,7 @@ const usage = `pm2go - process manager
 
 Usage: pm2go <command> [args]
 
-  start <script|command|ecosystem.json> [flags] [-- args...]
+  start <script|command|ecosystem.json|.yaml|.yml> [flags] [-- args...]
   stop|restart|reload|delete <id|name|namespace|all>
   scale <name> <count>    change instance count
   link --hub URL --key KEY [--name MACHINE] [--hub-ca FILE]   connect this host to a hub
@@ -195,16 +195,19 @@ func newStartFlagSet() (*flag.FlagSet, *startOpts) {
 // resolveStartTargets turns the start target into the app configs to start:
 // every app of an ecosystem file (filtered by --only) or one command.
 func resolveStartTargets(o *startOpts, target string, scriptArgs []string) ([]common.AppConfig, error) {
-	if !strings.HasSuffix(strings.ToLower(target), ".json") {
+	if !common.IsEcosystemFile(target) {
 		c, err := buildStartConfig(o, target, scriptArgs)
 		if err != nil {
 			return nil, err
 		}
 		return []common.AppConfig{c}, nil
 	}
-	all, err := common.LoadEcosystem(target, o.profile)
+	all, warns, err := common.LoadEcosystemWarn(target, o.profile)
 	if err != nil {
 		return nil, err
+	}
+	for _, w := range warns {
+		fmt.Fprintf(os.Stderr, "warning: %s: %s\n", target, w)
 	}
 	want := map[string]bool{}
 	for _, n := range strings.Split(o.only, ",") {

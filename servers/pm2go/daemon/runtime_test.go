@@ -239,3 +239,34 @@ func TestReloadAbortsWhenInstanceDoesNotComeBack(t *testing.T) {
 		}
 	}
 }
+
+func TestWatchSkipsIgnoredChanges(t *testing.T) {
+	m := testManager(t)
+	cfg := shell(t, "wi", "sleep 30")
+	cfg.Watch = true
+	cfg.WatchDelayMs = 50
+	cfg.IgnoreWatch = []string{"**/*.log", "tmp/"}
+	if err := os.MkdirAll(filepath.Join(cfg.Cwd, "tmp"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.Start(common.StartParams{Config: cfg}); err != nil {
+		t.Fatal(err)
+	}
+	a := waitFor(t, m, "wi", func(i common.ProcessInfo) bool { return i.Status == common.StatusOnline })
+	time.Sleep(1200 * time.Millisecond)
+	for _, f := range []string{"app.log", "tmp/x.txt"} {
+		if err := os.WriteFile(filepath.Join(cfg.Cwd, f), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	time.Sleep(2500 * time.Millisecond)
+	for _, i := range m.List() {
+		if i.Name == "wi" && (i.PID != a.PID || i.Restarts != 0) {
+			t.Fatalf("restarted on ignored change: pid %d->%d restarts=%d", a.PID, i.PID, i.Restarts)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(cfg.Cwd, "real.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, m, "wi", func(i common.ProcessInfo) bool { return i.Status == common.StatusOnline && i.PID != a.PID })
+}
