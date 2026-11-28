@@ -49,6 +49,23 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          # The cache is handled below. setup-go saves only when its exact key
+          # is missing, so a first run that built a few targets would freeze
+          # the cache without the others.
+          cache: false
+
+      # A unique key per run makes every run save what it compiled, and
+      # restore-keys loads the newest earlier cache. The cache then holds
+      # every GOOS/GOARCH built so far.
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-release-${{ runner.os }}-${{ hashFiles('go.sum') }}-${{ github.run_id }}
+          restore-keys: |
+            go-release-${{ runner.os }}-${{ hashFiles('go.sum') }}-
+            go-release-${{ runner.os }}-
 
       - name: Resolve release parameters
         id: params
