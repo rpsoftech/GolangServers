@@ -2,7 +2,7 @@
 
 Last updated with the Docker and Caddy deployment files. Tick boxes as you verify. Deployment steps are in `pm2go-deploy.md`, design in `pm2go.md`.
 
-Every open item below is tracked as a GitHub issue (#89 to #106). The issue board, order of work and decisions are in `pm2go-work-log.md`; the code map is in `pm2go-dev-guide.md`.
+Every open item below is tracked as a GitHub issue (#89 to #106). The issue board and order of work are in `pm2go-work-log.md`, live status and decisions per issue in `pm2go-work/`; the code map is in `pm2go-dev-guide.md`.
 
 ## Built (in the repository, covered by tests unless noted)
 
@@ -68,7 +68,7 @@ Every open item below is tracked as a GitHub issue (#89 to #106). The issue boar
 - [ ] YAML ecosystem files, richer `ignore_watch` globs (#92)
 - [ ] more alert channels (email, Slack, webhook), quiet hours, alert silencing (#100)
 - [ ] multi-user accounts, roles, SSO, audit log (#102)
-- [x] TLS inside the hub: certificate files with reload, autocert, `link --hub-ca` (#95); autocert not yet checked against Let's Encrypt
+- [ ] TLS inside the hub (today Caddy terminates TLS) (#95)
 - [ ] long-range log storage and search (today: 5000-line in-memory ring per process) (#101)
 - [ ] `monit` terminal dashboard (#94)
 - [ ] GitHub Actions workflow to build and publish the image and Linux binaries (#91)
@@ -80,4 +80,5 @@ Every open item below is tracked as a GitHub issue (#89 to #106). The issue boar
 - The `ps`-based fallback sampler is for development on macOS only.
 
 ### Also tracked
-- [ ] hub schema migrations (#89), dashboard `app.js` split into modules (#90), CLI unit tests (#93)
+- [x] hub schema migrations (#89)
+- [ ] dashboard `app.js` split into modules (#90), CLI unit tests (#93)

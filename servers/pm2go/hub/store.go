@@ -13,34 +13,6 @@ import (
 // Store wraps the SQLite database.
 type Store struct{ db *sql.DB }
 
-const schema = `
-CREATE TABLE IF NOT EXISTS servers (
-  name TEXT PRIMARY KEY, hello TEXT NOT NULL, last_seen INTEGER NOT NULL);
-CREATE TABLE IF NOT EXISTS sys_metrics (
-  server TEXT NOT NULL, ts INTEGER NOT NULL, cpu REAL, mem_pct REAL, load1 REAL,
-  disk_pct REAL, rx REAL, tx REAL);
-CREATE INDEX IF NOT EXISTS sys_metrics_idx ON sys_metrics(server, ts);
-CREATE TABLE IF NOT EXISTS proc_metrics (
-  server TEXT NOT NULL, name TEXT NOT NULL, inst INTEGER NOT NULL, ts INTEGER NOT NULL,
-  cpu REAL, mem INTEGER, restarts INTEGER, status TEXT);
-CREATE INDEX IF NOT EXISTS proc_metrics_idx ON proc_metrics(server, name, ts);
-CREATE TABLE IF NOT EXISTS events (
-  id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, server TEXT NOT NULL,
-  name TEXT NOT NULL, inst INTEGER NOT NULL, type TEXT NOT NULL, status TEXT,
-  exit_code INTEGER, reason TEXT, manual INTEGER NOT NULL DEFAULT 0);
-CREATE INDEX IF NOT EXISTS events_ts ON events(ts);
-CREATE TABLE IF NOT EXISTS issues (
-  fp TEXT NOT NULL, server TEXT NOT NULL, name TEXT NOT NULL, sample TEXT NOT NULL,
-  count INTEGER NOT NULL, first_seen INTEGER NOT NULL, last_seen INTEGER NOT NULL,
-  status TEXT NOT NULL DEFAULT 'open', PRIMARY KEY (fp, server, name));
-CREATE TABLE IF NOT EXISTS alert_rules (id INTEGER PRIMARY KEY AUTOINCREMENT, body TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS alert_history (
-  id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, rule_id INTEGER, rule_name TEXT,
-  level TEXT, server TEXT, proc TEXT, state TEXT, message TEXT, value REAL, notified INTEGER);
-CREATE INDEX IF NOT EXISTS alert_history_ts ON alert_history(ts);
-CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-`
-
 func OpenStore(home string) (*Store, error) {
 	dsn := "file:" + filepath.Join(home, "hub.db") + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)"
 	db, err := sql.Open("sqlite", dsn)
@@ -48,7 +20,7 @@ func OpenStore(home string) (*Store, error) {
 		return nil, err
 	}
 	db.SetMaxOpenConns(1) // SQLite: one writer, keeps it simple and race-free
-	if _, err := db.Exec(schema); err != nil {
+	if err := migrate(db, migrations); err != nil {
 		db.Close()
 		return nil, err
 	}
