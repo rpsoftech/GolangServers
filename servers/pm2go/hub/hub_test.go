@@ -475,21 +475,18 @@ func TestLogsWebsocketStreamsLive(t *testing.T) {
 }
 
 func TestTrustProxyClientIPAndSecureCookie(t *testing.T) {
-	defer func(old bool) { trustProxy = old }(trustProxy)
 	req := httptest.NewRequest("GET", "/", nil)
 	req.RemoteAddr = "172.18.0.2:5555"
 	req.Header.Set("X-Forwarded-For", "203.0.113.7, 10.0.0.1")
 	req.Header.Set("X-Forwarded-Proto", "https")
-	trustProxy = false
-	if clientIP(req) != "172.18.0.2" || isHTTPS(req) {
+	if clientIP(req, false) != "172.18.0.2" || isHTTPS(req, false) {
 		t.Fatal("forwarded headers must be ignored when proxy is not trusted")
 	}
-	trustProxy = true
-	if clientIP(req) != "203.0.113.7" || !isHTTPS(req) {
-		t.Fatalf("clientIP = %s, https = %v", clientIP(req), isHTTPS(req))
+	if clientIP(req, true) != "203.0.113.7" || !isHTTPS(req, true) {
+		t.Fatalf("clientIP = %s, https = %v", clientIP(req, true), isHTTPS(req, true))
 	}
 	req.Header.Set("X-Forwarded-For", "not-an-ip")
-	if clientIP(req) != "172.18.0.2" {
+	if clientIP(req, true) != "172.18.0.2" {
 		t.Fatal("garbage header must fall back to the socket address")
 	}
 }

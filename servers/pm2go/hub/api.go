@@ -19,12 +19,13 @@ import (
 var uiFS embed.FS
 
 type API struct {
-	cfg    Config
-	auth   *auth
-	store  *Store
-	reg    *Registry
-	engine *Engine
-	notif  *Notifier
+	wsTimeout time.Duration // websocket write timeout, 0 = 10 s (tests shorten it)
+	cfg       Config
+	auth      *auth
+	store     *Store
+	reg       *Registry
+	engine    *Engine
+	notif     *Notifier
 }
 
 func (a *API) role(min string) func(http.HandlerFunc) http.HandlerFunc {
@@ -347,6 +348,14 @@ var browserUp = websocket.Upgrader{
 	},
 }
 
+// writeTimeout bounds every write to a browser socket so a stalled client cannot pin a goroutine.
+func (a *API) writeTimeout() time.Duration {
+	if a.wsTimeout > 0 {
+		return a.wsTimeout
+	}
+	return 10 * time.Second
+}
+
 func (a *API) logsWS(w http.ResponseWriter, r *http.Request) {
 	server, proc := r.URL.Query().Get("server"), r.URL.Query().Get("proc")
 	if server == "" {
@@ -362,6 +371,7 @@ func (a *API) logsWS(w http.ResponseWriter, r *http.Request) {
 	defer a.reg.Unsubscribe(sub)
 	if proc != "" {
 		for _, e := range a.reg.RecentLogs(server, proc, 200) {
+			conn.SetWriteDeadline(time.Now().Add(a.writeTimeout()))
 			if conn.WriteJSON(LogMsg{Server: server, Name: proc, logEntry: e}) != nil {
 				return
 			}
@@ -383,7 +393,7 @@ func (a *API) logsWS(w http.ResponseWriter, r *http.Request) {
 		case <-gone:
 			return
 		case m := <-sub.C:
-			conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			conn.SetWriteDeadline(time.Now().Add(a.writeTimeout()))
 			if conn.WriteJSON(m) != nil {
 				return
 			}

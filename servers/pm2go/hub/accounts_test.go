@@ -3,9 +3,13 @@ package hub
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	"github.com/rpsoftech/golang-servers/servers/pm2go/common"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -745,5 +749,92 @@ func TestResetAdmin(t *testing.T) {
 	}
 	if _, _, ok := e.store.LookupSession(raw); ok {
 		t.Fatal("reset must end sessions")
+	}
+}
+
+// ---- review follow-ups: bounded backoff map, cookie attributes, stalled websocket ----
+
+func TestFailTableIsBounded(t *testing.T) {
+	defer func(o int) { maxFailEntries = o }(maxFailEntries)
+	maxFailEntries = 50
+	_, api, _ := newAPI(t)
+	for i := 0; i < 500; i++ { // distinct IPs that fail and never succeed
+		api.auth.mu.Lock()
+		api.auth.fail("10.0.0."+itoa(int64(i))+"|u", "10.0.0."+itoa(int64(i)))
+		if n := len(api.auth.fails); n > maxFailEntries {
+			api.auth.mu.Unlock()
+			t.Fatalf("table grew to %d", n)
+		}
+		api.auth.mu.Unlock()
+	}
+	// the newest entries survive eviction
+	api.auth.mu.Lock()
+	_, ok := api.auth.fails["10.0.0.499"]
+	api.auth.mu.Unlock()
+	if !ok {
+		t.Fatal("newest entry was evicted")
+	}
+}
+
+func TestSessionCookieAttributesSetAndClear(t *testing.T) {
+	_, api, _ := newAPI(t)
+	for _, trust := range []bool{false, true} {
+		api.auth.trust = trust
+		req := httptest.NewRequest("POST", "/", nil)
+		req.Header.Set("X-Forwarded-Proto", "https")
+		set := api.auth.sessionCookie(req, "v", time.Now().Add(time.Hour))
+		rec := httptest.NewRecorder()
+		api.auth.logout(rec, req)
+		cleared := rec.Result().Cookies()
+		if len(cleared) != 1 {
+			t.Fatalf("logout cookies = %v", cleared)
+		}
+		c := cleared[0]
+		if c.MaxAge >= 0 || c.Value != "" {
+			t.Fatalf("not cleared: %+v", c)
+		}
+		if c.HttpOnly != set.HttpOnly || c.SameSite != set.SameSite || c.Secure != set.Secure || c.Path != set.Path {
+			t.Fatalf("set %+v and clear %+v differ", set, c)
+		}
+		if !set.HttpOnly || set.SameSite != http.SameSiteStrictMode || set.Secure != trust {
+			t.Fatalf("trust=%v attributes: %+v", trust, set)
+		}
+	}
+}
+
+func TestLogsWebsocketBacklogWriteHasDeadline(t *testing.T) {
+	srv, api, _ := newAPI(t)
+	api.wsTimeout = 300 * time.Millisecond
+	mkUser(t, api, "wsv", roleViewer)
+	tok := mkToken(t, api, "wsv", roleViewer)
+	big := strings.Repeat("x", 60_000)
+	var lines []common.LogLine
+	for i := 0; i < 200; i++ {
+		lines = append(lines, common.LogLine{TS: int64(i + 1), Name: "api", Stream: "out", Line: big})
+	}
+	api.reg.OnLogs("s1", lines)
+	// a client that completes the handshake and then never reads
+	u, _ := url.Parse(srv.URL)
+	nc, err := net.Dial("tcp", u.Host)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer nc.Close()
+	if tc, ok := nc.(*net.TCPConn); ok {
+		tc.SetReadBuffer(4096)
+	}
+	fmt.Fprintf(nc, "GET /api/logs/ws?server=s1&proc=api HTTP/1.1\r\nHost: %s\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\nAuthorization: Bearer %s\r\n\r\n", u.Host, tok)
+	// The server must give up on the stalled client and close the connection: after the
+	// buffered bytes are drained the read ends with EOF, not with a timeout.
+	time.Sleep(1200 * time.Millisecond) // stalled for 4x the write timeout
+	nc.SetReadDeadline(time.Now().Add(4 * time.Second))
+	buf := make([]byte, 1<<16)
+	for {
+		if _, err := nc.Read(buf); err != nil {
+			if ne, ok := err.(net.Error); ok && ne.Timeout() {
+				t.Fatal("server kept the connection open to a client that does not read")
+			}
+			return
+		}
 	}
 }

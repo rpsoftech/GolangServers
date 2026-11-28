@@ -17,7 +17,7 @@ func (a *API) audit(r *http.Request, action, target, detail string, ok bool) {
 			detail = strings.TrimSpace(detail + " (api token)")
 		}
 	}
-	a.store.Audit(AuditEntry{User: user, IP: clientIP(r), Action: action, Target: target, Detail: detail, Success: ok})
+	a.store.Audit(AuditEntry{User: user, IP: clientIP(r, a.auth.trust), Action: action, Target: target, Detail: detail, Success: ok})
 }
 
 func ruleDetail(r Rule) string {

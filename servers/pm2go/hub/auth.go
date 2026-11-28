@@ -18,6 +18,7 @@ const (
 type auth struct {
 	cfg   Config
 	store *Store
+	trust bool // believe X-Forwarded-For/Proto (cfg.TrustProxy)
 
 	mu    sync.Mutex
 	fails map[string]failure
@@ -34,7 +35,7 @@ func newAuth(cfg Config, store *Store) (*auth, error) {
 	if err := store.BootstrapAdmin(cfg.AdminPassword); err != nil {
 		return nil, err
 	}
-	return &auth{cfg: cfg, store: store, fails: map[string]failure{}}, nil
+	return &auth{cfg: cfg, store: store, trust: cfg.TrustProxy, fails: map[string]failure{}}, nil
 }
 
 func eq(a, b string) bool { return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1 }
@@ -114,17 +115,15 @@ func (a *auth) agentKeyOK(r *http.Request) bool {
 	return strings.HasPrefix(h, "Bearer ") && eq(strings.TrimPrefix(h, "Bearer "), a.cfg.AgentKey)
 }
 
-// trustProxy makes the hub believe X-Forwarded-For and X-Forwarded-Proto. Turn
-// it on only when every request comes through a reverse proxy you control
-// (Caddy), otherwise clients can forge their address.
-var trustProxy bool
-
-func isHTTPS(r *http.Request) bool {
-	return r.TLS != nil || (trustProxy && r.Header.Get("X-Forwarded-Proto") == "https")
+// With trust set (Config.TrustProxy) the hub believes X-Forwarded-For and
+// X-Forwarded-Proto. Turn it on only when every request comes through a reverse
+// proxy you control (Caddy), otherwise clients can forge their address.
+func isHTTPS(r *http.Request, trust bool) bool {
+	return r.TLS != nil || (trust && r.Header.Get("X-Forwarded-Proto") == "https")
 }
 
-func clientIP(r *http.Request) string {
-	if trustProxy {
+func clientIP(r *http.Request, trust bool) string {
+	if trust {
 		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 			first, _, _ := strings.Cut(xff, ",")
 			if ip := strings.TrimSpace(first); net.ParseIP(ip) != nil {
@@ -143,6 +142,9 @@ func clientIP(r *http.Request) string {
 
 const failIdle = 10 * time.Minute
 
+// maxFailEntries caps the backoff table (a var so tests can shrink it).
+var maxFailEntries = 5000
+
 // wait returns how long key must still wait: 2 s per recent failure, up to 12 s.
 func (a *auth) wait(key string) time.Duration {
 	f, ok := a.fails[key]
@@ -160,14 +162,10 @@ func (a *auth) wait(key string) time.Duration {
 }
 
 func (a *auth) fail(keys ...string) {
-	if len(a.fails) > 5000 { // bound memory under a spray of random usernames
-		for k, f := range a.fails {
-			if time.Since(f.last) > failIdle {
-				delete(a.fails, k)
-			}
-		}
-	}
 	for _, k := range keys {
+		if _, ok := a.fails[k]; !ok {
+			a.makeRoom()
+		}
 		f := a.fails[k]
 		f.n++
 		f.last = time.Now()
@@ -175,11 +173,34 @@ func (a *auth) fail(keys ...string) {
 	}
 }
 
+// makeRoom keeps the table under maxFailEntries when many IPs or usernames
+// fail and never succeed: drop idle entries first, then the oldest.
+func (a *auth) makeRoom() {
+	if len(a.fails) < maxFailEntries {
+		return
+	}
+	for k, f := range a.fails {
+		if time.Since(f.last) > failIdle {
+			delete(a.fails, k)
+		}
+	}
+	for len(a.fails) >= maxFailEntries {
+		var oldK string
+		var oldT time.Time
+		for k, f := range a.fails {
+			if oldK == "" || f.last.Before(oldT) {
+				oldK, oldT = k, f.last
+			}
+		}
+		delete(a.fails, oldK)
+	}
+}
+
 // login verifies the password and starts a session. Backoff is per IP and
 // username (a targeted guess) and per IP alone (guessing across usernames).
 // It writes the error response itself and audits every outcome.
 func (a *auth) login(w http.ResponseWriter, r *http.Request, username, password string) (User, bool) {
-	ip := clientIP(r)
+	ip := clientIP(r, a.trust)
 	userKey := ip + "|" + strings.ToLower(username)
 	a.mu.Lock()
 	if a.wait(userKey) > 0 || a.wait(ip) > 0 {
@@ -220,8 +241,7 @@ func (a *auth) login(w http.ResponseWriter, r *http.Request, username, password 
 		return User{}, false
 	}
 	a.store.TouchLogin(u.ID)
-	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: raw, Path: "/", Expires: exp,
-		HttpOnly: true, SameSite: http.SameSiteStrictMode, Secure: isHTTPS(r)})
+	http.SetCookie(w, a.sessionCookie(r, raw, exp))
 	a.store.Audit(AuditEntry{User: u.Username, IP: ip, Action: "login", Target: u.Username, Success: true})
 	return u, true
 }
@@ -231,9 +251,17 @@ func (a *auth) logout(w http.ResponseWriter, r *http.Request) {
 	if c, err := r.Cookie(cookieName); err == nil {
 		if u, id, ok := a.store.LookupSession(c.Value); ok {
 			a.store.DeleteSession(id)
-			a.store.Audit(AuditEntry{User: u.Username, IP: clientIP(r), Action: "logout", Target: u.Username, Success: true})
+			a.store.Audit(AuditEntry{User: u.Username, IP: clientIP(r, a.trust), Action: "logout", Target: u.Username, Success: true})
 		}
 	}
-	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true,
-		SameSite: http.SameSiteStrictMode, Secure: isHTTPS(r)})
+	c := a.sessionCookie(r, "", time.Time{})
+	c.MaxAge = -1
+	http.SetCookie(w, c)
+}
+
+// sessionCookie builds the session cookie for both setting and clearing, so the
+// attributes (HttpOnly, SameSite=Strict, Secure over HTTPS) never diverge.
+func (a *auth) sessionCookie(r *http.Request, value string, exp time.Time) *http.Cookie {
+	return &http.Cookie{Name: cookieName, Value: value, Path: "/", Expires: exp,
+		HttpOnly: true, SameSite: http.SameSiteStrictMode, Secure: isHTTPS(r, a.trust)}
 }

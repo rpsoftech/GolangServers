@@ -34,6 +34,13 @@ Fill this only if you stop before the work is done: stopped at, done, next, gotc
 
 - [ ] multi-user accounts, roles, audit log (#102) (SSO phase 2 stays open: add a separate line for it)
 
+## Review follow-ups (2026-11-29)
+
+- Login backoff table is capped (`maxFailEntries`, 5000): idle entries are dropped first, then the oldest. Test `TestFailTableIsBounded`.
+- `trustProxy` global removed: `Config.TrustProxy` (set from the flag or env at start) feeds `auth.trust`; `clientIP(r, trust)` and `isHTTPS(r, trust)` take it as an argument.
+- Session cookie set and clear share one helper `auth.sessionCookie`, so logout keeps `HttpOnly`, `SameSite=Strict` and `Secure`. Test `TestSessionCookieAttributesSetAndClear`.
+- `logsWS` sets a write deadline (`API.writeTimeout`, 10 s) before each backlog write as well as live writes. Test `TestLogsWebsocketBacklogWriteHasDeadline` (stalled client, fails without the deadline).
+
 ## Verification (2026-11-29)
 
 `go test -race -count=1 ./servers/pm2go/...` ok, `gofmt -l` empty, `go vet` clean, linux CGO_ENABLED=0 build ok. Browser check on a local hub: bootstrap login as `admin` forces the password change, Users, Audit and Account pages, token creation (shown once), viewer sees no mutation controls. SSO phase 2 not done. Behaviour docs: `pm2go-accounts.md`.

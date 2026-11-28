@@ -52,7 +52,8 @@ func Run(args []string) error {
 			return nil
 		}
 	}
-	trustProxy = *proxy || os.Getenv("PMGO_TRUST_PROXY") == "1"
+	trust := *proxy || os.Getenv("PMGO_TRUST_PROXY") == "1"
+	cfg.TrustProxy = trust
 	if *listen != "" {
 		cfg.Listen = *listen
 	}
@@ -129,10 +130,10 @@ func Run(args []string) error {
 	} else {
 		go func() { errCh <- srv.ListenAndServe() }()
 	}
-	for _, w := range Warnings(topts, trustProxy, cfg.Listen) {
+	for _, w := range Warnings(topts, trust, cfg.Listen) {
 		log.Print("WARNING: ", w)
 	}
-	log.Printf("pm2go hub listening on %s, mode: %s", cfg.Listen, Mode(topts, trustProxy))
+	log.Printf("pm2go hub listening on %s, mode: %s", cfg.Listen, Mode(topts, trust))
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
