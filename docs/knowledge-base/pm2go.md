@@ -30,7 +30,7 @@ Agents dial out to the hub (no inbound port on hosts). The hub never connects to
 | `daemon/sampler_other.go` | `ps`-based fallback so the code runs on a dev laptop; not for production |
 | `daemon/server.go` | unix socket RPC (`~/.pm2go/rpc.sock`, mode 0600) |
 | `agent/` | outbound WebSocket to the hub: snapshots, events, log batches, command execution |
-| `hub/store.go` | SQLite schema (metrics, events, issues, alert rules and history, settings) |
+| `hub/store.go`, `hub/migrations.go` | SQLite store; versioned schema migrations tracked in `schema_migrations` (metrics, events, issues, alert rules and history, settings) |
 | `hub/registry.go` | connected agents, latest snapshots, per-process log rings, crash tracking, live log fan-out |
 | `hub/alerts.go` | rule model, evaluation state machine, escalation, reminders |
 | `hub/telegram.go` | Telegram sender with per-chat minimum level, rate limit and retry |
@@ -84,6 +84,7 @@ Start it with `pm2go start ./app --name web --instances 3 --listen :8080 --wait-
 - **Connect a host**: `pm2go link --hub http://hub:8080 --key <agent key> --name <machine>`. The same command is shown on the dashboard Settings page. `pm2go unlink` disconnects. Put TLS in front (reverse proxy) for anything beyond a trusted network; agents accept `https://`.
 - **Auth**: dashboard login with the admin password sets a signed 7-day cookie (`SameSite=Strict`, `HttpOnly`); failed logins back off per IP. API scripts can send `Authorization: Bearer <admin password>`. Agents authenticate with the agent key. Browser WebSockets check the Origin.
 - **Dashboard pages**: Servers overview with firing alerts, server detail (CPU, memory, load, disk, network charts, process table with restart / reload / stop / delete, recent events), process detail (per-process charts, config, live logs, scale, flush), Issues, Alerts (active, rules editor, history), Settings (link command, Telegram).
+- **Schema**: the hub database is versioned. On start the hub applies pending migrations in order, each in one transaction. A database from before versioning is adopted as version 1. A database with a newer version than the binary knows is refused with an error (no downgrade).
 - **Data**: metrics stored every 10 s per host and per process in SQLite, bucketed down to about 240 points per chart. Events, alert history and metrics are pruned after `retention_days` (default 7). Live log history is an in-memory ring of 5000 lines per process, lost on hub restart.
 - **Issues**: any log line matching `error|fatal|panic|exception|traceback|uncaught|unhandled|segfault` is fingerprinted (timestamps, numbers, hex ids and quoted values removed) and grouped with a count, first and last seen, and a status (open, resolved, ignored). A resolved issue reopens when it recurs.
 - **Remote commands** allowed from the dashboard: restart, reload, stop, delete, flush, scale, start, save. The hub logs who (IP) ran what.
