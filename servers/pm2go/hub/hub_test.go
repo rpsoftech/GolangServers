@@ -329,7 +329,11 @@ func TestTelegramUpdateKeepsTokenAndValidates(t *testing.T) {
 func newAPI(t *testing.T) (*httptest.Server, *API, Config) {
 	e := setup(t)
 	cfg := Config{AdminPassword: "pw", AgentKey: "key", SessionSecret: "secret", RetentionDays: 1}
-	api := &API{cfg: cfg, auth: newAuth(cfg), store: e.store, reg: e.reg, engine: e.eng, notif: e.notif}
+	au, err := newAuth(cfg, e.store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	api := &API{cfg: cfg, auth: au, store: e.store, reg: e.reg, engine: e.eng, notif: e.notif}
 	srv := httptest.NewServer(api.Handler())
 	t.Cleanup(srv.Close)
 	return srv, api, cfg
@@ -386,12 +390,18 @@ func TestAPIAuthAndAgentFlow(t *testing.T) {
 		}
 		return r
 	}
-	if r := post("/api/login", `{"password":"nope"}`); r.StatusCode != 401 {
+	if r := post("/api/login", `{"username":"admin","password":"nope"}`); r.StatusCode != 401 {
 		t.Fatalf("bad login = %d", r.StatusCode)
 	}
 	time.Sleep(2100 * time.Millisecond) // lockout window after a failure
-	if r := post("/api/login", `{"password":"pw"}`); r.StatusCode != 200 {
+	if r := post("/api/login", `{"username":"admin","password":"pw"}`); r.StatusCode != 200 {
 		t.Fatalf("login = %d", r.StatusCode)
+	}
+	if r := mustGet(t, cl, srv.URL+"/api/servers"); r.StatusCode != 403 {
+		t.Fatalf("bootstrap admin must change the password first, got %d", r.StatusCode)
+	}
+	if r := post("/api/password", `{"current":"pw","new":"a-new-password"}`); r.StatusCode != 200 {
+		t.Fatalf("password change = %d", r.StatusCode)
 	}
 	deadline := time.Now().Add(3 * time.Second)
 	var list []serverSummary
@@ -447,10 +457,10 @@ func TestAPIAuthAndAgentFlow(t *testing.T) {
 
 func TestLogsWebsocketStreamsLive(t *testing.T) {
 	srv, api, _ := newAPI(t)
-	req, _ := http.NewRequest("GET", srv.URL+"/api/logs/ws?server=s1&proc=api", nil)
-	_ = req
+	mkUser(t, api, "wsadmin", roleAdmin)
+	tok := mkToken(t, api, "wsadmin", roleAdmin)
 	ws, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(srv.URL, "http")+"/api/logs/ws?server=s1&proc=api",
-		http.Header{"Authorization": {"Bearer pw"}})
+		http.Header{"Authorization": {"Bearer " + tok}})
 	if err != nil {
 		t.Fatal(err)
 	}

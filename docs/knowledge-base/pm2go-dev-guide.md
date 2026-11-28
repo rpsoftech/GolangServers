@@ -43,14 +43,15 @@ CLI ──unix socket JSON-RPC──> daemon (Manager, Procs) ──hooks──>
 | | `startup.go` | systemd unit rendering, `Version` variable (set with `-ldflags -X`) |
 | | `format.go`, `logs.go` | table output, `logs` tail |
 | `hub` | `server.go` | `Run`: wires store, registry, engine, notifier, HTTP server, background tickers |
-| | `config.go` | `config.json` (admin password, agent key, session secret), `Home()` (`$PMGO_HUB_HOME`) |
+| | `config.go` | `config.json` (initial admin password, agent key, retention), `Home()` (`$PMGO_HUB_HOME`) |
 | | `store.go` | `OpenStore` (runs migrations), settings key/value, `Prune` |
 | | `migrations.go` | `migrations` list (versioned SQL or Go-func steps), `migrate`, `schema_migrations` table |
 | | `registry.go` | connected agents, latest `ServerState`, log rings, crash tracking, live-log subscribers, `Command` (send command, wait result) |
 | | `alerts.go` | `Rule`, `Engine` (state machine, escalation, reminders), rule CRUD, history |
 | | `telegram.go` | `Notifier`, `TelegramSettings`, `FormatAlert` |
 | | `issues.go` | error-line classification and fingerprinting |
-| | `api.go`, `auth.go` | routes, handlers, session cookie, agent key, `trustProxy` |
+| | `api.go`, `auth.go` | routes (each with a minimum role, `API.Handler`), handlers, login backoff, `requireRole`, agent key, `trustProxy` |
+| | `users.go`, `sessions.go`, `audit.go`, `api_accounts.go` | users and argon2id hashing, server-side sessions and API tokens, audit log, account/user/token/audit handlers (see `pm2go-accounts.md`) |
 | | `ui/` | `index.html`, `style.css` and plain scripts (`core.js`, `charts.js`, `login.js`, `proc-table.js`, `page-*.js`, `app.js` boot), embedded with `go:embed ui` |
 | `deploy` | Dockerfile, compose, Caddy files | see `pm2go-deploy.md` |
 
@@ -75,7 +76,7 @@ CLI ──unix socket JSON-RPC──> daemon (Manager, Procs) ──hooks──>
 | New hub table or schema change | add a migration: append `{version: N+1, name: "...", sql: ...}` (and/or `fn: func(tx *sql.Tx) error` for data fixes) to `migrations` in `hub/migrations.go`. Never edit a released migration. Each runs in one transaction with its `schema_migrations` row; a failure aborts startup. A database newer than the binary is refused. Test it in `hub/store_test.go` |
 | New alert rule type | const + `Validate` + `observe` in `hub/alerts.go`, `RULE_TYPES` and `describeRule` in `ui/page-alerts.js`, a test in `hub/hub_test.go` using the fake clock |
 | New notification channel | implement it beside `Notifier` in `hub/telegram.go` or a new file, route `Engine` sends through a small channel interface (do this refactor once, in the channels issue) |
-| New API route | register in `API.Handler` with `req(...)` for auth, handler in `hub/api.go` (or a new file in package `hub`) |
+| New API route | register in `API.Handler` with `viewer(...)`, `operator(...)` or `admin(...)` (pick the lowest role that is safe), add it to `routeMatrix` in `hub/accounts_test.go` (a test fails when a route is missing), handler in `hub/api.go` (or a new file in package `hub`) |
 | New dashboard page create `ui/page-<name>.js` with an `async function page<Name>(args)` that calls `shell(href)`, then end the file with `registerPage('<name>/:arg', page<Name>)` (and `registerNav(href, label)` for a nav entry); add one `<script src="page-<name>.js">` line to `ui/index.html` before `app.js`. Scripts are classic (no modules, no build) and share one global scope, so keep helpers in `core.js`; `index.html` order sets nav order. `TestUIServesIndexAndEveryScript` fails if a script is unreferenced |
 
 ## Rules every change follows

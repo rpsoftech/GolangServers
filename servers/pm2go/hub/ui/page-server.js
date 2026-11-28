@@ -32,7 +32,7 @@ async function pageServer(name) {
       const sn = s.snapshot, sy = sn && sn.system;
       head.replaceChildren(h('div', { class: 'row' }, h('span', { class: 'dot ' + (s.online ? 'on' : 'off') }), h('h1', {}, s.name),
         h('span', { class: 'right row' },
-          h('button', { on: { click: () => cmd(name, 'save', '') } }, 'Save process list'))),
+          can('operator') ? h('button', { on: { click: () => cmd(name, 'save', '') } }, 'Save process list') : null)),
         h('div', { class: 'sub' }, `${s.hello.hostname} · ${s.hello.os} · ${s.hello.cpu_count} CPU · agent ${s.hello.version}` + (s.online ? '' : ' · offline, last seen ' + ago(s.last_seen)) + (sy ? ` · up ${fmtDur(sy.uptime_s * 1000)}` : '')));
       procs.replaceChildren(sn && sn.processes.length ? procTable(name, sn.processes) : h('div', { class: 'empty card' }, 'No processes'));
     } catch (e) { if (e.message !== 'unauthorized') toast(e.message, true); }

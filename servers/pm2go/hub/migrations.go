@@ -19,7 +19,35 @@ type migration struct {
 // migrations is the ordered list applied by OpenStore.
 var migrations = []migration{
 	{version: 1, name: "initial schema", sql: schemaV1},
+	{version: 2, name: "users, sessions, api tokens, audit log", sql: schemaV2},
 }
+
+const schemaV2 = `
+CREATE TABLE users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('viewer','operator','admin')),
+  disabled INTEGER NOT NULL DEFAULT 0,
+  must_change_password INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  last_login_at INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE sessions (
+  id_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL, created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL, ip TEXT, user_agent TEXT);
+CREATE INDEX sessions_user ON sessions(user_id);
+CREATE TABLE api_tokens (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, name TEXT NOT NULL,
+  prefix TEXT NOT NULL, hash TEXT NOT NULL UNIQUE,
+  role_cap TEXT NOT NULL CHECK (role_cap IN ('viewer','operator','admin')),
+  created_at INTEGER NOT NULL, last_used_at INTEGER NOT NULL DEFAULT 0, expires_at INTEGER NOT NULL DEFAULT 0);
+CREATE INDEX api_tokens_user ON api_tokens(user_id);
+CREATE TABLE audit (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, user TEXT NOT NULL, ip TEXT NOT NULL,
+  action TEXT NOT NULL, target TEXT NOT NULL DEFAULT '', detail TEXT NOT NULL DEFAULT '',
+  success INTEGER NOT NULL DEFAULT 1);
+CREATE INDEX audit_ts ON audit(ts);
+`
 
 const schemaV1 = `
 CREATE TABLE IF NOT EXISTS servers (

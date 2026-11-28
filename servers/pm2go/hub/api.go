@@ -3,8 +3,8 @@ package hub
 import (
 	"embed"
 	"encoding/json"
+	"fmt"
 	"io/fs"
-	"log"
 	"net/http"
 	"net/url"
 	"sort"
@@ -27,39 +27,60 @@ type API struct {
 	notif  *Notifier
 }
 
+func (a *API) role(min string) func(http.HandlerFunc) http.HandlerFunc {
+	return func(h http.HandlerFunc) http.HandlerFunc { return a.auth.requireRole(min, h) }
+}
+
 func (a *API) Handler() http.Handler {
 	mux := http.NewServeMux()
 	ui, _ := fs.Sub(uiFS, "ui")
 	mux.Handle("GET /", http.FileServer(http.FS(ui)))
 
+	// Route table. Public: UI files, /healthz, /api/login, /api/logout, /agent/ws (agent key).
+	// Every other route names the minimum role it needs; the table is in docs/knowledge-base/pm2go-accounts.md.
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
 	mux.HandleFunc("GET /agent/ws", a.agentWS)
 	mux.HandleFunc("POST /api/login", a.login)
-	mux.HandleFunc("POST /api/logout", func(w http.ResponseWriter, r *http.Request) { a.auth.logout(w); w.WriteHeader(204) })
-	mux.HandleFunc("GET /api/me", a.auth.require(func(w http.ResponseWriter, r *http.Request) { writeJSON(w, map[string]bool{"ok": true}) }))
+	mux.HandleFunc("POST /api/logout", func(w http.ResponseWriter, r *http.Request) { a.auth.logout(w, r); w.WriteHeader(204) })
 
-	req := a.auth.require
-	mux.HandleFunc("GET /api/servers", req(a.servers))
-	mux.HandleFunc("GET /api/servers/{name}", req(a.server))
-	mux.HandleFunc("GET /api/servers/{name}/metrics", req(a.metrics))
-	mux.HandleFunc("GET /api/servers/{name}/logs", req(a.logs))
-	mux.HandleFunc("POST /api/servers/{name}/command", req(a.command))
-	mux.HandleFunc("GET /api/logs/ws", req(a.logsWS))
-	mux.HandleFunc("GET /api/events", req(a.events))
-	mux.HandleFunc("GET /api/issues", req(a.issues))
-	mux.HandleFunc("POST /api/issues/status", req(a.issueStatus))
+	viewer, operator, admin := a.role(roleViewer), a.role(roleOperator), a.role(roleAdmin)
+	// any signed-in user, even one who still has to change the password
+	mux.HandleFunc("GET /api/me", a.auth.guard(roleViewer, true, false, a.me))
+	mux.HandleFunc("POST /api/password", a.auth.guard(roleViewer, true, true, a.changePassword))
 
-	mux.HandleFunc("GET /api/alerts/rules", req(func(w http.ResponseWriter, r *http.Request) { writeJSON(w, a.engine.Rules()) }))
-	mux.HandleFunc("POST /api/alerts/rules", req(a.addRule))
-	mux.HandleFunc("PUT /api/alerts/rules/{id}", req(a.updateRule))
-	mux.HandleFunc("DELETE /api/alerts/rules/{id}", req(a.deleteRule))
-	mux.HandleFunc("GET /api/alerts/active", req(func(w http.ResponseWriter, r *http.Request) { writeJSON(w, a.engine.Active()) }))
-	mux.HandleFunc("GET /api/alerts/history", req(a.history))
+	mux.HandleFunc("GET /api/servers", viewer(a.servers))
+	mux.HandleFunc("GET /api/servers/{name}", viewer(a.server))
+	mux.HandleFunc("GET /api/servers/{name}/metrics", viewer(a.metrics))
+	mux.HandleFunc("GET /api/servers/{name}/logs", viewer(a.logs))
+	mux.HandleFunc("POST /api/servers/{name}/command", operator(a.command)) // action "delete" needs admin, checked in the handler
+	mux.HandleFunc("GET /api/logs/ws", viewer(a.logsWS))
+	mux.HandleFunc("GET /api/events", viewer(a.events))
+	mux.HandleFunc("GET /api/issues", viewer(a.issues))
+	mux.HandleFunc("POST /api/issues/status", operator(a.issueStatus))
 
-	mux.HandleFunc("GET /api/settings/info", req(a.info))
-	mux.HandleFunc("GET /api/settings/telegram", req(a.getTelegram))
-	mux.HandleFunc("PUT /api/settings/telegram", req(a.putTelegram))
-	mux.HandleFunc("POST /api/settings/telegram/test", req(a.testTelegram))
+	mux.HandleFunc("GET /api/alerts/rules", viewer(func(w http.ResponseWriter, r *http.Request) { writeJSON(w, a.engine.Rules()) }))
+	mux.HandleFunc("POST /api/alerts/rules", admin(a.addRule))
+	mux.HandleFunc("PUT /api/alerts/rules/{id}", admin(a.updateRule))
+	mux.HandleFunc("DELETE /api/alerts/rules/{id}", admin(a.deleteRule))
+	mux.HandleFunc("GET /api/alerts/active", viewer(func(w http.ResponseWriter, r *http.Request) { writeJSON(w, a.engine.Active()) }))
+	mux.HandleFunc("GET /api/alerts/history", viewer(a.history))
+
+	mux.HandleFunc("GET /api/settings/info", viewer(a.info)) // agent_key only in the admin view
+	mux.HandleFunc("GET /api/settings/telegram", admin(a.getTelegram))
+	mux.HandleFunc("PUT /api/settings/telegram", admin(a.putTelegram))
+	mux.HandleFunc("POST /api/settings/telegram/test", admin(a.testTelegram))
+
+	mux.HandleFunc("GET /api/users", admin(a.listUsers))
+	mux.HandleFunc("POST /api/users", a.auth.requireSession(roleAdmin, a.createUser))
+	mux.HandleFunc("PUT /api/users/{id}", a.auth.requireSession(roleAdmin, a.updateUser))
+	mux.HandleFunc("DELETE /api/users/{id}", a.auth.requireSession(roleAdmin, a.deleteUser))
+	mux.HandleFunc("POST /api/users/{id}/password", a.auth.requireSession(roleAdmin, a.resetUserPassword))
+	mux.HandleFunc("POST /api/users/{id}/revoke-sessions", a.auth.requireSession(roleAdmin, a.revokeUserSessions))
+	mux.HandleFunc("GET /api/tokens", a.auth.requireSession(roleViewer, a.listTokens))
+	mux.HandleFunc("POST /api/tokens", a.auth.requireSession(roleViewer, a.createToken))
+	mux.HandleFunc("DELETE /api/tokens/{id}", a.auth.requireSession(roleViewer, a.deleteToken))
+	mux.HandleFunc("POST /api/sessions/revoke-all", a.auth.requireSession(roleViewer, a.revokeMySessions))
+	mux.HandleFunc("GET /api/audit", admin(a.auditLog))
 	return secureHeaders(mux)
 }
 
@@ -87,18 +108,6 @@ func readJSON(w http.ResponseWriter, r *http.Request, v any) bool {
 		return false
 	}
 	return true
-}
-
-func (a *API) login(w http.ResponseWriter, r *http.Request) {
-	var b struct {
-		Password string `json:"password"`
-	}
-	if !readJSON(w, r, &b) {
-		return
-	}
-	if a.auth.login(w, r, b.Password) {
-		writeJSON(w, map[string]bool{"ok": true})
-	}
 }
 
 // ---- agents ----
@@ -309,11 +318,21 @@ func (a *API) command(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	server := r.PathValue("name")
-	log.Printf("command from %s: server=%s action=%s target=%s", clientIP(r), server, c.Action, c.Target)
+	if c.Action == "delete" && roleRank[principalOf(r).Role] < roleRank[roleAdmin] {
+		a.audit(r, "command", server+"/"+c.Target, "delete denied: requires admin", false)
+		httpErr(w, 403, "forbidden: deleting a process requires role admin")
+		return
+	}
+	detail := c.Action
+	if c.Action == "scale" {
+		detail += " " + strconv.Itoa(c.Count)
+	}
 	if err := a.reg.Command(server, c); err != nil {
+		a.audit(r, "command", server+"/"+c.Target, detail+": "+err.Error(), false)
 		httpErr(w, 502, err.Error())
 		return
 	}
+	a.audit(r, "command", server+"/"+c.Target, detail, true)
 	writeJSON(w, map[string]bool{"ok": true})
 }
 
@@ -426,6 +445,7 @@ func (a *API) issueStatus(w http.ResponseWriter, r *http.Request) {
 		httpErr(w, 404, "issue not found")
 		return
 	}
+	a.audit(r, "issue.status", b.Server+"/"+b.Name, b.Status+" "+b.Fingerprint, true)
 	writeJSON(w, map[string]bool{"ok": true})
 }
 
@@ -450,6 +470,7 @@ func (a *API) addRule(w http.ResponseWriter, r *http.Request) {
 		httpErr(w, 400, err.Error())
 		return
 	}
+	a.audit(r, "rule.create", strconv.FormatInt(out.ID, 10), ruleDetail(out), true)
 	writeJSON(w, out)
 }
 
@@ -467,6 +488,7 @@ func (a *API) updateRule(w http.ResponseWriter, r *http.Request) {
 		httpErr(w, 400, err.Error())
 		return
 	}
+	a.audit(r, "rule.update", strconv.FormatInt(id, 10), ruleDetail(out), true)
 	writeJSON(w, out)
 }
 
@@ -479,6 +501,7 @@ func (a *API) deleteRule(w http.ResponseWriter, r *http.Request) {
 		httpErr(w, 500, err.Error())
 		return
 	}
+	a.audit(r, "rule.delete", strconv.FormatInt(id, 10), "", true)
 	w.WriteHeader(204)
 }
 
@@ -497,8 +520,13 @@ func (a *API) history(w http.ResponseWriter, r *http.Request) {
 
 // ---- settings ----
 
+// info hides the agent key from everyone below admin: it lets a holder push data and receive commands.
 func (a *API) info(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, map[string]any{"agent_key": a.cfg.AgentKey, "retention_days": a.cfg.RetentionDays})
+	out := map[string]any{"retention_days": a.cfg.RetentionDays}
+	if roleRank[principalOf(r).Role] >= roleRank[roleAdmin] {
+		out["agent_key"] = a.cfg.AgentKey
+	}
+	writeJSON(w, out)
 }
 
 type telegramView struct {
@@ -524,6 +552,7 @@ func (a *API) putTelegram(w http.ResponseWriter, r *http.Request) {
 		httpErr(w, 400, err.Error())
 		return
 	}
+	a.audit(r, "settings.telegram", "telegram", fmt.Sprintf("enabled=%v chats=%d token_changed=%v", s.Enabled, len(s.Chats), s.BotToken != ""), true)
 	a.getTelegram(w, r)
 }
 
@@ -538,6 +567,7 @@ func (a *API) testTelegram(w http.ResponseWriter, r *http.Request) {
 		httpErr(w, 400, "chat_id required")
 		return
 	}
+	a.audit(r, "settings.telegram.test", b.ChatID, "", true)
 	if err := a.notif.SendTest(b.ChatID, FormatAlert("firing", "info", "Test message from pm2go", "hub", "", "If you can read this, Telegram alerts work.")); err != nil {
 		httpErr(w, 502, err.Error())
 		return

@@ -61,3 +61,6 @@ svg text{fill:var(--dim);font-size:10px}
 .modal{position:fixed;inset:0;background:#000a;display:flex;align-items:flex-start;justify-content:center;padding:6vh 14px;z-index:30;overflow:auto}
 .modal .card{width:min(760px,100%)}
 .right{margin-left:auto}
+header .who{color:var(--dim);padding:6px 10px;border-radius:6px}header .who.on,header .who:hover{color:var(--text);background:var(--panel2);text-decoration:none}
+.once{background:var(--bg);border:1px solid var(--warn);border-radius:6px;padding:10px;word-break:break-all;user-select:all}
+.badge.admin{color:#fff;background:#8e2a27;border-color:#8e2a27}.badge.operator{color:#1a1200;background:var(--warn);border-color:var(--warn)}.badge.viewer{color:#fff;background:#1f4f94;border-color:#1f4f94}.badge.disabled{color:var(--dim)}

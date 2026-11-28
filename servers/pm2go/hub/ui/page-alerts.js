@@ -8,7 +8,7 @@ const RULE_TYPES = {
 async function pageAlerts() {
   const main = shell('#/alerts');
   const active = h('div'), rules = h('div'), hist = h('div');
-  main.append(h('div', { class: 'row' }, h('h1', {}, 'Alerts'), h('span', { class: 'right' }, h('button', { class: 'primary', on: { click: () => ruleForm(null, load) } }, 'New rule'))),
+  main.append(h('div', { class: 'row' }, h('h1', {}, 'Alerts'), h('span', { class: 'right' }, can('admin') ? h('button', { class: 'primary', on: { click: () => ruleForm(null, load) } }, 'New rule') : null)),
     h('div', { class: 'sub' }, 'Rules fire after the condition holds for the set duration. A higher level covers lower ones for the same target.'),
     h('h2', {}, 'Active'), active, h('h2', {}, 'Rules'), rules, h('h2', {}, 'History'), hist);
   async function load() {
@@ -18,11 +18,11 @@ async function pageAlerts() {
         h('b', {}, a.rule_name), h('span', {}, a.server + (a.process ? ' / ' + a.process : '')), h('span', { class: 'd' }, a.detail), h('span', { class: 'sub', style: 'margin:0' }, ago(a.since))))) : h('div', { class: 'empty card' }, 'Nothing firing'));
       rules.replaceChildren(h('div', { class: 'tablewrap' }, h('table', {},
         h('tr', {}, ['On', 'Level', 'Name', 'Condition', 'Scope', 'Repeat', ''].map(x => h('th', {}, x))),
-        rl.map(r => h('tr', {}, h('td', {}, h('input', { type: 'checkbox', checked: r.enabled, on: { change: async e => { await api('/api/alerts/rules/' + r.id, { method: 'PUT', body: { ...r, enabled: e.target.checked } }); } } })),
+        rl.map(r => h('tr', {}, h('td', {}, h('input', { type: 'checkbox', checked: r.enabled, disabled: !can('admin'), on: { change: async e => { await api('/api/alerts/rules/' + r.id, { method: 'PUT', body: { ...r, enabled: e.target.checked } }); } } })),
           h('td', {}, badge(r.level)), h('td', {}, r.name), h('td', {}, describeRule(r)), h('td', {}, `${r.server || '*'} / ${r.process || '*'}`),
           h('td', {}, r.repeat_s ? 'every ' + fmtDur(r.repeat_s * 1000) : '–'),
-          h('td', { class: 'row' }, h('button', { class: 'sm', on: { click: () => ruleForm(r, load) } }, 'Edit'),
-            h('button', { class: 'sm danger', on: { click: async () => { if (confirm('Delete rule ' + r.name + '?')) { await api('/api/alerts/rules/' + r.id, { method: 'DELETE' }); load(); } } } }, 'Delete')))))));
+          h('td', { class: 'row' }, !can('admin') ? null : [h('button', { class: 'sm', on: { click: () => ruleForm(r, load) } }, 'Edit'),
+            h('button', { class: 'sm danger', on: { click: async () => { if (confirm('Delete rule ' + r.name + '?')) { await api('/api/alerts/rules/' + r.id, { method: 'DELETE' }); load(); } } } }, 'Delete')]))))));
       hist.replaceChildren(hi.length ? h('div', { class: 'tablewrap' }, h('table', {}, h('tr', {}, ['Time', 'State', 'Level', 'Rule', 'Target', 'Detail', 'Telegram'].map(x => h('th', {}, x))),
         hi.map(e => h('tr', {}, h('td', {}, dt(e.ts)), h('td', {}, badge(e.state)), h('td', {}, badge(e.level)), h('td', {}, e.rule_name),
           h('td', {}, e.server + (e.process ? ' / ' + e.process : '')), h('td', {}, e.message), h('td', {}, e.notified ? 'sent' : '–'))))) : h('div', { class: 'empty card' }, 'No history yet'));

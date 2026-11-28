@@ -5,13 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"sync"
 	"time"
 
 	_ "modernc.org/sqlite"
 )
 
 // Store wraps the SQLite database.
-type Store struct{ db *sql.DB }
+type Store struct {
+	db     *sql.DB
+	userMu sync.Mutex // serialises last-admin checks
+}
 
 func OpenStore(home string) (*Store, error) {
 	dsn := "file:" + filepath.Join(home, "hub.db") + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)"
@@ -55,10 +59,14 @@ func (s *Store) Prune(retention time.Duration) error {
 	for _, q := range []string{
 		`DELETE FROM sys_metrics WHERE ts<?`, `DELETE FROM proc_metrics WHERE ts<?`,
 		`DELETE FROM events WHERE ts<?`, `DELETE FROM alert_history WHERE ts<?`,
+		`DELETE FROM audit WHERE ts<?`,
 	} {
 		if _, err := s.db.Exec(q, cut); err != nil {
 			return fmt.Errorf("prune: %w", err)
 		}
 	}
+	now := time.Now().UnixMilli()
+	_, _ = s.db.Exec(`DELETE FROM sessions WHERE expires_at<?`, now)
+	_, _ = s.db.Exec(`DELETE FROM api_tokens WHERE expires_at>0 AND expires_at<?`, now)
 	return nil
 }

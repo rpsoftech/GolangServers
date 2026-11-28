@@ -40,7 +40,7 @@ func TestMigrateFresh(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := versions(t, s.db); len(got) != 1 || got[0] != 1 {
+	if got := versions(t, s.db); len(got) != len(migrations) || got[0] != 1 {
 		t.Fatalf("versions = %v", got)
 	}
 	if err := s.PutSetting("k", "v"); err != nil {
@@ -53,7 +53,7 @@ func TestMigrateFresh(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.Close()
-	if got := versions(t, s.db); len(got) != 1 {
+	if got := versions(t, s.db); len(got) != len(migrations) {
 		t.Fatalf("versions after reopen = %v", got)
 	}
 	var v string
@@ -77,7 +77,7 @@ func TestMigrateAdoptsExisting(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.Close()
-	if got := versions(t, s.db); len(got) != 1 || got[0] != 1 {
+	if got := versions(t, s.db); len(got) != len(migrations) || got[0] != 1 {
 		t.Fatalf("versions = %v", got)
 	}
 	var n int

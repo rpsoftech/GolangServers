@@ -11,11 +11,11 @@ function procTable(server, list) {
       h('td', {}, badge(p.status, statusCls(p.status))), h('td', { class: 'num mono' }, p.pid || '–'),
       h('td', { class: 'num' }, p.status === 'online' ? fmtDur(p.uptime_ms) : '–'), h('td', { class: 'num' }, p.restarts),
       h('td', { class: 'num' }, p.status === 'online' ? p.cpu.toFixed(1) + '%' : '–'), h('td', { class: 'num' }, p.status === 'online' ? fmtBytes(p.memory) : '–'),
-      h('td', { class: 'row' },
+      h('td', { class: 'row' }, !can('operator') ? null : [
         h('button', { class: 'sm', on: { click: () => cmd(server, 'restart', String(p.id)) } }, 'Restart'),
         h('button', { class: 'sm', on: { click: () => cmd(server, 'reload', String(p.id)) } }, 'Reload'),
         p.status === 'stopped' || p.status === 'errored'
           ? h('button', { class: 'sm', on: { click: () => cmd(server, 'restart', String(p.id)) } }, 'Start')
           : h('button', { class: 'sm', on: { click: () => cmd(server, 'stop', String(p.id)) } }, 'Stop'),
-        h('button', { class: 'sm danger', on: { click: () => confirm(`Delete ${p.name} #${p.instance}?`) && cmd(server, 'delete', String(p.id)) } }, 'Delete'))))));
+        !can('admin') ? null : h('button', { class: 'sm danger', on: { click: () => confirm(`Delete ${p.name} #${p.instance}?`) && cmd(server, 'delete', String(p.id)) } }, 'Delete')])))));
 }

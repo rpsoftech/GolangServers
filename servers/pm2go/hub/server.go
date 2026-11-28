@@ -22,7 +22,8 @@ func Run(args []string) error {
 	tlsKey := fs.String("tls-key", "", "PEM private key file for built-in TLS")
 	acmeDomain := fs.String("acme-domain", "", "obtain a Let's Encrypt certificate for this domain (needs port 80 and 443)")
 	acmeHTTP := fs.String("acme-http", "", "plain HTTP listener that redirects to HTTPS and answers ACME HTTP-01 (default :80 with --acme-domain)")
-	showKeys := fs.Bool("show-keys", false, "print the admin password and agent key, then exit")
+	showKeys := fs.Bool("show-keys", false, "print the initial admin password and agent key, then exit")
+	resetAdmin := fs.Bool("reset-admin", false, "set a new random password for user admin (creates or re-enables it, ends its sessions), print it, then exit")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -31,8 +32,22 @@ func Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	if *resetAdmin {
+		store, err := OpenStore(home)
+		if err != nil {
+			return err
+		}
+		defer store.Close()
+		pw := randHex(8)
+		if err := store.ResetAdmin(pw); err != nil {
+			return err
+		}
+		store.Audit(AuditEntry{User: "cli", IP: "local", Action: "user.password_reset", Target: "admin", Detail: "pm2go hub --reset-admin", Success: true})
+		fmt.Printf("user admin has a new password (change required at next login): %s\n", pw)
+		return nil
+	}
 	if *showKeys || created {
-		fmt.Printf("admin password: %s\nagent key:      %s\nconfig:         %s/config.json\n", cfg.AdminPassword, cfg.AgentKey, home)
+		fmt.Printf("initial admin password (user admin, must be changed at first login): %s\nagent key: %s\nconfig:    %s/config.json\n", cfg.AdminPassword, cfg.AgentKey, home)
 		if *showKeys {
 			return nil
 		}
@@ -95,7 +110,11 @@ func Run(args []string) error {
 		}
 	}()
 
-	api := &API{cfg: cfg, auth: newAuth(cfg), store: store, reg: reg, engine: engine, notif: notif}
+	au, err := newAuth(cfg, store)
+	if err != nil {
+		return err
+	}
+	api := &API{cfg: cfg, auth: au, store: store, reg: reg, engine: engine, notif: notif}
 	handler := api.Handler()
 	srv := &http.Server{Addr: cfg.Listen, Handler: handler, ReadHeaderTimeout: 10 * time.Second}
 	errCh := make(chan error, 2)
