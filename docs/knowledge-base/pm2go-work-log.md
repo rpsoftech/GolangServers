@@ -27,7 +27,7 @@ Size: S small (hours), M medium (1 day), L large (several days). Lane: which are
 | [#90](https://github.com/rpsoftech/GolangServers/issues/90) | Hub UI: split `app.js` into modules | S-M | hub UI | none | `hub/ui/*` | open | |
 | [#91](https://github.com/rpsoftech/GolangServers/issues/91) | GitHub Actions: tests, binaries, Docker image | S-M | tooling | none | `.github/`, `deploy/Dockerfile` | open | |
 | [#92](https://github.com/rpsoftech/GolangServers/issues/92) | YAML ecosystem files, `ignore_watch` globs | S | cli/common | none | `common/ecosystem.go`, `daemon/watch.go` | open | |
-| [#93](https://github.com/rpsoftech/GolangServers/issues/93) | CLI unit tests and testable command layer | S-M | cli | none | `cli/commands.go`, `cli/client.go` | in progress | `test/pm2go-cli` |
+| [#93](https://github.com/rpsoftech/GolangServers/issues/93) | CLI unit tests and testable command layer | S-M | cli | none | `cli/commands.go`, `cli/client.go` | done | `test/pm2go-cli`, PR PRLINK |
 | [#94](https://github.com/rpsoftech/GolangServers/issues/94) | `monit` terminal dashboard | M | cli | #93 (soft) | new `cli/monit.go` | open | |
 | [#95](https://github.com/rpsoftech/GolangServers/issues/95) | Hub built-in TLS and secure defaults | S-M | hub | none | `hub/server.go`, `agent/agent.go` | open | |
 | [#96](https://github.com/rpsoftech/GolangServers/issues/96) | Deployment tracking (git revision, deploy markers) | M | daemon+hub | #89, #90 | `common/types.go`, `hub/registry.go`, UI charts | open | |
@@ -89,6 +89,7 @@ Append new entries at the bottom: date, issue, decision, reason.
 - 2026-11-28, base: alert model is rule per (type, level); several rules of one type give escalation; higher level covers lower for the same target; sustained thresholds via `duration_s`; reminders via `repeat_s`; resolve after 10 s of false.
 - 2026-11-28, base: secrets (Telegram token) are write-only in the API (`token_set` flag). New secrets follow the same rule.
 - 2026-11-28, base: no cluster-style port sharing yet; apps use `SO_REUSEPORT` themselves until #98.
+- 2026-11-28, #93: `cli` exposes package variables `dial` (RPC transport), `spawn` (daemon launcher) and `spawnWait` as test hooks; start flags are collected in `startOpts`. `parseInterspersed` now splits at the first `--` before parsing, so flags placed after a positional and before `--` are honoured (previously they became positionals). No other behaviour change.
 
 ## Journal
 
@@ -96,6 +97,7 @@ Append only. Newest at the bottom.
 
 - 2026-11-28: PR #88 opened with the base implementation (daemon, CLI, agent, hub, dashboard, alerts, Telegram, Docker and Caddy files, docs). Race tests pass, Linux cross-build passes. Manual end-to-end run on macOS verified hub, agent, dashboard, live logs, issues, alert firing, remote restart. Not run on Linux, Docker or real Telegram.
 - 2026-11-28: issues #89 to #106 created from the open items in `pm2go-status.md`, each with context, design, files, acceptance criteria and tests so sessions do not need to re-read the code.
+- 2026-11-28, #93, `test/pm2go-cli`: CLI unit tests plus in-process end-to-end test added, coverage of `servers/pm2go/cli` 85.9%, `go test -race` passes.
 
 ## Handoff template (copy into your Journal entry when you stop mid-way)
 

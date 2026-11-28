@@ -79,4 +79,4 @@ Every open item below is tracked as a GitHub issue (#89 to #106). The issue boar
 - The `ps`-based fallback sampler is for development on macOS only.
 
 ### Also tracked
-- [ ] hub schema migrations (#89), dashboard `app.js` split into modules (#90), CLI unit tests (#93)
+- [ ] hub schema migrations (#89), dashboard `app.js` split into modules (#90), CLI unit tests (#93, done in PR)

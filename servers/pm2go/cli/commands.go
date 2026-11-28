@@ -56,15 +56,13 @@ func (m *multi) Set(v string) error { *m = append(*m, v); return nil }
 // parseInterspersed lets flags appear before or after positional args.
 // Everything after a literal "--" is returned untouched as rest.
 func parseInterspersed(fs *flag.FlagSet, args []string) (pos, rest []string, err error) {
-	for len(args) > 0 {
-		for i, a := range args {
-			if a == "--" {
-				if err := fs.Parse(args[:i]); err != nil {
-					return nil, nil, err
-				}
-				return append(pos, fs.Args()...), args[i+1:], nil
-			}
+	for i, a := range args {
+		if a == "--" {
+			args, rest = args[:i], args[i+1:]
+			break
 		}
+	}
+	for len(args) > 0 {
 		if err := fs.Parse(args); err != nil {
 			return nil, nil, err
 		}
@@ -74,7 +72,7 @@ func parseInterspersed(fs *flag.FlagSet, args []string) (pos, rest []string, err
 		pos = append(pos, fs.Arg(0))
 		args = fs.Args()[1:]
 	}
-	return pos, nil, nil
+	return pos, rest, nil
 }
 
 // Main runs the CLI and returns the exit code.
