@@ -23,7 +23,7 @@ Size: S small (hours), M medium (1 day), L large (several days). Lane: which are
 
 | Issue | Title | Size | Lane | Needs first | Hot files touched | Status | Branch / PR |
 |-------|-------|------|------|-------------|-------------------|--------|-------------|
-| [#89](https://github.com/rpsoftech/GolangServers/issues/89) | Hub schema versioning and migrations | S | hub | none | `hub/store.go`, new `hub/migrations.go` | in progress | `feat/hub-schema-migrations` |
+| [#89](https://github.com/rpsoftech/GolangServers/issues/89) | Hub schema versioning and migrations | S | hub | none | `hub/store.go`, new `hub/migrations.go` | done | [#108](https://github.com/rpsoftech/GolangServers/pull/108) |
 | [#90](https://github.com/rpsoftech/GolangServers/issues/90) | Hub UI: split `app.js` into modules | S-M | hub UI | none | `hub/ui/*` | open | |
 | [#91](https://github.com/rpsoftech/GolangServers/issues/91) | GitHub Actions: tests, binaries, Docker image | S-M | tooling | none | `.github/`, `deploy/Dockerfile` | open | |
 | [#92](https://github.com/rpsoftech/GolangServers/issues/92) | YAML ecosystem files, `ignore_watch` globs | S | cli/common | none | `common/ecosystem.go`, `daemon/watch.go` | open | |
@@ -96,6 +96,7 @@ Append only. Newest at the bottom.
 
 - 2026-11-28: PR #88 opened with the base implementation (daemon, CLI, agent, hub, dashboard, alerts, Telegram, Docker and Caddy files, docs). Race tests pass, Linux cross-build passes. Manual end-to-end run on macOS verified hub, agent, dashboard, live logs, issues, alert firing, remote restart. Not run on Linux, Docker or real Telegram.
 - 2026-11-28: issues #89 to #106 created from the open items in `pm2go-status.md`, each with context, design, files, acceptance criteria and tests so sessions do not need to re-read the code.
+- 2026-11-28, #89, `feat/hub-schema-migrations`: done, PR #108. `schema_migrations` table plus append-only `migrations` list in `hub/migrations.go`; add a migration instead of editing old ones. Tests and Linux build pass.
 
 ## Handoff template (copy into your Journal entry when you stop mid-way)
 
