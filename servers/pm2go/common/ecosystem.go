@@ -9,7 +9,8 @@ import (
 )
 
 type Ecosystem struct {
-	Apps []AppConfig `json:"apps"`
+	Apps   []AppConfig             `json:"apps"`
+	Deploy map[string]DeployConfig `json:"deploy,omitempty"`
 }
 
 // LoadEcosystem reads a JSON ecosystem file. A relative cwd is resolved against

@@ -36,6 +36,7 @@ Usage: pm2go <command> [args]
   flush [name|all]        truncate logs
   save                    write process list to dump file
   resurrect               start processes from dump file
+  deploy [-f FILE] <env> setup|update|revert [n]|curr|prev|list|exec "cmd" [--dry-run] [--serial] [--fail-fast]
   ping                    check the daemon
   kill                    stop all processes and the daemon
 
@@ -125,6 +126,8 @@ func Main(args []string) int {
 		if err = call(common.MethodResurrect, nil, &infos); err == nil {
 			printTable(os.Stdout, infos)
 		}
+	case "deploy":
+		err = cmdDeploy(rest)
 	case "ping":
 		var r map[string]int
 		if err = call(common.MethodPing, nil, &r); err == nil {
