@@ -4,7 +4,36 @@ How to publish the hub (web dashboard) behind Caddy and how to put the agent and
 
 Files live in `servers/pm2go/deploy/`: `Dockerfile`, `docker-compose.yml`, `Caddyfile.host`, `Caddyfile.container`, `.env.example`, `Dockerfile.dockerignore`.
 
-> The Docker and Caddy files were written but not built or run on a machine with Docker or Caddy (neither is installed on the development laptop). Do the verification steps at the end the first time.
+> The Docker and Caddy files were written on a laptop without Docker or Caddy and have not been run by hand. The `pm2go` GitHub workflow (`.github/workflows/pm2go.yml`) builds the image and smoke-tests `/healthz` and the health check on every pull request that touches pm2go, but a real deployment (Caddy, DNS, Telegram) is still unverified: do the verification steps at the end the first time (issue #106).
+
+## Released artifacts
+
+Pushing a tag `pm2go-v<version>` runs the `pm2go` workflow: tests, then a GitHub release with Linux binaries and a published hub image.
+
+```bash
+git tag pm2go-v0.1.0 && git push origin pm2go-v0.1.0
+```
+
+Pull the hub image (multi-arch amd64 and arm64):
+
+```bash
+docker pull ghcr.io/rpsoftech/pm2go-hub:pm2go-v0.1.0   # or :latest
+docker run -d --name pm2go-hub -p 127.0.0.1:8080:8080 -v pm2go-hub-data:/data ghcr.io/rpsoftech/pm2go-hub:latest
+```
+
+The image tag equals the git tag. If the package is private, run `docker login ghcr.io` with a token that has `read:packages` first.
+
+Download a binary for a monitored host and verify it:
+
+```bash
+TAG=pm2go-v0.1.0; ARCH=amd64    # or arm64
+BASE=https://github.com/rpsoftech/GolangServers/releases/download/$TAG
+curl -fLO $BASE/pm2go-linux-$ARCH && curl -fLO $BASE/SHA256SUMS
+sha256sum -c SHA256SUMS --ignore-missing
+sudo install -m 0755 pm2go-linux-$ARCH /usr/local/bin/pm2go
+```
+
+Pull request CI (same workflow): `gofmt -l` must be empty, `go vet`, `go test -race -count=1`, Linux build, image build and smoke test (container started, `/healthz` answers `ok`, first-run keys printed, Docker health status `healthy`).
 
 ## What you need
 
