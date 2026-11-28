@@ -1,0 +1,12 @@
+# Used by the "caddy" compose profile. {$PM2GO_DOMAIN} comes from the environment.
+{$PM2GO_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy hub:8080 {
+		health_uri /healthz
+		health_interval 30s
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+}

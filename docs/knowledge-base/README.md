@@ -8,6 +8,13 @@ Reference notes per component: design decisions, limits, lessons and release not
 | [whatsapp-server.md](whatsapp-server.md) | `servers/whatsapp-server` and shared `functions/whatsapp` |
 | [soham-whatsapp.md](soham-whatsapp.md) | `servers/soham` relay server, WhatsApp client and `common` |
 | [release-pipeline.md](release-pipeline.md) | `utility/deploy` and `.github/workflows/release.yml` |
+| [pm2go.md](pm2go.md) | `servers/pm2go`: process manager, agent, hub, dashboard, alerts (behaviour and design) |
+| [pm2go-dev-guide.md](pm2go-dev-guide.md) | pm2go code map, how to add things, rules for contributors and parallel sessions |
+| [pm2go-deploy.md](pm2go-deploy.md) | pm2go hub with Docker and Caddy, hosts with systemd, TLS options |
+| [pm2go-status.md](pm2go-status.md), [pm2go-assessment.md](pm2go-assessment.md) | pm2go done, pending and improvement lists |
+| [pm2go-work-log.md](pm2go-work-log.md), [pm2go-work/](pm2go-work/) | pm2go issue board, order of work, one status file per issue |
+| [pm2-go-feature-analysis.md](pm2-go-feature-analysis.md) | PM2 and PM2 Plus feature research behind pm2go |
+| [graph/GRAPH.md](graph/GRAPH.md) | generated code graph and knowledge graph for pm2go (JSON for agents) |
 
 Add a file when a component gets its first notes, and list it here.
 

@@ -1,0 +1,53 @@
+# pm2go hub. Two ways to publish it, pick one (see docs/knowledge-base/pm2go-deploy.md):
+#
+#  A) Caddy already runs on the host:   docker compose up -d
+#     The hub listens on 127.0.0.1:8080 only; point the host Caddy at it
+#     (deploy/Caddyfile.host).
+#
+#  B) No Caddy on the host:             docker compose --profile caddy up -d
+#     A Caddy container gets the certificate and listens on 80/443.
+#     Set PM2GO_DOMAIN to your DNS name first.
+#
+# Run from servers/pm2go/deploy. The image is built from the repo root.
+services:
+  hub:
+    build:
+      context: ../../..
+      dockerfile: servers/pm2go/deploy/Dockerfile
+      args:
+        VERSION: ${PM2GO_VERSION:-dev}
+    image: pm2go-hub:${PM2GO_VERSION:-dev}
+    container_name: pm2go-hub
+    restart: unless-stopped
+    environment:
+      PMGO_TRUST_PROXY: "1"
+    volumes:
+      - hub-data:/data
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks: [pm2go]
+
+  caddy:
+    profiles: [caddy]
+    image: caddy:2-alpine
+    container_name: pm2go-caddy
+    restart: unless-stopped
+    environment:
+      PM2GO_DOMAIN: ${PM2GO_DOMAIN:?set PM2GO_DOMAIN to the public DNS name}
+    volumes:
+      - ./Caddyfile.container:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on: [hub]
+    networks: [pm2go]
+
+volumes:
+  hub-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  pm2go:
