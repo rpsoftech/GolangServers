@@ -1,6 +1,6 @@
 # pm2go knowledge base
 
-Internal process manager modelled on PM2, plus a web dashboard modelled on PM2 Plus. Go, Linux only in production, internal use only (no billing, no tiers, single tenant). Feature research is in `pm2-go-feature-analysis.md`.
+Internal process manager modelled on PM2, plus a web dashboard modelled on PM2 Plus. Go, Linux only in production, internal use only (no billing, no tiers, single tenant). Feature research is in `pm2-go-feature-analysis.md`, deployment (Docker, Caddy, systemd) in `pm2go-deploy.md`, and the done/pending checklist in `pm2go-status.md`.
 
 One binary, `servers/pm2go`, runs in three roles:
 
@@ -73,6 +73,8 @@ Agents dial out to the hub (no inbound port on hosts). The hub never connects to
 `go test -race ./servers/pm2go/...`. Daemon tests use `sh`. Hub tests run the alert engine on a fake clock against a fake Telegram server and drive the HTTP API with a real WebSocket agent. Manual end-to-end check: start `pm2go hub`, `pm2go link` a daemon, start a noisy script and a crashing script, and watch the dashboard. Set `PMGO_HOME` to a short path (unix socket limit).
 
 ## Not built yet
+
+The full checklist is in `pm2go-status.md`. Summary:
 
 - Cluster-style port sharing and `wait_ready`, `ignore_watch` globs beyond name patterns, YAML ecosystem files, ssh `deploy`.
 - Transaction tracing, CPU and heap profiling from the dashboard, deployment tracking (git revision per process), custom app metrics and actions SDK.

@@ -32,6 +32,7 @@ func (a *API) Handler() http.Handler {
 	ui, _ := fs.Sub(uiFS, "ui")
 	mux.Handle("GET /", http.FileServer(http.FS(ui)))
 
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
 	mux.HandleFunc("GET /agent/ws", a.agentWS)
 	mux.HandleFunc("POST /api/login", a.login)
 	mux.HandleFunc("POST /api/logout", func(w http.ResponseWriter, r *http.Request) { a.auth.logout(w); w.WriteHeader(204) })

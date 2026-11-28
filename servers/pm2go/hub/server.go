@@ -17,6 +17,7 @@ import (
 func Run(args []string) error {
 	fs := flag.NewFlagSet("hub", flag.ContinueOnError)
 	listen := fs.String("listen", "", "listen address (default from config, :8080)")
+	proxy := fs.Bool("trust-proxy", false, "trust X-Forwarded-For/Proto from a reverse proxy (Caddy)")
 	showKeys := fs.Bool("show-keys", false, "print the admin password and agent key, then exit")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -32,6 +33,7 @@ func Run(args []string) error {
 			return nil
 		}
 	}
+	trustProxy = *proxy || os.Getenv("PMGO_TRUST_PROXY") == "1"
 	if *listen != "" {
 		cfg.Listen = *listen
 	}

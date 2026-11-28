@@ -463,3 +463,31 @@ func TestLogsWebsocketStreamsLive(t *testing.T) {
 		t.Fatalf("got %+v, %v", m, err)
 	}
 }
+
+func TestTrustProxyClientIPAndSecureCookie(t *testing.T) {
+	defer func(old bool) { trustProxy = old }(trustProxy)
+	req := httptest.NewRequest("GET", "/", nil)
+	req.RemoteAddr = "172.18.0.2:5555"
+	req.Header.Set("X-Forwarded-For", "203.0.113.7, 10.0.0.1")
+	req.Header.Set("X-Forwarded-Proto", "https")
+	trustProxy = false
+	if clientIP(req) != "172.18.0.2" || isHTTPS(req) {
+		t.Fatal("forwarded headers must be ignored when proxy is not trusted")
+	}
+	trustProxy = true
+	if clientIP(req) != "203.0.113.7" || !isHTTPS(req) {
+		t.Fatalf("clientIP = %s, https = %v", clientIP(req), isHTTPS(req))
+	}
+	req.Header.Set("X-Forwarded-For", "not-an-ip")
+	if clientIP(req) != "172.18.0.2" {
+		t.Fatal("garbage header must fall back to the socket address")
+	}
+}
+
+func TestHealthzIsPublic(t *testing.T) {
+	srv, _, _ := newAPI(t)
+	r, err := http.Get(srv.URL + "/healthz")
+	if err != nil || r.StatusCode != 200 {
+		t.Fatalf("healthz = %v, %v", r, err)
+	}
+}

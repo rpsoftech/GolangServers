@@ -1,0 +1,5 @@
+*
+!go.mod
+!go.sum
+!servers/pm2go/**
+servers/pm2go/deploy/**

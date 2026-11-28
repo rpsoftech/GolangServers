@@ -64,7 +64,24 @@ func (a *auth) authed(r *http.Request) bool {
 	return false
 }
 
+// trustProxy makes the hub believe X-Forwarded-For and X-Forwarded-Proto. Turn
+// it on only when every request comes through a reverse proxy you control
+// (Caddy), otherwise clients can forge their address.
+var trustProxy bool
+
+func isHTTPS(r *http.Request) bool {
+	return r.TLS != nil || (trustProxy && r.Header.Get("X-Forwarded-Proto") == "https")
+}
+
 func clientIP(r *http.Request) string {
+	if trustProxy {
+		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+			first, _, _ := strings.Cut(xff, ",")
+			if ip := strings.TrimSpace(first); net.ParseIP(ip) != nil {
+				return ip
+			}
+		}
+	}
 	h, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr
@@ -98,7 +115,7 @@ func (a *auth) login(w http.ResponseWriter, r *http.Request, password string) bo
 	a.mu.Unlock()
 	exp := time.Now().Add(sessionTTL)
 	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: a.sign(exp.Unix()), Path: "/", Expires: exp,
-		HttpOnly: true, SameSite: http.SameSiteStrictMode, Secure: r.TLS != nil})
+		HttpOnly: true, SameSite: http.SameSiteStrictMode, Secure: isHTTPS(r)})
 	return true
 }
 
