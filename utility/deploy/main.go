@@ -6,7 +6,7 @@
 //	go run ./utility/deploy -component all -env PRODUCTION
 //	go run ./utility/deploy -component soham-whatsapp-client -env PRODUCTION -version 48
 //	go run ./utility/deploy -component all -dry-run   # build only, no upload
-//	go run ./utility/deploy -component all -parallel 2 # build 2 components per target at once (default 3)
+//	go run ./utility/deploy -component all -parallel 2 # build 2 targets at once (default 3)
 //	go run ./utility/deploy keygen                 # one-time signing key setup
 //	go run ./utility/deploy affected <before> <after> # components changed between two commits
 package main
@@ -54,7 +54,7 @@ type options struct {
 	env        string
 	version    int
 	dryRun     bool
-	// parallel is how many components of one target build at once.
+	// parallel is how many target groups build at once.
 	parallel int
 }
 
@@ -99,7 +99,7 @@ func parseFlags() options {
 	envFlag := flag.String("env", os.Getenv("DEPLOY_ENV"), "release channel: "+strings.Join(allowedEnvs, ", ")+" (default $DEPLOY_ENV, else STAGING)")
 	versionFlag := flag.Int("version", 0, "version number to publish; 0 = next after the highest published")
 	dryRun := flag.Bool("dry-run", false, "build, compress and hash only; no signing, upload or KV update")
-	parallelFlag := flag.Int("parallel", 3, "how many components of one target to build at once")
+	parallelFlag := flag.Int("parallel", 3, "how many targets to build at once")
 	flag.Parse()
 
 	var opts options
@@ -171,11 +171,10 @@ type buildJob struct {
 
 // releaseAll resolves versions, builds everything, then publishes.
 //
-// Builds are grouped by target and the targets run one after another. Go
-// caches compiled packages per GOOS/GOARCH, so the first build of a target
-// compiles the shared libraries alone, then the remaining components of that
-// target build in parallel on the warm cache. Nothing is published unless
-// every build succeeded.
+// Builds are grouped by target. Go caches compiled packages per GOOS/GOARCH,
+// so the components of one group build one after another and share the
+// compiled libraries; different groups share nothing, so up to -parallel of
+// them build at once. Nothing is published unless every build succeeded.
 func releaseAll(opts options, signingKey ed25519.PrivateKey, fileServerToken, kvToken string) error {
 	versions, err := resolveVersions(opts)
 	if err != nil {
@@ -211,17 +210,17 @@ func releaseAll(opts options, signingKey ed25519.PrivateKey, fileServerToken, kv
 		mu.Unlock()
 		return nil
 	}
-	for _, t := range order {
-		jobs := groups[t]
-		// First build alone: parallel builds of one target would all compile
-		// the same libraries at once instead of sharing the cache.
-		if err := build(t, jobs[0]); err != nil {
-			return err
+	err = runLimited(opts.parallel, len(order), func(i int) error {
+		t := order[i]
+		for _, job := range groups[t] {
+			if err := build(t, job); err != nil {
+				return err
+			}
 		}
-		rest := jobs[1:]
-		if err := runLimited(opts.parallel, len(rest), func(i int) error { return build(t, rest[i]) }); err != nil {
-			return err
-		}
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 	if opts.dryRun {
 		return nil
