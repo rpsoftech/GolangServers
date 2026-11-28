@@ -19,4 +19,4 @@ Go monorepo (module `github.com/rpsoftech/golang-servers`).
 
 ## Knowledge base
 
-- `docs/knowledge-base/` holds reference notes per component (design decisions, lessons, release process). Read the matching file before changing that component and update it with the change.
+- `docs/knowledge-base/` holds reference notes per component (design decisions, lessons, release process). Start at `docs/knowledge-base/README.md`, which lists the files and the repo-wide conventions. Read the matching file before changing that component and update it with the change.

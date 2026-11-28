@@ -40,7 +40,8 @@ Shared updater lives in `utility/updater`; release automation in `utility/deploy
 | #52 | Cloudflare R2 destination (S3 compatible, pruning) |
 | #53 | version bump |
 | #55 | `compress` setting, Telegram reports, update check and restart on quick runs (issue #54) |
-| next | `parallel` setting, automatic `--column-statistics=0`, trimming spaces in config values |
+| #61 | `parallel` setting, automatic `--column-statistics=0`, trimming spaces in config values, this knowledge base |
+| #62 | restart the updated binary from its original path (last commit of #61 missed the squash) |
 
 ## Design decisions
 
@@ -73,12 +74,9 @@ Shared updater lives in `utility/updater`; release automation in `utility/deploy
 
 Push to `main` auto-releases changed components to STAGING. PRODUCTION releases are manual and need explicit approval. Auto-update only reaches builds on the same channel.
 
-## Working conventions for this repo
+## Working conventions
 
-- No AI/tool attribution anywhere: commits, PRs, issues, branches, code comments (see `CLAUDE.md`).
-- Branch names `feat/<topic>`, `fix/<topic>`, `docs/<topic>`.
-- Squash-merge PRs. After a squash merge, branches show as "unmerged" in `git branch --no-merged`; check the PR state (`gh pr list --state all --head <branch>`) instead.
-- Verify that a PR's last commits actually landed in `main` before calling it done (PR #55 was squash-merged before its final two commits were pushed, so they needed a follow-up PR).
+Repo-wide conventions (attribution, branch names, squash merges) are in [README.md](README.md).
 
 ## Open items
 
