@@ -32,7 +32,7 @@ Size: S small (hours), M medium (1 day), L large (several days). Lane: which are
 | [#95](https://github.com/rpsoftech/GolangServers/issues/95) | Hub built-in TLS and secure defaults | S-M | hub | none | `hub/server.go`, `agent/agent.go` | open | |
 | [#96](https://github.com/rpsoftech/GolangServers/issues/96) | Deployment tracking (git revision, deploy markers) | M | daemon+hub | #89, #90 | `common/types.go`, `hub/registry.go`, UI charts | open | |
 | [#97](https://github.com/rpsoftech/GolangServers/issues/97) | `deploy` command (git + ssh) | M-L | cli | none (YAML #92 soft) | new `cli/deploy.go`, `common/deploy.go` | open | |
-| [#98](https://github.com/rpsoftech/GolangServers/issues/98) | Shared listening socket and `wait_ready` | L | daemon | none | `daemon/proc.go`, `daemon/manager.go` | in progress | `feat/daemon-shared-socket` |
+| [#98](https://github.com/rpsoftech/GolangServers/issues/98) | Shared listening socket and `wait_ready` | L | daemon | none | `daemon/proc.go`, `daemon/manager.go` | done | `feat/daemon-shared-socket`, [PR #112](https://github.com/rpsoftech/GolangServers/pull/112) |
 | [#99](https://github.com/rpsoftech/GolangServers/issues/99) | Restart daemon without stopping children | L | daemon | #98 (order) | `daemon/proc.go`, `daemon/logfile.go`, `cli/startup.go` | open | |
 | [#100](https://github.com/rpsoftech/GolangServers/issues/100) | More alert channels, silences, quiet hours | L | hub | #89, #90 | `hub/alerts.go`, `hub/telegram.go`, `hub/api.go` | open | |
 | [#101](https://github.com/rpsoftech/GolangServers/issues/101) | Persistent log storage and search | L | hub | #89, #90 | `hub/registry.go`, `hub/api.go`, UI | open | |
