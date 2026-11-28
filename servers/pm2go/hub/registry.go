@@ -267,9 +267,13 @@ func (r *Registry) OnEvent(server string, e common.Event) {
 	if err != nil {
 		log.Printf("store event: %v", err)
 	}
-	if e.Type == "exit" && !e.Manual && e.Reason == "crash" {
+	// A start that never became ready is as bad as a crash for restart-loop alerts.
+	if e.Type == "exit" && !e.Manual && (e.Reason == "crash" || e.Reason == "ready_timeout") {
 		k := ringKey(server, e.Name)
 		now := time.Now()
+		if e.TS > 0 { // replayed events keep their original time
+			now = time.UnixMilli(e.TS)
+		}
 		r.mu.Lock()
 		keep := r.crashes[k][:0]
 		for _, t := range r.crashes[k] {
@@ -297,22 +301,47 @@ func (r *Registry) CrashCount(server, name string, window time.Duration) int {
 }
 
 func (r *Registry) OnLogs(server string, lines []common.LogLine) {
+	if len(lines) == 0 {
+		return
+	}
+	// One lock for the whole batch: snapshot the matching subscribers and the
+	// rings once, then work without holding the registry lock.
+	r.mu.Lock()
+	var subs []*LogSub
+	for s := range r.subs {
+		if s.Server == server {
+			subs = append(subs, s)
+		}
+	}
+	rings := map[string]*ring{}
+	for _, l := range lines {
+		if _, ok := rings[l.Name]; ok {
+			continue
+		}
+		k := ringKey(server, l.Name)
+		g := r.rings[k]
+		if g == nil {
+			g = &ring{}
+			r.rings[k] = g
+		}
+		rings[l.Name] = g
+	}
+	r.mu.Unlock()
+
 	for _, l := range lines {
 		e := logEntry{TS: l.TS, Inst: l.Instance, Stream: l.Stream, Line: l.Line}
-		r.ringFor(server, l.Name).add(e)
+		rings[l.Name].add(e)
 		if r.Issues != nil {
 			r.Issues.Observe(server, l.Name, l.Line, l.TS)
 		}
-		r.mu.Lock()
-		for s := range r.subs {
-			if s.Server == server && (s.Proc == "" || s.Proc == l.Name) {
+		for _, s := range subs {
+			if s.Proc == "" || s.Proc == l.Name {
 				select {
 				case s.C <- LogMsg{Server: server, Name: l.Name, logEntry: e}:
 				default: // slow viewer: drop
 				}
 			}
 		}
-		r.mu.Unlock()
 	}
 }
 

@@ -475,8 +475,8 @@
    "kind": "code",
    "name": "type:daemon.Sampler",
    "extra": {
-    "file": "servers/pm2go/daemon/sampler_other.go",
-    "line": "21"
+    "file": "servers/pm2go/daemon/sampler_windows.go",
+    "line": "18"
    }
   },
   {
