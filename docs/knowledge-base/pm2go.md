@@ -52,7 +52,7 @@ Agents dial out to the hub (no inbound port on hosts). The hub never connects to
 ## Hub
 
 - **Run**: `pm2go hub --listen :8080`. First run creates `~/.pm2go-hub/config.json` (override with `PMGO_HUB_HOME`) with a random admin password, agent key and session secret, and prints them once. `pm2go hub --show-keys` prints them again. `pm2go startup hub` installs a systemd unit.
-- **Connect a host**: `pm2go link --hub http://hub:8080 --key <agent key> --name <machine>`. The same command is shown on the dashboard Settings page. `pm2go unlink` disconnects. Put TLS in front (reverse proxy) for anything beyond a trusted network; agents accept `https://`.
+- **Connect a host**: `pm2go link --hub http://hub:8080 --key <agent key> --name <machine>`. The same command is shown on the dashboard Settings page. `pm2go unlink` disconnects. Use TLS for anything beyond a trusted network: a reverse proxy, or the hub's own `--tls-cert/--tls-key` or `--acme-domain` (see `pm2go-deploy.md`). Agents accept `https://`; `--hub-ca FILE` trusts a private CA.
 - **Auth**: dashboard login with the admin password sets a signed 7-day cookie (`SameSite=Strict`, `HttpOnly`); failed logins back off per IP. API scripts can send `Authorization: Bearer <admin password>`. Agents authenticate with the agent key. Browser WebSockets check the Origin.
 - **Dashboard pages**: Servers overview with firing alerts, server detail (CPU, memory, load, disk, network charts, process table with restart / reload / stop / delete, recent events), process detail (per-process charts, config, live logs, scale, flush), Issues, Alerts (active, rules editor, history), Settings (link command, Telegram).
 - **Schema**: the hub database is versioned. On start the hub applies pending migrations in order, each in one transaction. A database from before versioning is adopted as version 1. A database with a newer version than the binary knows is refused with an error (no downgrade).
@@ -79,6 +79,6 @@ The full checklist is in `pm2go-status.md`. Summary:
 
 - Cluster-style port sharing and `wait_ready`, `ignore_watch` globs beyond name patterns, YAML ecosystem files, ssh `deploy`.
 - Transaction tracing, CPU and heap profiling from the dashboard, deployment tracking (git revision per process), custom app metrics and actions SDK.
-- Multi-user accounts, SSO, TLS in the hub itself, other alert channels (email, Slack, webhook).
+- Multi-user accounts, SSO, other alert channels (email, Slack, webhook).
 - Log search across history (only the live ring is searchable by eye).
 - Daemon restart without stopping children (children are tied to the daemon by the log pipes).
