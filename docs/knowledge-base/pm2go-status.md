@@ -67,7 +67,7 @@ Every open item below is tracked as a GitHub issue (#89 to #106). The issue boar
 - [ ] YAML ecosystem files, richer `ignore_watch` globs (#92)
 - [ ] more alert channels (email, Slack, webhook), quiet hours, alert silencing (#100)
 - [ ] multi-user accounts, roles, SSO, audit log (#102)
-- [ ] TLS inside the hub (today Caddy terminates TLS) (#95)
+- [x] TLS inside the hub: certificate files with reload, autocert, `link --hub-ca` (#95); autocert not yet checked against Let's Encrypt
 - [ ] long-range log storage and search (today: 5000-line in-memory ring per process) (#101)
 - [ ] `monit` terminal dashboard (#94)
 - [ ] GitHub Actions workflow to build and publish the image and Linux binaries (#91)

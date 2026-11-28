@@ -29,7 +29,7 @@ Size: S small (hours), M medium (1 day), L large (several days). Lane: which are
 | [#92](https://github.com/rpsoftech/GolangServers/issues/92) | YAML ecosystem files, `ignore_watch` globs | S | cli/common | none | `common/ecosystem.go`, `daemon/watch.go` | open | |
 | [#93](https://github.com/rpsoftech/GolangServers/issues/93) | CLI unit tests and testable command layer | S-M | cli | none | `cli/commands.go`, `cli/client.go` | open | |
 | [#94](https://github.com/rpsoftech/GolangServers/issues/94) | `monit` terminal dashboard | M | cli | #93 (soft) | new `cli/monit.go` | open | |
-| [#95](https://github.com/rpsoftech/GolangServers/issues/95) | Hub built-in TLS and secure defaults | S-M | hub | none | `hub/server.go`, `agent/agent.go` | open | |
+| [#95](https://github.com/rpsoftech/GolangServers/issues/95) | Hub built-in TLS and secure defaults | S-M | hub | none | `hub/server.go`, `agent/agent.go` | in progress | `feat/hub-tls` |
 | [#96](https://github.com/rpsoftech/GolangServers/issues/96) | Deployment tracking (git revision, deploy markers) | M | daemon+hub | #89, #90 | `common/types.go`, `hub/registry.go`, UI charts | open | |
 | [#97](https://github.com/rpsoftech/GolangServers/issues/97) | `deploy` command (git + ssh) | M-L | cli | none (YAML #92 soft) | new `cli/deploy.go`, `common/deploy.go` | open | |
 | [#98](https://github.com/rpsoftech/GolangServers/issues/98) | Shared listening socket and `wait_ready` | L | daemon | none | `daemon/proc.go`, `daemon/manager.go` | open | |
@@ -96,6 +96,7 @@ Append only. Newest at the bottom.
 
 - 2026-11-28: PR #88 opened with the base implementation (daemon, CLI, agent, hub, dashboard, alerts, Telegram, Docker and Caddy files, docs). Race tests pass, Linux cross-build passes. Manual end-to-end run on macOS verified hub, agent, dashboard, live logs, issues, alert firing, remote restart. Not run on Linux, Docker or real Telegram.
 - 2026-11-28: issues #89 to #106 created from the open items in `pm2go-status.md`, each with context, design, files, acceptance criteria and tests so sessions do not need to re-read the code.
+- 2026-11-28, #95, `feat/hub-tls`: working. Certificate files with reload, autocert, `--hub-ca`, docs and tests done locally; autocert not verified against Let's Encrypt.
 
 ## Handoff template (copy into your Journal entry when you stop mid-way)
 

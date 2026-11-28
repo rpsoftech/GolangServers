@@ -1,7 +1,9 @@
 package common
 
 import (
+	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -72,6 +74,7 @@ type LinkConfig struct {
 	HubURL  string `json:"hub_url"` // e.g. http://hub:8080
 	Key     string `json:"key"`
 	Machine string `json:"machine"`
+	CAFile  string `json:"ca_file,omitempty"` // extra PEM CA to trust for https:// hubs
 }
 
 func LinkFile() string { return filepath.Join(Home(), "link.json") }
@@ -94,4 +97,20 @@ func SaveLink(l LinkConfig) error {
 	}
 	b, _ := json.MarshalIndent(l, "", "  ")
 	return os.WriteFile(LinkFile(), b, 0o600)
+}
+
+// CAPool returns the system roots plus the PEM certificates in file.
+func CAPool(file string) (*x509.CertPool, error) {
+	pem, err := os.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+	pool, err := x509.SystemCertPool()
+	if err != nil || pool == nil {
+		pool = x509.NewCertPool()
+	}
+	if !pool.AppendCertsFromPEM(pem) {
+		return nil, fmt.Errorf("%s: no PEM certificate found", file)
+	}
+	return pool, nil
 }
