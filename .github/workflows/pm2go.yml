@@ -68,6 +68,12 @@ jobs:
       - name: Build linux/amd64
         run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /dev/null ./servers/pm2go
 
+      # Windows and macOS are development targets: keep them compiling (including tests).
+      - name: Vet windows/amd64 and darwin/arm64
+        run: |
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go vet ./servers/pm2go/...
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go vet ./servers/pm2go/...
+
   image:
     name: hub image (build and smoke test)
     runs-on: ubuntu-latest

@@ -1,13 +1,13 @@
 {
  "generated_by": "docs/knowledge-base/graph/gen.go",
  "stats": {
-  "edges": 1121,
-  "files": 37,
-  "funcs": 295,
-  "nodes": 425,
+  "edges": 1132,
+  "files": 39,
+  "funcs": 301,
+  "nodes": 427,
   "packages": 7,
   "routes": 24,
-  "types": 69
+  "types": 72
  },
  "nodes": [
   {
@@ -191,6 +191,16 @@
    }
   },
   {
+   "id": "file:servers/pm2go/daemon/sampler_windows.go",
+   "kind": "file",
+   "name": "sampler_windows.go",
+   "package": "daemon",
+   "file": "servers/pm2go/daemon/sampler_windows.go",
+   "extra": {
+    "lines": "26"
+   }
+  },
+  {
    "id": "file:servers/pm2go/daemon/server.go",
    "kind": "file",
    "name": "server.go",
@@ -218,6 +228,16 @@
    "file": "servers/pm2go/daemon/sys_unix.go",
    "extra": {
     "lines": "25"
+   }
+  },
+  {
+   "id": "file:servers/pm2go/daemon/sys_windows.go",
+   "kind": "file",
+   "name": "sys_windows.go",
+   "package": "daemon",
+   "file": "servers/pm2go/daemon/sys_windows.go",
+   "extra": {
+    "lines": "27"
    }
   },
   {
@@ -816,9 +836,10 @@
    "kind": "func",
    "name": "DetachAttr",
    "package": "daemon",
-   "file": "servers/pm2go/daemon/sys_unix.go",
+   "file": "servers/pm2go/daemon/sys_windows.go",
    "line": 25,
-   "exported": true
+   "exported": true,
+   "doc": "DetachAttr starts the daemon detached from the console (CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS)."
   },
   {
    "id": "func:daemon.NewManager",
@@ -834,8 +855,8 @@
    "kind": "func",
    "name": "NewSampler",
    "package": "daemon",
-   "file": "servers/pm2go/daemon/sampler_other.go",
-   "line": 23,
+   "file": "servers/pm2go/daemon/sampler_windows.go",
+   "line": 20,
    "exported": true
   },
   {
@@ -1008,9 +1029,8 @@
    "kind": "func",
    "name": "setProcAttr",
    "package": "daemon",
-   "file": "servers/pm2go/daemon/sys_unix.go",
-   "line": 11,
-   "doc": "Each child runs in its own process group so signals reach its descendants."
+   "file": "servers/pm2go/daemon/sys_windows.go",
+   "line": 15
   },
   {
    "id": "func:daemon.shellCommand",
@@ -1025,8 +1045,8 @@
    "kind": "func",
    "name": "signalGroup",
    "package": "daemon",
-   "file": "servers/pm2go/daemon/sys_unix.go",
-   "line": 15
+   "file": "servers/pm2go/daemon/sys_windows.go",
+   "line": 17
   },
   {
    "id": "func:daemon.validate",
@@ -2324,8 +2344,8 @@
    "kind": "method",
    "name": "SampleProcs",
    "package": "daemon",
-   "file": "servers/pm2go/daemon/sampler_other.go",
-   "line": 40,
+   "file": "servers/pm2go/daemon/sampler_windows.go",
+   "line": 26,
    "exported": true,
    "extra": {
     "receiver": "Sampler"
@@ -2336,8 +2356,8 @@
    "kind": "method",
    "name": "SampleSystem",
    "package": "daemon",
-   "file": "servers/pm2go/daemon/sampler_other.go",
-   "line": 27,
+   "file": "servers/pm2go/daemon/sampler_windows.go",
+   "line": 24,
    "exported": true,
    "extra": {
     "receiver": "Sampler"
@@ -3876,8 +3896,8 @@
    "kind": "struct",
    "name": "Sampler",
    "package": "daemon",
-   "file": "servers/pm2go/daemon/sampler_other.go",
-   "line": 21,
+   "file": "servers/pm2go/daemon/sampler_windows.go",
+   "line": 18,
    "exported": true
   },
   {
@@ -3885,8 +3905,8 @@
    "kind": "type",
    "name": "SystemSample",
    "package": "daemon",
-   "file": "servers/pm2go/daemon/sampler_other.go",
-   "line": 25,
+   "file": "servers/pm2go/daemon/sampler_windows.go",
+   "line": 22,
    "exported": true
   },
   {
@@ -3970,8 +3990,8 @@
    "kind": "struct",
    "name": "usage",
    "package": "daemon",
-   "file": "servers/pm2go/daemon/sampler_other.go",
-   "line": 16
+   "file": "servers/pm2go/daemon/sampler_windows.go",
+   "line": 13
   },
   {
    "id": "type:hub.API",
@@ -5167,6 +5187,36 @@
    "kind": "contains"
   },
   {
+   "from": "file:servers/pm2go/daemon/sampler_windows.go",
+   "to": "func:daemon.NewSampler",
+   "kind": "contains"
+  },
+  {
+   "from": "file:servers/pm2go/daemon/sampler_windows.go",
+   "to": "method:daemon.Sampler.SampleProcs",
+   "kind": "contains"
+  },
+  {
+   "from": "file:servers/pm2go/daemon/sampler_windows.go",
+   "to": "method:daemon.Sampler.SampleSystem",
+   "kind": "contains"
+  },
+  {
+   "from": "file:servers/pm2go/daemon/sampler_windows.go",
+   "to": "type:daemon.Sampler",
+   "kind": "contains"
+  },
+  {
+   "from": "file:servers/pm2go/daemon/sampler_windows.go",
+   "to": "type:daemon.SystemSample",
+   "kind": "contains"
+  },
+  {
+   "from": "file:servers/pm2go/daemon/sampler_windows.go",
+   "to": "type:daemon.usage",
+   "kind": "contains"
+  },
+  {
    "from": "file:servers/pm2go/daemon/server.go",
    "to": "func:daemon.Run",
    "kind": "contains"
@@ -5218,6 +5268,21 @@
   },
   {
    "from": "file:servers/pm2go/daemon/sys_unix.go",
+   "to": "func:daemon.signalGroup",
+   "kind": "contains"
+  },
+  {
+   "from": "file:servers/pm2go/daemon/sys_windows.go",
+   "to": "func:daemon.DetachAttr",
+   "kind": "contains"
+  },
+  {
+   "from": "file:servers/pm2go/daemon/sys_windows.go",
+   "to": "func:daemon.setProcAttr",
+   "kind": "contains"
+  },
+  {
+   "from": "file:servers/pm2go/daemon/sys_windows.go",
    "to": "func:daemon.signalGroup",
    "kind": "contains"
   },
@@ -8587,6 +8652,11 @@
   },
   {
    "from": "pkg:daemon",
+   "to": "file:servers/pm2go/daemon/sampler_windows.go",
+   "kind": "contains"
+  },
+  {
+   "from": "pkg:daemon",
    "to": "file:servers/pm2go/daemon/server.go",
    "kind": "contains"
   },
@@ -8598,6 +8668,11 @@
   {
    "from": "pkg:daemon",
    "to": "file:servers/pm2go/daemon/sys_unix.go",
+   "kind": "contains"
+  },
+  {
+   "from": "pkg:daemon",
+   "to": "file:servers/pm2go/daemon/sys_windows.go",
    "kind": "contains"
   },
   {
