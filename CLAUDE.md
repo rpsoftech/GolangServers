@@ -4,7 +4,7 @@ Go monorepo (module `github.com/rpsoftech/golang-servers`).
 
 ## Project structure
 
-- `servers/` - deployable servers (whatsapp-server, telegram-server, bullion, soham, jwelly, ...)
+- `servers/` - deployable servers (whatsapp-server, telegram-server, bullion, soham, jwelly, pm2go process manager + dashboard, ...)
 - `apps/` - client apps
 - `functions/` - shared feature code (for example `functions/whatsapp` core, config, middleware)
 - `utility/` - shared helpers (deploy, updater, mysql, mongodb, redis, jwt, firebase, ...)
