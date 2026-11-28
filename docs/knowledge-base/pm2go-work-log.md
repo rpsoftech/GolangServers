@@ -26,6 +26,8 @@ Size: S small (hours), M medium (1 day), L large (several days). Lane: which are
 | [#89](https://github.com/rpsoftech/GolangServers/issues/89) | Hub schema versioning and migrations | S | hub | none | `hub/store.go`, new `hub/migrations.go` | open | |
 | [#90](https://github.com/rpsoftech/GolangServers/issues/90) | Hub UI: split `app.js` into modules | S-M | hub UI | none | `hub/ui/*` | done | [#109](https://github.com/rpsoftech/GolangServers/pull/109) |
 | [#91](https://github.com/rpsoftech/GolangServers/issues/91) | GitHub Actions: tests, binaries, Docker image | S-M | tooling | none | `.github/`, `deploy/Dockerfile` | open | |
+| [#90](https://github.com/rpsoftech/GolangServers/issues/90) | Hub UI: split `app.js` into modules | S-M | hub UI | none | `hub/ui/*` | open | |
+| [#91](https://github.com/rpsoftech/GolangServers/issues/91) | GitHub Actions: tests, binaries, Docker image | S-M | tooling | none | `.github/`, `deploy/Dockerfile` | in review | [#107](https://github.com/rpsoftech/GolangServers/pull/107) `feat/pm2go-ci-release` |
 | [#92](https://github.com/rpsoftech/GolangServers/issues/92) | YAML ecosystem files, `ignore_watch` globs | S | cli/common | none | `common/ecosystem.go`, `daemon/watch.go` | open | |
 | [#93](https://github.com/rpsoftech/GolangServers/issues/93) | CLI unit tests and testable command layer | S-M | cli | none | `cli/commands.go`, `cli/client.go` | open | |
 | [#94](https://github.com/rpsoftech/GolangServers/issues/94) | `monit` terminal dashboard | M | cli | #93 (soft) | new `cli/monit.go` | open | |
@@ -97,6 +99,7 @@ Append only. Newest at the bottom.
 - 2026-11-28: PR #88 opened with the base implementation (daemon, CLI, agent, hub, dashboard, alerts, Telegram, Docker and Caddy files, docs). Race tests pass, Linux cross-build passes. Manual end-to-end run on macOS verified hub, agent, dashboard, live logs, issues, alert firing, remote restart. Not run on Linux, Docker or real Telegram.
 - 2026-11-28: issues #89 to #106 created from the open items in `pm2go-status.md`, each with context, design, files, acceptance criteria and tests so sessions do not need to re-read the code.
 - 2026-11-28, #90, PR #109: dashboard split into classic scripts (`core.js`, `charts.js`, `login.js`, `proc-table.js`, `page-*.js`, boot-only `app.js`) with `registerPage(pattern, fn)` and `registerNav(href, label)`. New page = one `page-x.js` plus one `<script>` line in `index.html`. Checked every page in a browser; `TestUIServesIndexAndEveryScript` added.
+- 2026-11-28, #91, feat/pm2go-ci-release: PR #107 adds `.github/workflows/pm2go.yml` (CI, release binaries, GHCR image). Not run: no Docker or actionlint locally; first CI run is the first real image build. Tag `pm2go-v*` publishes after merge.
 
 ## Handoff template (copy into your Journal entry when you stop mid-way)
 
