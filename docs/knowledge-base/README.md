@@ -7,6 +7,7 @@ Reference notes per component: design decisions, limits, lessons and release not
 | [mysql-backup-exe.md](mysql-backup-exe.md) | `servers/jwelly/mysql-backup-exe` |
 | [whatsapp-server.md](whatsapp-server.md) | `servers/whatsapp-server` and shared `functions/whatsapp` |
 | [soham-whatsapp.md](soham-whatsapp.md) | `servers/soham` relay server, WhatsApp client and `common` |
+| [release-pipeline.md](release-pipeline.md) | `utility/deploy` and `.github/workflows/release.yml` |
 
 Add a file when a component gets its first notes, and list it here.
 
@@ -23,4 +24,4 @@ Add a file when a component gets its first notes, and list it here.
 
 ## Release process (all components)
 
-A push to `main` auto-releases every component whose packages changed (found with `go list -deps`) to STAGING. A change to `go.mod` or `utility/deploy` releases all components. PRODUCTION releases are manual and need explicit approval. Auto-update only reaches builds on the same channel. Components are listed in `utility/deploy/components.go`; the soham relay server is not one of them.
+A push to `main` auto-releases every component whose packages changed (found with `go list -deps`) to STAGING. A change to `go.mod` or `utility/deploy` releases all components. PRODUCTION releases are manual and need explicit approval. Auto-update only reaches builds on the same channel. Components are listed in `utility/deploy/components.go`; the soham relay server is not one of them. Build details are in [release-pipeline.md](release-pipeline.md).
