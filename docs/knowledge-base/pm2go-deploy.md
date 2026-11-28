@@ -31,7 +31,6 @@ BASE=https://github.com/rpsoftech/GolangServers/releases/download/$TAG
 curl -fLO $BASE/pm2go-linux-$ARCH && curl -fLO $BASE/SHA256SUMS
 sha256sum -c SHA256SUMS --ignore-missing
 sudo install -m 0755 pm2go-linux-$ARCH /usr/local/bin/pm2go
-pm2go version   # prints the tag
 ```
 
 Pull request CI (same workflow): `gofmt -l` must be empty, `go vet`, `go test -race -count=1`, Linux build, image build and smoke test (container started, `/healthz` answers `ok`, first-run keys printed, Docker health status `healthy`).
