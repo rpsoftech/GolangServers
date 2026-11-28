@@ -655,7 +655,7 @@ func cmdMonit(args []string) error {
 		}
 	}()
 	winch := make(chan os.Signal, 1)
-	signal.Notify(winch, syscall.SIGWINCH)
+	notifyResize(winch)
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	defer signal.Stop(winch)
