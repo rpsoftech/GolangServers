@@ -95,7 +95,7 @@ func (m *Manager) adoptRecord(r procRecord) bool {
 		p.exitCode = &code
 		p.mu.Unlock()
 		p.emit("exit", "daemon_down")
-		if p.cfg.AutorestartEnabled() {
+		if r.Config.AutorestartEnabled() {
 			p.mu.Lock()
 			p.restarts++
 			p.mu.Unlock()

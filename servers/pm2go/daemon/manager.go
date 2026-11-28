@@ -65,7 +65,7 @@ func (m *Manager) logHook() func(common.LogLine) {
 func (m *Manager) byName(name string) []*Proc {
 	var out []*Proc
 	for _, p := range m.procs {
-		if p.cfg.Name == name {
+		if p.name() == name {
 			out = append(out, p)
 		}
 	}
@@ -89,7 +89,7 @@ func (m *Manager) resolve(target string) ([]*Proc, error) {
 	}
 	var out []*Proc
 	for _, p := range m.procs {
-		if p.cfg.Name == target || (p.cfg.Namespace != "" && p.cfg.Namespace == target) {
+		if c, _ := p.config(); c.Name == target || (c.Namespace != "" && c.Namespace == target) {
 			out = append(out, p)
 		}
 	}
@@ -211,10 +211,11 @@ func (m *Manager) remove(p *Proc) {
 	}
 	m.procs = kept
 	m.markDirty()
-	last := len(m.byName(p.cfg.Name)) == 0
+	name := p.name()
+	last := len(m.byName(name)) == 0
 	m.mu.Unlock()
 	if last {
-		m.lns.release(p.cfg.Name) // delete or scale to zero closes the shared socket
+		m.lns.release(name) // delete or scale to zero closes the shared socket
 	}
 }
 
@@ -254,7 +255,7 @@ func (m *Manager) Reload(target string) ([]common.ProcessInfo, error) {
 	}
 	groups := map[string][]*Proc{}
 	for _, p := range ps {
-		groups[p.cfg.Name] = append(groups[p.cfg.Name], p)
+		groups[p.name()] = append(groups[p.name()], p)
 	}
 	var wg sync.WaitGroup
 	var errMu sync.Mutex
@@ -267,7 +268,7 @@ func (m *Manager) Reload(target string) ([]common.ProcessInfo, error) {
 			for _, p := range g {
 				if err := reloadProc(p); err != nil {
 					errMu.Lock()
-					errs = append(errs, fmt.Errorf("%s[%d]: %w", p.cfg.Name, p.instance, err))
+					errs = append(errs, fmt.Errorf("%s[%d]: %w", p.name(), p.instance, err))
 					errMu.Unlock()
 					return // keep the remaining instances on the old code
 				}
@@ -333,8 +334,7 @@ func (m *Manager) Scale(name string, count int) ([]common.ProcessInfo, error) {
 		m.mu.Unlock()
 		return nil, fmt.Errorf("process %q not found", name)
 	}
-	cfg := existing[0].cfg
-	env := existing[0].env
+	cfg, env := existing[0].config()
 	var add []*Proc
 	var drop []*Proc
 	for i := len(existing); i < count; i++ {
@@ -490,11 +490,12 @@ func (m *Manager) Save() (int, error) {
 	seen := map[string]bool{}
 	cfgs := make([]common.AppConfig, 0, len(m.procs))
 	for _, p := range m.procs {
-		if seen[p.cfg.Name] {
+		c, _ := p.config()
+		if seen[c.Name] {
 			continue
 		}
-		seen[p.cfg.Name] = true
-		cfgs = append(cfgs, p.cfg)
+		seen[c.Name] = true
+		cfgs = append(cfgs, c)
 	}
 	m.mu.Unlock()
 	b, err := json.MarshalIndent(cfgs, "", "  ")

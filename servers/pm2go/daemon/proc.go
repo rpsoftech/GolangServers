@@ -53,6 +53,22 @@ func newProc(m *Manager, id, instance int, cfg common.AppConfig, env []string) *
 		status: common.StatusStopped, createdAt: time.Now(), restartReq: make(chan string, 1), reloadReq: make(chan chan error)}
 }
 
+// config returns copies of the config and base environment. Use it outside
+// proc.go: Start and Reload replace both under p.mu.
+func (p *Proc) config() (common.AppConfig, []string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.cfg, p.env
+}
+
+// name is the app name; it never changes after the Proc is created, but the
+// config struct is replaced as a whole, so read it under the lock.
+func (p *Proc) name() string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.cfg.Name
+}
+
 func (p *Proc) logBase() string {
 	b := common.SafeName(p.cfg.Name)
 	if p.cfg.InstancesOrDefault() > 1 {
@@ -182,11 +198,14 @@ func (p *Proc) drainLogs() {
 	}
 }
 
+// logLineHook is called with p.mu held (ensureLogs); it captures the name so
+// the tailer goroutine never reads p.cfg.
 func (p *Proc) logLineHook(stream string) func(string) {
+	name := p.cfg.Name
 	return func(line string) {
 		if h := p.m.logHook(); h != nil {
 			h(common.LogLine{TS: time.Now().UnixMilli(), ID: p.id, Instance: p.instance,
-				Name: p.cfg.Name, Stream: stream, Line: line})
+				Name: name, Stream: stream, Line: line})
 		}
 	}
 }

@@ -670,3 +670,114 @@ func TestSIGTERMLeavesApplicationsRunning(t *testing.T) {
 		t.Fatalf("state after SIGTERM: %v %s", err, b)
 	}
 }
+
+func TestConcurrentStartReloadScaleSaveList(t *testing.T) {
+	m := testManager(t)
+	cfg := shell(t, "busy", "sleep 30")
+	cfg.Instances = 2
+	cfg.KillTimeoutMs = 500
+	if _, err := m.Start(common.StartParams{Config: cfg}); err != nil {
+		t.Fatal(err)
+	}
+	var wg sync.WaitGroup
+	stop := make(chan struct{})
+	run := func(f func(i int)) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; ; i++ {
+				select {
+				case <-stop:
+					return
+				default:
+					f(i)
+				}
+			}
+		}()
+	}
+	run(func(i int) {
+		c := cfg
+		c.Env = map[string]string{"N": fmt.Sprint(i)} // a config update restarts the app
+		_, _ = m.Start(common.StartParams{Config: c})
+	})
+	run(func(int) { _, _ = m.Reload("busy") })
+	run(func(i int) { _, _ = m.Scale("busy", 1+i%3) })
+	run(func(int) { _, _ = m.Save() })
+	run(func(int) { _ = m.List(); _, _ = m.Describe("busy") })
+	run(func(int) { m.persistNow() })
+	time.Sleep(1500 * time.Millisecond)
+	close(stop)
+	wg.Wait()
+}
+
+func TestFiftyRapidRotationsLoseNothing(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "a.log")
+	sink := &lineSink{}
+	tl, err := startTail(path, 100, 60, sink.add)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tl.Close()
+	f, _ := os.OpenFile(path, os.O_WRONLY|os.O_APPEND, 0)
+	defer f.Close()
+	for i := 0; i < 50; i++ {
+		fmt.Fprintf(f, "rot %02d %s\n", i, strings.Repeat("y", 120))
+		tl.sync() // each sync rotates: the file is over the limit
+	}
+	eventually(t, 5*time.Second, "all archives compressed", func() bool {
+		pending, _ := filepath.Glob(path + ".*.rot")
+		tmp, _ := filepath.Glob(path + ".*.tmp")
+		_, err := os.Stat(path + ".50.gz")
+		return len(pending) == 0 && len(tmp) == 0 && err == nil
+	})
+	// .1.gz is the newest, .50.gz the oldest: every line exactly once, in order.
+	for n := 1; n <= 50; n++ {
+		zf, err := os.Open(fmt.Sprintf("%s.%d.gz", path, n))
+		if err != nil {
+			t.Fatalf("archive %d missing: %v", n, err)
+		}
+		zr, err := gzip.NewReader(zf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, _ := io.ReadAll(zr)
+		zf.Close()
+		if want := fmt.Sprintf("rot %02d ", 50-n); !strings.HasPrefix(string(b), want) {
+			t.Fatalf("archive %d starts %.12q, want %q", n, b, want)
+		}
+	}
+	if _, err := os.Stat(path + ".51.gz"); err == nil {
+		t.Fatal("unexpected 51st archive")
+	}
+	if got := sink.all(); len(got) != 50 {
+		t.Fatalf("%d lines reported, want 50", len(got))
+	}
+}
+
+func TestRotationFailureKeepsLogging(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "a.log")
+	sink := &lineSink{}
+	tl, err := startTail(path, 50, 3, sink.add)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tl.Close()
+	f, _ := os.OpenFile(path, os.O_WRONLY|os.O_APPEND, 0)
+	defer f.Close()
+	// Rotation cannot create its copy: the directory is read-only.
+	if err := os.Chmod(dir, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chmod(dir, 0o700)
+	fmt.Fprintln(f, strings.Repeat("z", 80))
+	tl.sync()
+	if _, err := fmt.Fprintln(f, "still writing"); err != nil {
+		t.Fatalf("child write failed after a rotation error: %v", err)
+	}
+	tl.sync()
+	got := sink.all()
+	if len(got) != 2 || got[1] != "still writing" {
+		t.Fatalf("lines = %q", got)
+	}
+}
