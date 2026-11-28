@@ -24,7 +24,7 @@ Usage: pm2go <command> [args]
   start <script|command|ecosystem.json> [flags] [-- args...]
   stop|restart|reload|delete <id|name|namespace|all>
   scale <name> <count>    change instance count
-  link --hub URL --key KEY [--name MACHINE]   connect this host to a hub
+  link --hub URL --key KEY [--name MACHINE] [--hub-ca FILE]   connect this host to a hub
   unlink                  disconnect from the hub
   hub [--listen :8080]    run the web dashboard server
   startup [daemon|hub]    install a systemd unit (run as root)
@@ -432,13 +432,24 @@ func cmdLink(args []string) error {
 	hub := fs.String("hub", "", "hub URL, e.g. http://10.0.0.5:8080")
 	key := fs.String("key", "", "agent key printed by the hub")
 	name := fs.String("name", "", "machine name (default: hostname)")
+	hubCA := fs.String("hub-ca", "", "PEM file of a private CA that signed the hub certificate")
 	if _, _, err := parseInterspersed(fs, args); err != nil {
 		return err
 	}
 	if *hub == "" || *key == "" {
 		return errors.New("link needs --hub and --key")
 	}
-	if err := common.SaveLink(common.LinkConfig{HubURL: *hub, Key: *key, Machine: *name}); err != nil {
+	if *hubCA != "" {
+		abs, err := filepath.Abs(*hubCA)
+		if err != nil {
+			return err
+		}
+		if _, err := common.CAPool(abs); err != nil {
+			return err
+		}
+		*hubCA = abs
+	}
+	if err := common.SaveLink(common.LinkConfig{HubURL: *hub, Key: *key, Machine: *name, CAFile: *hubCA}); err != nil {
 		return err
 	}
 	if err := call(common.MethodLink, nil, nil); err != nil {

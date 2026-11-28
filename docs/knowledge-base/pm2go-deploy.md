@@ -88,6 +88,36 @@ The image sets it. The hub then trusts `X-Forwarded-For` and `X-Forwarded-Proto`
 
 WebSockets (agents at `/agent/ws`, live logs at `/api/logs/ws`) need no extra Caddy settings.
 
+## Without Caddy: built-in TLS
+
+The hub can terminate TLS itself. It is off by default and does not change the Caddy setup. Do not combine it with `PMGO_TRUST_PROXY`; the hub warns at startup if both are set.
+
+Own certificate files (for example from certbot or a private CA):
+
+```bash
+pm2go hub --listen :443 --tls-cert /etc/pm2go/fullchain.pem --tls-key /etc/pm2go/privkey.pem
+```
+
+The hub re-reads both files when their modification time changes (checked at most every 10 seconds, on a new connection) and on `SIGHUP`. A broken renewal is logged and the old certificate stays in use, so no restart is needed after renewal.
+
+Automatic Let's Encrypt certificates (`golang.org/x/crypto/acme/autocert`):
+
+```bash
+pm2go hub --listen :443 --acme-domain pm2.example.com      # also listens on :80
+```
+
+The domain must resolve to this host and ports 80 and 443 must be reachable. Certificates are cached in `<hub home>/acme`. `--acme-http ADDR` changes the port 80 listener, which answers HTTP-01 challenges and redirects everything else to HTTPS. With certificate files, `--acme-http` adds a redirect-only listener. All options can also be set in `config.json` as `tls_cert`, `tls_key`, `acme_domain`, `acme_http`; flags win.
+
+When TLS is on: the session cookie is `Secure`, every response carries `Strict-Transport-Security`, and the startup log line states the mode. The hub warns when it listens on a non-loopback address in plain HTTP without `--trust-proxy`.
+
+Private CA: on each host, point the agent at the CA that signed the hub certificate. The path is stored in `link.json` (`ca_file`) and added to the system roots:
+
+```bash
+pm2go link --hub https://pm2.example.com --key <agent key> --hub-ca /etc/pm2go/ca.pem
+```
+
+> Verified: certificate files, reload on renewal, redirect, HSTS, Secure cookie and `wss://` with a self-signed CA (unit tests and a local run). **Not verified**: the ACME path against Let's Encrypt (staging or production); only the setup and the redirect handler are unit tested. Do a staging check before relying on it (issue #106).
+
 ## 3. First login
 
 Open `https://<your domain>/`, sign in with the admin password, then:

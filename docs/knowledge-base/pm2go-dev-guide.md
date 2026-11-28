@@ -47,7 +47,7 @@ CLI ──unix socket JSON-RPC──> daemon (Manager, Procs) ──hooks──>
 | | `telegram.go` | `Notifier`, `TelegramSettings`, `FormatAlert` |
 | | `issues.go` | error-line classification and fingerprinting |
 | | `api.go`, `auth.go` | routes, handlers, session cookie, agent key, `trustProxy` |
-| | `ui/` | `index.html`, `style.css`, `app.js` embedded with `go:embed ui` |
+| | `ui/` | `index.html`, `style.css` and plain scripts (`core.js`, `charts.js`, `login.js`, `proc-table.js`, `page-*.js`, `app.js` boot), embedded with `go:embed ui` |
 | `deploy` | Dockerfile, compose, Caddy files | see `pm2go-deploy.md` |
 
 ## Key flows
@@ -69,10 +69,10 @@ CLI ──unix socket JSON-RPC──> daemon (Manager, Procs) ──hooks──>
 | New agent -> hub message | `Msg*` const and payload struct in `common/proto.go`, producer in `agent/agent.go` (`a.send(...)`), switch case in `hub/api.go` `agentWS`, handler in `hub/registry.go` |
 | New hub -> agent command | action string handled in `agent.exec`, add to `allowedActions` in `hub/api.go` |
 | New hub table or schema change | add a migration: append `{version: N+1, name: "...", sql: ...}` (and/or `fn: func(tx *sql.Tx) error` for data fixes) to `migrations` in `hub/migrations.go`. Never edit a released migration. Each runs in one transaction with its `schema_migrations` row; a failure aborts startup. A database newer than the binary is refused. Test it in `hub/store_test.go` |
-| New alert rule type | const + `Validate` + `observe` in `hub/alerts.go`, `RULE_TYPES` and `describeRule` in `ui/app.js`, a test in `hub/hub_test.go` using the fake clock |
+| New alert rule type | const + `Validate` + `observe` in `hub/alerts.go`, `RULE_TYPES` and `describeRule` in `ui/page-alerts.js`, a test in `hub/hub_test.go` using the fake clock |
 | New notification channel | implement it beside `Notifier` in `hub/telegram.go` or a new file, route `Engine` sends through a small channel interface (do this refactor once, in the channels issue) |
 | New API route | register in `API.Handler` with `req(...)` for auth, handler in `hub/api.go` (or a new file in package `hub`) |
-| New dashboard page | add a `page*` function and a `case` in `route()` in `ui/app.js`, add a nav entry in `NAV` |
+| New dashboard page create `ui/page-<name>.js` with an `async function page<Name>(args)` that calls `shell(href)`, then end the file with `registerPage('<name>/:arg', page<Name>)` (and `registerNav(href, label)` for a nav entry); add one `<script src="page-<name>.js">` line to `ui/index.html` before `app.js`. Scripts are classic (no modules, no build) and share one global scope, so keep helpers in `core.js`; `index.html` order sets nav order. `TestUIServesIndexAndEveryScript` fails if a script is unreferenced |
 
 ## Rules every change follows
 
@@ -109,7 +109,7 @@ export PMGO_HUB_HOME=$(mktemp -d /tmp/hub.XXXX) PMGO_HOME=$(mktemp -d /tmp/pg.XX
 
 Merge conflicts happen here, so keep edits small and in separate functions or new files where you can:
 
-- `hub/ui/app.js` (all pages), `hub/api.go` (all routes), `hub/migrations.go` (append-only list), `common/types.go`, `common/proto.go`, `agent/agent.go`, `cli/commands.go`.
+- `hub/ui/index.html` (one `<script>` line per page), `hub/api.go` (all routes), `hub/migrations.go` (append-only list), `common/types.go`, `common/proto.go`, `agent/agent.go`, `cli/commands.go`.
 - Prefer adding a new file (`hub/xyz.go`, `ui/xyz.js` plus a `<script>` tag) and a one-line registration over editing the big files in many places.
 - Rebase on the integration branch before opening your PR and re-run the whole test suite.
 

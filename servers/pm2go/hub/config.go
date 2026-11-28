@@ -17,6 +17,11 @@ type Config struct {
 	AgentKey      string `json:"agent_key"`
 	SessionSecret string `json:"session_secret"`
 	RetentionDays int    `json:"retention_days"`
+	// Optional built-in TLS; command line flags override these.
+	TLSCert    string `json:"tls_cert,omitempty"`
+	TLSKey     string `json:"tls_key,omitempty"`
+	ACMEDomain string `json:"acme_domain,omitempty"`
+	ACMEHTTP   string `json:"acme_http,omitempty"`
 }
 
 // Home is $PMGO_HUB_HOME or ~/.pm2go-hub.

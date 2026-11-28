@@ -4,6 +4,7 @@ package agent
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -143,12 +144,29 @@ func (a *Agent) run(ctx context.Context, link common.LinkConfig) {
 	}
 }
 
+// dialer builds the WebSocket dialer; link.CAFile adds a private CA to the
+// system roots for https:// hubs.
+func dialer(link common.LinkConfig) (*websocket.Dialer, error) {
+	d := &websocket.Dialer{HandshakeTimeout: 10 * time.Second}
+	if link.CAFile != "" {
+		pool, err := common.CAPool(link.CAFile)
+		if err != nil {
+			return nil, err
+		}
+		d.TLSClientConfig = &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
+	}
+	return d, nil
+}
+
 func (a *Agent) session(ctx context.Context, link common.LinkConfig) error {
 	u, err := wsURL(link.HubURL)
 	if err != nil {
 		return err
 	}
-	d := websocket.Dialer{HandshakeTimeout: 10 * time.Second}
+	d, err := dialer(link)
+	if err != nil {
+		return err
+	}
 	hdr := map[string][]string{"Authorization": {"Bearer " + link.Key}}
 	conn, _, err := d.DialContext(ctx, u, hdr)
 	if err != nil {
