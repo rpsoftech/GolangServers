@@ -1,8 +1,8 @@
 # #99: Restart daemon without stopping children
 
-Status: in progress
+Status: done
 Branch: feat/daemon-survive-restart
-PR: 
+PR: #117
 Issue: https://github.com/rpsoftech/GolangServers/issues/99
 Size: L | Lane: daemon | Needs first: #98 (order)
 Hot files: `daemon/proc.go`, `daemon/logfile.go`, `cli/startup.go`
