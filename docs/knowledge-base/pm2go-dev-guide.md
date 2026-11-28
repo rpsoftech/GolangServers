@@ -37,7 +37,8 @@ CLI ──unix socket JSON-RPC──> daemon (Manager, Procs) ──hooks──>
 | | `format.go`, `logs.go` | table output, `logs` tail |
 | `hub` | `server.go` | `Run`: wires store, registry, engine, notifier, HTTP server, background tickers |
 | | `config.go` | `config.json` (admin password, agent key, session secret), `Home()` (`$PMGO_HUB_HOME`) |
-| | `store.go` | SQLite schema (`schema` const, all `CREATE TABLE IF NOT EXISTS`), settings key/value, `Prune` |
+| | `store.go` | `OpenStore` (runs migrations), settings key/value, `Prune` |
+| | `migrations.go` | `migrations` list (versioned SQL or Go-func steps), `migrate`, `schema_migrations` table |
 | | `registry.go` | connected agents, latest `ServerState`, log rings, crash tracking, live-log subscribers, `Command` (send command, wait result) |
 | | `alerts.go` | `Rule`, `Engine` (state machine, escalation, reminders), rule CRUD, history |
 | | `telegram.go` | `Notifier`, `TelegramSettings`, `FormatAlert` |
@@ -64,7 +65,7 @@ CLI ──unix socket JSON-RPC──> daemon (Manager, Procs) ──hooks──>
 | New `AppConfig` field | add to `common/types.go` with a json tag and a default getter, use it in `daemon`, add a `start` flag in `cmdStart`, document in `pm2go.md`; keep old dump files loading (new fields must default sensibly) |
 | New agent -> hub message | `Msg*` const and payload struct in `common/proto.go`, producer in `agent/agent.go` (`a.send(...)`), switch case in `hub/api.go` `agentWS`, handler in `hub/registry.go` |
 | New hub -> agent command | action string handled in `agent.exec`, add to `allowedActions` in `hub/api.go` |
-| New hub table | append `CREATE TABLE IF NOT EXISTS` to `schema` in `hub/store.go`; there are no migrations yet, so only additive changes; if you must alter a table, add a `schema_version` mechanism first (see issue on accounts) |
+| New hub table or schema change | add a migration: append `{version: N+1, name: "...", sql: ...}` (and/or `fn: func(tx *sql.Tx) error` for data fixes) to `migrations` in `hub/migrations.go`. Never edit a released migration. Each runs in one transaction with its `schema_migrations` row; a failure aborts startup. A database newer than the binary is refused. Test it in `hub/store_test.go` |
 | New alert rule type | const + `Validate` + `observe` in `hub/alerts.go`, `RULE_TYPES` and `describeRule` in `ui/app.js`, a test in `hub/hub_test.go` using the fake clock |
 | New notification channel | implement it beside `Notifier` in `hub/telegram.go` or a new file, route `Engine` sends through a small channel interface (do this refactor once, in the channels issue) |
 | New API route | register in `API.Handler` with `req(...)` for auth, handler in `hub/api.go` (or a new file in package `hub`) |
@@ -77,7 +78,7 @@ CLI ──unix socket JSON-RPC──> daemon (Manager, Procs) ──hooks──>
 - UI: build DOM with the `h()` helper and `textContent`. Never use `innerHTML` with data from logs, process names or API fields. The CSP forbids inline scripts.
 - Secrets never leave the hub through the API (the Telegram token is shown only as `token_set`). Keep it that way for any new secret.
 - Every hub or daemon behaviour change gets a test. Alert logic is tested with the fake clock in `hub/hub_test.go` (`setup`, `setSnapshot`, `advance`).
-- Update `docs/knowledge-base/pm2go.md` (behaviour), `pm2go-status.md` (tick boxes), and add your entry to `pm2go-work-log.md` in the same PR.
+- Docs, without creating merge conflicts for other open PRs: put new behaviour documentation in a **new** file `docs/knowledge-base/pm2go-<topic>.md`; correct existing text in `pm2go.md` in place but never append rows or list items to shared files; record your status, decisions and notes only in your own file `docs/knowledge-base/pm2go-work/<NNN>-<slug>.md`; do not edit `pm2go-work-log.md` or `pm2go-status.md` (write the boxes to tick in your issue file, the coordinator ticks them). Details: `pm2go-work/README.md`.
 - Keep the Linux production build green.
 
 ## Commands you will need
@@ -105,7 +106,7 @@ export PMGO_HUB_HOME=$(mktemp -d /tmp/hub.XXXX) PMGO_HOME=$(mktemp -d /tmp/pg.XX
 
 Merge conflicts happen here, so keep edits small and in separate functions or new files where you can:
 
-- `hub/ui/app.js` (all pages), `hub/api.go` (all routes), `hub/store.go` (`schema`), `common/types.go`, `common/proto.go`, `agent/agent.go`, `cli/commands.go`.
+- `hub/ui/app.js` (all pages), `hub/api.go` (all routes), `hub/migrations.go` (append-only list), `common/types.go`, `common/proto.go`, `agent/agent.go`, `cli/commands.go`.
 - Prefer adding a new file (`hub/xyz.go`, `ui/xyz.js` plus a `<script>` tag) and a one-line registration over editing the big files in many places.
 - Rebase on the integration branch before opening your PR and re-run the whole test suite.
 
@@ -113,6 +114,5 @@ Merge conflicts happen here, so keep edits small and in separate functions or ne
 
 - `cli` tests (`cli/*_test.go`) swap the package variables `dial` and `spawn` (`client.go`) for a fake daemon; `TestEndToEnd` runs a real daemon in-process. Use `shortHome(t)` for a short `PMGO_HOME`, `capture(t, f)` for stdout. Start flags live in `startOpts` (`buildStartConfig`, `resolveStartTargets`).
 - The hub UI has no automated tests (checked by hand in a browser).
-- `hub/store.go` has no migration mechanism.
 - Hub restart loses the live log ring.
 - `Registry.OnLogs` holds the registry lock while fanning out to subscribers (non-blocking sends, but still a lock on the hot path).
