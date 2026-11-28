@@ -22,6 +22,8 @@ type Config struct {
 	TLSKey     string `json:"tls_key,omitempty"`
 	ACMEDomain string `json:"acme_domain,omitempty"`
 	ACMEHTTP   string `json:"acme_http,omitempty"`
+	// TrustProxy is set from --trust-proxy / PMGO_TRUST_PROXY at start, never read from the file.
+	TrustProxy bool `json:"-"`
 }
 
 // Home is $PMGO_HUB_HOME or ~/.pm2go-hub.

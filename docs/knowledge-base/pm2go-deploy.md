@@ -120,13 +120,13 @@ pm2go link --hub https://pm2.example.com --key <agent key> --hub-ca /etc/pm2go/c
 
 ## 3. First login
 
-Open `https://<your domain>/`, sign in with the admin password, then:
+Open `https://<your domain>/`, sign in as `admin` with the printed initial password (you must change it at once), then:
 
 1. Settings, Telegram: paste the bot token, add chats with a minimum level, press "Send test".
 2. Alerts: review the 13 default rules and adjust thresholds.
 3. Settings shows the exact `pm2go link` command for hosts.
 
-Rotate the admin password or agent key by editing `config.json` in the volume and restarting the hub:
+Change your own password under Account, or reset another user's under Users. If the `admin` password is lost, run `pm2go hub --reset-admin` (it prints a new temporary one and ends admin's sessions). Create one account per person under Users; scripts use API tokens (Account). `admin_password` in `config.json` is only read on the very first start, to create the `admin` user; changing it later has no effect. Rotate the agent key by editing `config.json` in the volume and restarting the hub:
 
 ```bash
 docker compose exec hub vi /data/config.json   # or edit through a volume mount
@@ -177,7 +177,7 @@ Machine names must be unique per hub. A second host with the same name replaces 
 
 ## Security notes
 
-- One shared admin password, no per-user accounts or audit trail beyond the command log line. Keep the hub on a network you trust or behind a VPN or Caddy `basicauth` if it is public.
+- Local accounts with roles and an audit log (see `pm2go-accounts.md`); no SSO yet. Passwords are argon2id hashed. Still keep the hub behind TLS and, if it is public, behind a VPN or Caddy `basicauth`.
 - The agent key lets any holder push data and receive commands for a machine name. Treat it like a password.
 - Remote commands can restart, stop, delete and start processes on any linked host. Starting a process runs an arbitrary command as the daemon's user.
 - The Telegram bot token is stored unencrypted in the hub database; the API never returns it.

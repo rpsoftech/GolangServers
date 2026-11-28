@@ -55,14 +55,21 @@ async function cmd(server, action, target, extra = {}) {
 
 // ---------- nav and shell ----------
 // Nav order follows registration order, which follows <script> order in index.html.
+// registerNav(href, label, minRole): the link is shown only to users whose role is at least minRole
+// (the server enforces roles anyway; hiding is only a convenience).
 const NAV = [];
-function registerNav(href, label) { NAV.push([href, label]); }
+function registerNav(href, label, minRole = 'viewer') { NAV.push([href, label, minRole]); }
+// ME is the signed-in user from /api/me: { username, role, effective_role, must_change_password, ... }.
+let ME = null;
+const ROLE_RANK = { viewer: 1, operator: 2, admin: 3 };
+const can = min => !!ME && ROLE_RANK[ME.effective_role] >= ROLE_RANK[min];
 function shell(active) {
   const main = h('main');
   root.replaceChildren(
     h('header', {}, h('span', { class: 'brand' }, 'pm2go'),
-      h('nav', {}, NAV.map(([href, label]) => h('a', { href, class: active === href ? 'on' : '' }, label))),
-      h('button', { class: 'sm', on: { click: async () => { await api('/api/logout', { method: 'POST' }); showLogin(); } } }, 'Sign out')),
+      h('nav', {}, NAV.filter(n => can(n[2])).map(([href, label]) => h('a', { href, class: active === href ? 'on' : '' }, label))),
+      h('a', { href: '#/account', class: 'who' + (active === '#/account' ? ' on' : ''), title: 'Account, password and API tokens' }, ME ? `${ME.username} (${ME.effective_role})` : ''),
+      h('button', { class: 'sm', on: { click: async () => { await api('/api/logout', { method: 'POST' }); ME = null; showLogin(); } } }, 'Sign out')),
     main);
   return main;
 }
@@ -88,7 +95,8 @@ async function route() {
   clearPage();
   const parts = (location.hash || '#/').slice(2).split('/').map(decodeURIComponent);
   try {
-    await api('/api/me');
+    ME = await api('/api/me');
+    if (ME.must_change_password) return showPasswordChange();
     const m = matchPage(parts);
     if (m) return await m.fn(...m.args);
   } catch (e) { if (e.message !== 'unauthorized') toast(e.message, true); }

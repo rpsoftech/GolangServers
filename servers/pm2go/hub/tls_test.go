@@ -110,7 +110,7 @@ func TestHubServesHTTPSAndReloadsCertificate(t *testing.T) {
 		defer conn.Close()
 		cn := conn.ConnectionState().PeerCertificates[0].Subject.CommonName
 		client := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
-		r, err := client.Post(base+"/api/login", "application/json", strings.NewReader(`{"password":"pw"}`))
+		r, err := client.Post(base+"/api/login", "application/json", strings.NewReader(`{"username":"admin","password":"pw"}`))
 		if err != nil {
 			t.Fatal(err)
 		}

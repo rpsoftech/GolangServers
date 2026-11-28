@@ -9,7 +9,7 @@ async function pageProc(server, name) {
     h('div', { class: 'row', style: 'margin:14px 0 8px' }, h('h2', { style: 'margin:0' }, 'Metrics'),
       h('span', { class: 'right' }, h('select', { on: { change: e => { range = e.target.value; loadCharts(); } } }, ['15m', '1h', '6h', '24h', '7d'].map(r => h('option', { value: r, selected: r === range }, r))))),
     charts, h('div', { class: 'row', style: 'margin:14px 0 8px' }, h('h2', { style: 'margin:0' }, 'Live logs'),
-      h('span', { class: 'right' }, h('button', { class: 'sm', on: { click: () => cmd(server, 'flush', name) } }, 'Flush logs'))), logs);
+      h('span', { class: 'right' }, can('operator') ? h('button', { class: 'sm', on: { click: () => cmd(server, 'flush', name) } }, 'Flush logs') : null)), logs);
   async function loadCharts() {
     try {
       const m = await api(`/api/servers/${encodeURIComponent(server)}/metrics?range=${range}`);
@@ -25,10 +25,10 @@ async function pageProc(server, name) {
       const s = await api('/api/servers/' + encodeURIComponent(server));
       const list = (s.snapshot?.processes || []).filter(p => p.name === name);
       info.replaceChildren(h('div', { class: 'row' }, h('h1', {}, name),
-        h('span', { class: 'right row' },
+        h('span', { class: 'right row' }, !can('operator') ? null : [
           h('button', { on: { click: () => cmd(server, 'restart', name) } }, 'Restart all'),
           h('button', { on: { click: () => cmd(server, 'reload', name) } }, 'Reload'),
-          h('button', { on: { click: () => { const n = parseInt(prompt('Number of instances', String(list.length)), 10); if (n >= 0) cmd(server, 'scale', name, { count: n }); } } }, 'Scale'))),
+          h('button', { on: { click: () => { const n = parseInt(prompt('Number of instances', String(list.length)), 10); if (n >= 0) cmd(server, 'scale', name, { count: n }); } } }, 'Scale')])),
         list.length ? procTable(server, list) : h('div', { class: 'empty card' }, 'Process not found'),
         list[0] ? h('div', { class: 'card', style: 'margin-top:12px' }, h('div', { class: 'kv' },
           ...[['Script', list[0].config.script], ['Args', (list[0].config.args || []).join(' ')], ['Working dir', list[0].config.cwd], ['Autorestart', list[0].config.autorestart === false ? 'off' : 'on'],

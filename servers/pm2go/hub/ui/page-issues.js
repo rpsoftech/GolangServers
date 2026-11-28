@@ -14,7 +14,7 @@ async function pageIssues() {
         h('tr', {}, ['Last seen', 'Server / process', 'Error', 'Count', 'Status', ''].map((x, i) => h('th', { class: i === 3 ? 'num' : '' }, x))),
         list.map(i => h('tr', {}, h('td', {}, ago(i.last_seen)), h('td', {}, `${i.server} / ${i.name}`),
           h('td', { class: 'mono', style: 'max-width:560px;word-break:break-all' }, i.sample), h('td', { class: 'num' }, i.count), h('td', {}, badge(i.status)),
-          h('td', { class: 'row' }, ['resolved', 'ignored', 'open'].filter(s => s !== i.status).map(s => h('button', { class: 'sm', on: { click: async () => {
+          h('td', { class: 'row' }, !can('operator') ? [] : ['resolved', 'ignored', 'open'].filter(s => s !== i.status).map(s => h('button', { class: 'sm', on: { click: async () => {
             await api('/api/issues/status', { method: 'POST', body: { server: i.server, name: i.name, fingerprint: i.fingerprint, status: s } }); load(); } } }, s))))))) : h('div', { class: 'empty card' }, 'No issues'));
     } catch (e) { if (e.message !== 'unauthorized') toast(e.message, true); }
   }
