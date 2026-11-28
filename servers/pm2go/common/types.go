@@ -17,11 +17,12 @@ const (
 
 // Defaults applied when a field is left empty.
 const (
-	DefaultMaxRestarts    = 16
-	DefaultMinUptimeMs    = 1000
-	DefaultKillTimeoutMs  = 1600
-	MaxExpBackoffDelayMs  = 15000
-	DefaultRestartDelayMs = 0
+	DefaultMaxRestarts     = 16
+	DefaultMinUptimeMs     = 1000
+	DefaultKillTimeoutMs   = 1600
+	MaxExpBackoffDelayMs   = 15000
+	DefaultRestartDelayMs  = 0
+	DefaultListenTimeoutMs = 8000
 )
 
 // AppConfig is one managed application. It is the unit stored in ecosystem
@@ -53,6 +54,10 @@ type AppConfig struct {
 	MaxMemoryRestartMB       int                          `json:"max_memory_restart,omitempty"`
 	LogMaxSizeMB             int                          `json:"log_max_size,omitempty"`
 	LogRetain                int                          `json:"log_retain,omitempty"`
+	Listen                   string                       `json:"listen,omitempty"`         // shared socket, ":8080" or "unix:/run/app.sock"
+	ListenNetwork            string                       `json:"listen_network,omitempty"` // tcp (default), tcp4, tcp6, unix
+	WaitReady                bool                         `json:"wait_ready,omitempty"`
+	ListenTimeoutMs          int                          `json:"listen_timeout,omitempty"` // max wait for readiness
 }
 
 // UnmarshalJSON also collects `env_<profile>` keys into EnvProfiles.
@@ -130,6 +135,28 @@ func (c AppConfig) KillTimeoutOrDefault() int {
 	return c.KillTimeoutMs
 }
 
+func (c AppConfig) ListenTimeoutOrDefault() int {
+	if c.ListenTimeoutMs <= 0 {
+		return DefaultListenTimeoutMs
+	}
+	return c.ListenTimeoutMs
+}
+
+// ListenSpec resolves the shared socket to a (network, address) pair. An
+// empty address means no shared socket. "unix:/path" selects a unix socket.
+func (c AppConfig) ListenSpec() (network, addr string) {
+	if c.Listen == "" {
+		return "", ""
+	}
+	if p, ok := strings.CutPrefix(c.Listen, "unix:"); ok {
+		return "unix", p
+	}
+	if c.ListenNetwork == "" {
+		return "tcp", c.Listen
+	}
+	return c.ListenNetwork, c.Listen
+}
+
 // ProcessInfo is the daemon's view of one process, returned by list/describe.
 type ProcessInfo struct {
 	ID        int       `json:"id"`
@@ -157,6 +184,8 @@ const (
 	EnvID        = "PMGO_ID"
 	EnvHome      = "PMGO_HOME"
 	EnvNamespace = "PMGO_NAMESPACE"
+	EnvReadyFD   = "PMGO_READY_FD" // write end of the readiness pipe, set with wait_ready
+	EnvListen    = "PMGO_LISTEN"   // address of the shared socket, set with listen
 )
 
 // Event is a process state change reported to the agent and hub.

@@ -3,6 +3,7 @@ package daemon
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -20,6 +21,7 @@ type Manager struct {
 	mu     sync.Mutex
 	procs  []*Proc
 	nextID int
+	lns    *listeners
 
 	hookMu sync.RWMutex
 	onEv   func(common.Event)
@@ -30,7 +32,7 @@ type Manager struct {
 	sys     SystemSample
 }
 
-func NewManager() *Manager { return &Manager{sampler: NewSampler()} }
+func NewManager() *Manager { return &Manager{sampler: NewSampler(), lns: newListeners()} }
 
 // SetHooks registers receivers for process events and log lines. They run on
 // supervisor goroutines and must not block.
@@ -97,6 +99,13 @@ func validate(cfg *common.AppConfig) error {
 	if cfg.Name == "" {
 		return fmt.Errorf("name is required")
 	}
+	if cfg.Listen != "" {
+		switch network, _ := cfg.ListenSpec(); network {
+		case "tcp", "tcp4", "tcp6", "unix":
+		default:
+			return fmt.Errorf("listen_network %q is not supported (tcp, tcp4, tcp6, unix)", network)
+		}
+	}
 	if cfg.CronRestart != "" {
 		if _, err := cron.ParseStandard(cfg.CronRestart); err != nil {
 			return fmt.Errorf("cron_restart: %w", err)
@@ -124,6 +133,13 @@ func (m *Manager) Start(sp common.StartParams) ([]common.ProcessInfo, error) {
 		env = os.Environ()
 	}
 	n := cfg.InstancesOrDefault()
+	if cfg.Listen != "" {
+		if _, err := m.lns.acquire(cfg); err != nil { // report bind errors to the caller
+			return nil, err
+		}
+	} else {
+		m.lns.release(cfg.Name)
+	}
 
 	m.mu.Lock()
 	existing := m.byName(cfg.Name)
@@ -186,7 +202,11 @@ func (m *Manager) remove(p *Proc) {
 		}
 	}
 	m.procs = kept
+	last := len(m.byName(p.cfg.Name)) == 0
 	m.mu.Unlock()
+	if last {
+		m.lns.release(p.cfg.Name) // delete or scale to zero closes the shared socket
+	}
 }
 
 func (m *Manager) Stop(target string) ([]common.ProcessInfo, error) {
@@ -213,8 +233,10 @@ func (m *Manager) Restart(target string) ([]common.ProcessInfo, error) {
 	return m.infos(ps), nil
 }
 
-// Reload restarts processes one at a time per app name, waiting for each to
-// stay online before moving on, so multi-instance apps keep serving.
+// Reload restarts processes one at a time per app name so multi-instance apps
+// keep serving. Apps with a shared socket get an overlapping reload: the new
+// process starts and signals ready before the old one gets SIGTERM, so the
+// socket never goes unserved. Other apps are stopped, started and awaited.
 func (m *Manager) Reload(target string) ([]common.ProcessInfo, error) {
 	ps, err := m.resolve(target)
 	if err != nil {
@@ -225,24 +247,49 @@ func (m *Manager) Reload(target string) ([]common.ProcessInfo, error) {
 		groups[p.cfg.Name] = append(groups[p.cfg.Name], p)
 	}
 	var wg sync.WaitGroup
+	var errMu sync.Mutex
+	var errs []error
 	for _, g := range groups {
 		sort.Slice(g, func(i, j int) bool { return g[i].instance < g[j].instance })
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for _, p := range g {
-				p.Stop()
-				p.mu.Lock()
-				p.restarts++
-				min := time.Duration(p.cfg.MinUptimeOrDefault()) * time.Millisecond
-				p.mu.Unlock()
-				p.Start()
-				waitStable(p, min, 15*time.Second)
+				if err := reloadProc(p); err != nil {
+					errMu.Lock()
+					errs = append(errs, fmt.Errorf("%s[%d]: %w", p.cfg.Name, p.instance, err))
+					errMu.Unlock()
+					return // keep the remaining instances on the old code
+				}
 			}
 		}()
 	}
 	wg.Wait()
-	return m.infos(ps), nil
+	return m.infos(ps), errors.Join(errs...)
+}
+
+func reloadProc(p *Proc) error {
+	p.mu.Lock()
+	overlap := p.cfg.Listen != ""
+	p.mu.Unlock()
+	if overlap {
+		if handled, err := p.Reload(); handled {
+			return err
+		}
+	}
+	p.Stop()
+	p.mu.Lock()
+	p.restarts++
+	min := time.Duration(p.cfg.MinUptimeOrDefault()) * time.Millisecond
+	limit := 15 * time.Second
+	if p.cfg.WaitReady {
+		min = 0 // online already means ready
+		limit = time.Duration(p.cfg.ListenTimeoutOrDefault())*time.Millisecond + 5*time.Second
+	}
+	p.mu.Unlock()
+	p.Start()
+	waitStable(p, min, limit)
+	return nil
 }
 
 func waitStable(p *Proc, stable, limit time.Duration) {
@@ -476,4 +523,7 @@ func (m *Manager) Resurrect() ([]common.ProcessInfo, error) {
 }
 
 // StopAll stops every process; used on daemon shutdown.
-func (m *Manager) StopAll() { _, _ = m.Stop("all") }
+func (m *Manager) StopAll() {
+	_, _ = m.Stop("all")
+	m.lns.closeAll()
+}

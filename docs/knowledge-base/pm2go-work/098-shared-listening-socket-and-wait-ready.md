@@ -31,4 +31,4 @@ Fill this only if you stop before the work is done: stopped at, done, next, gotc
 
 ## Status-doc ticks to apply (the coordinator ticks `pm2go-status.md` later)
 
-- (none yet)
+- [x] cluster-style port sharing and `wait_ready` readiness (#98)

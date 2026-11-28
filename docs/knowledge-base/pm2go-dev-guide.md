@@ -24,6 +24,8 @@ CLI ──unix socket JSON-RPC──> daemon (Manager, Procs) ──hooks──>
 | | `ecosystem.go` | ecosystem file loader (`LoadEcosystem`), `DefaultName` |
 | | `paths.go` | `Home()` (`$PMGO_HOME` or `~/.pm2go`), file path helpers, `SafeName` |
 | `daemon` | `proc.go` | `Proc`: one supervised process, the `loop` goroutine, restart policy, soft restarts (`requestRestart`), `Stop`, log writers, `info()` |
+| | `child.go` | `child`: one OS process of a `Proc` (`spawn` with inherited fds and readiness pipe, `supervise`, overlapping `reload`) |
+| | `listener.go` | shared listening sockets, one per app name (`Manager.lns`) |
 | | `manager.go` | `Manager`: process table, `Start` (idempotent by name), `Stop`, `Restart`, `Reload`, `Scale`, `Delete`, `Save`, `Resurrect`, `Flush`, `RunMonitor` (sampling and memory limit), `SetHooks` |
 | | `server.go` | unix socket server, `Run(Options)`, RPC `handle` switch |
 | | `logfile.go` | `RotatingFile` (size rotation, gzip, per-line callback, `Truncate`) |
@@ -31,6 +33,7 @@ CLI ──unix socket JSON-RPC──> daemon (Manager, Procs) ──hooks──>
 | | `sampler_linux.go` | `/proc` sampling: `Sampler.SampleProcs`, `SampleSystem` |
 | | `sys_unix.go`, `shell.go` | process group attrs, signal helpers, `detachAttr` |
 | `agent` | `agent.go` | `Agent`: reads `link.json`, dials the hub, sends snapshots (2 s), events, log batches (500 ms), executes hub commands (`exec`) |
+| `sdk/runtime` | `runtime.go` | stdlib-only helper for apps: inherited listener, `Ready()` |
 | `cli` | `commands.go` | subcommand dispatch (`Main`), flag parsing (`parseInterspersed`), `cmdStart` (flags in `startOpts`, config built by `buildStartConfig`) and friends |
 | | `client.go` | `call()` RPC client, daemon auto-spawn, injectable `dial` and `spawn` |
 | | `startup.go` | systemd unit rendering, `Version` variable (set with `-ldflags -X`) |

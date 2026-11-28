@@ -43,11 +43,40 @@ Agents dial out to the hub (no inbound port on hosts). The hub never connects to
 - **Restart policy** matches PM2: a run shorter than `min_uptime` (default 1000 ms) is unstable. `max_restarts` (default 16) counts consecutive unstable runs, then status is `errored`. Stable runs reset the count. `exp_backoff_restart_delay` doubles per consecutive unstable run, capped at 15 s; otherwise `restart_delay`. `stop_exit_codes` end supervision.
 - **Stop**: SIGTERM to the process group, SIGKILL after `kill_timeout` (default 1600 ms). Each child has its own process group.
 - **Soft restarts** (`watch`, `cron_restart`, `max_memory_restart`) kill and restart at once, count in `restarts`, never count as unstable, and are reported with their own reason.
-- **Instances**: `instances: N` runs N processes under one name (`PMGO_INSTANCE_ID` 0..N-1). There is no Node-style port sharing: apps that need one port use `SO_REUSEPORT` themselves. `scale` changes the count live. `reload` restarts one instance at a time and waits for each to stay up for `min_uptime`.
+- **Instances**: `instances: N` runs N processes under one name (`PMGO_INSTANCE_ID` 0..N-1). `scale` changes the count live. `reload` restarts one instance at a time and waits for each to stay up for `min_uptime` (or to signal ready with `wait_ready`). To share one port between instances see **Shared socket and `wait_ready`**.
 - **Logs**: the daemon pipes child stdout and stderr through a rotating writer (default 10 MB, keep 5 gzip files, `log_max_size` -1 turns rotation off). Every line also goes to the agent hook. **Consequence**: children are tied to the daemon. If the daemon dies, children get SIGPIPE on their next write. The systemd unit uses `KillMode=control-group` and `--resurrect` so a daemon restart brings everything back.
 - **Metrics**: every 2 s the monitor reads `/proc` and sums CPU and RSS over each child's process group, plus host CPU, memory, load, disk (`/`), network (non-loopback) and uptime.
 - **Start with an existing name** updates its config and restarts, so re-applying an ecosystem file is idempotent. Ecosystem files are JSON (`{"apps":[...]}`, `env_<profile>`, `--env-profile`, `--only`).
 - **Environment**: the caller's environment is sent with each start request and never saved in the dump file. Children also get `PMGO_NAME`, `PMGO_ID`, `PMGO_INSTANCE_ID`, `PMGO_NAMESPACE`.
+
+## Shared socket and `wait_ready`
+
+Cluster-style port sharing without Node. Linux and macOS (unix platforms) only.
+
+- **Config**: `listen` (`":8080"`, `"127.0.0.1:9000"` or `"unix:/run/app.sock"`), `listen_network` (`tcp` default, `tcp4`, `tcp6`, `unix`), `wait_ready` (bool), `listen_timeout` (ms, default 8000). CLI: `--listen`, `--wait-ready`, `--listen-timeout`. Without them nothing changes.
+- **Socket**: the daemon opens the listener once per app name (a bind error fails `start`) and passes it to every instance as inherited fd 3 (systemd socket activation convention): `LISTEN_FDS=1`, `LISTEN_FDNAMES=<name>`, plus `PMGO_LISTEN=<addr>`. `LISTEN_PID` is not set (the pid is unknown before the fork); `sdk/runtime` ignores it when absent. The daemon closes the socket on `delete` and when `scale` removes the last instance; a stopped app keeps it, so connections queue until the next start. Changing `listen` and re-running `start` swaps the socket; running children keep the old one until they restart.
+- **Readiness**: with `wait_ready` the child gets a pipe write end as fd `PMGO_READY_FD` (3 without `listen`, 4 with it) and must write `ready\n` once. The status is `launching` until then. After `listen_timeout` the child is stopped (SIGTERM, then SIGKILL after `kill_timeout`), the run counts as unstable (also when it exits before signalling ready, however long it ran) and the normal restart policy applies. Event reason `ready_timeout`.
+- **Reload**: with `listen` the new instance starts next to the old one, `reload` waits for ready (or `min_uptime` without `wait_ready`), then sends SIGTERM to the old one and waits up to `kill_timeout` before the next instance. If the new instance does not become ready, the old one keeps running and `reload` returns an error. Without `listen` the order stays stop, start, wait (for ready when `wait_ready`).
+- **Apps must drain**: on SIGTERM stop accepting, finish in-flight requests, exit. Because the daemon holds the socket, queued connections wait for the next instance instead of being refused. A connection accepted at the instant of the signal can still be lost if the server exits before it registers it, so close the listener, wait a short moment and then call `Shutdown` (see the example).
+- **Helper** `github.com/rpsoftech/golang-servers/servers/pm2go/sdk/runtime` (standard library only): `Listener()` (inherited listener, else `:$PORT` or `:8080`), `ListenerOn(network, addr)`, `Inherited()`, `Ready()`. Outside pm2go they fall back to a normal listener and `Ready` does nothing.
+
+```go
+ln, err := runtime.ListenerOn("tcp", ":8080") // shared socket under pm2go
+if err != nil { log.Fatal(err) }
+srv := &http.Server{Handler: mux}
+go srv.Serve(ln)
+runtime.Ready() // after init: reload and start wait for this
+sig := make(chan os.Signal, 1)
+signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
+<-sig
+ln.Close()                          // stop accepting
+time.Sleep(200 * time.Millisecond)  // let a just-accepted connection register
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+srv.Shutdown(ctx)                   // drain in-flight requests
+```
+
+Start it with `pm2go start ./app --name web --instances 3 --listen :8080 --wait-ready`.
 
 ## Hub
 
@@ -77,7 +106,7 @@ Agents dial out to the hub (no inbound port on hosts). The hub never connects to
 
 The full checklist is in `pm2go-status.md`. Summary:
 
-- Cluster-style port sharing and `wait_ready`, `ignore_watch` globs beyond name patterns, YAML ecosystem files, ssh `deploy`.
+- `ignore_watch` globs beyond name patterns, YAML ecosystem files, ssh `deploy`.
 - Transaction tracing, CPU and heap profiling from the dashboard, deployment tracking (git revision per process), custom app metrics and actions SDK.
 - Multi-user accounts, SSO, other alert channels (email, Slack, webhook).
 - Log search across history (only the live ring is searchable by eye).

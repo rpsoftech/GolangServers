@@ -45,7 +45,8 @@ start flags:
   --exp-backoff-restart-delay MS, --kill-timeout MS, --only a,b (ecosystem),
   --env-profile NAME (ecosystem env_<NAME>), --instances N, --watch,
   --ignore-watch a,b, --cron-restart "0 4 * * *", --max-memory-restart MB,
-  --log-max-size MB (-1 off), --log-retain N, --stop-exit-codes 0,2
+  --log-max-size MB (-1 off), --log-retain N, --stop-exit-codes 0,2,
+  --listen ":8080"|unix:/path (shared socket), --wait-ready, --listen-timeout MS
 `
 
 type multi []string
@@ -154,6 +155,9 @@ type startOpts struct {
 	ignoreWatch, cronR                 string
 	maxMem, logMax, logRetain          int
 	stopCodes                          string
+	listen                             string
+	waitReady                          bool
+	listenTimeout                      int
 	envs                               multi
 }
 
@@ -181,6 +185,9 @@ func newStartFlagSet() (*flag.FlagSet, *startOpts) {
 	fs.IntVar(&o.logMax, "log-max-size", 0, "rotate logs at this many MB (-1 off)")
 	fs.IntVar(&o.logRetain, "log-retain", 0, "rotated log files to keep")
 	fs.StringVar(&o.stopCodes, "stop-exit-codes", "", "exit codes that do not restart")
+	fs.StringVar(&o.listen, "listen", "", "shared listening socket passed to every instance")
+	fs.BoolVar(&o.waitReady, "wait-ready", false, "wait for the app to signal ready")
+	fs.IntVar(&o.listenTimeout, "listen-timeout", 0, "ms to wait for ready (default 8000)")
 	fs.Var(&o.envs, "env", "KEY=VAL (repeatable)")
 	return fs, o
 }
@@ -239,6 +246,7 @@ func buildStartConfig(o *startOpts, target string, scriptArgs []string) (common.
 	}
 	c.Instances, c.Watch, c.CronRestart = o.instances, o.watch, o.cronR
 	c.MaxMemoryRestartMB, c.LogMaxSizeMB, c.LogRetain = o.maxMem, o.logMax, o.logRetain
+	c.Listen, c.WaitReady, c.ListenTimeoutMs = o.listen, o.waitReady, o.listenTimeout
 	for _, x := range strings.Split(o.ignoreWatch, ",") {
 		if x = strings.TrimSpace(x); x != "" {
 			c.IgnoreWatch = append(c.IgnoreWatch, x)
