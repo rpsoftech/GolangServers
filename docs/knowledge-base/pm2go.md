@@ -14,7 +14,7 @@ One binary, `servers/pm2go`, runs in three roles:
  host C: pm2go daemon + agent ──ws──┘          └──> Telegram Bot API
 ```
 
-Agents dial out to the hub (no inbound port on hosts). The hub never connects to hosts.
+Agents dial out to the hub (no inbound port on hosts). The hub never connects to hosts. While the hub is unreachable the agent keeps the newest 500 process events and replays them, with their original timestamps, right after the next hello, so a crash during a short network gap still alerts.
 
 ## Code map (`servers/pm2go`)
 
@@ -91,7 +91,7 @@ Start it with `pm2go start ./app --name web --instances 3 --listen :8080 --wait-
 
 ## Alerts and Telegram
 
-- A **rule** has a level (`info`, `warning`, `critical`), a type, a scope (server and process, empty = all) and type-specific limits. Types: `system_cpu`, `system_memory`, `system_disk`, `system_load`, `proc_cpu`, `proc_memory`, `proc_status` (a process is `errored`), `restart_loop` (N crashes in a window), `log_errors` (N matching lines in a window, optional regex and stream), `server_offline`.
+- A **rule** has a level (`info`, `warning`, `critical`), a type, a scope (server and process, empty = all) and type-specific limits. Types: `system_cpu`, `system_memory`, `system_disk`, `system_load`, `proc_cpu`, `proc_memory`, `proc_status` (a process is `errored`), `restart_loop` (N crashes or `wait_ready` timeouts in a window), `log_errors` (N matching lines in a window, optional regex and stream), `server_offline`.
 - **Sustained resource alerts**: a metric rule only fires after the condition holds continuously for `duration_s`. A brief spike resets the timer. With `repeat_s` the alert reminds you every N seconds while still firing ("still firing after 1h 5m").
 - **Multiple levels**: create several rules of one type with rising thresholds, for example CPU > 80% for 5 min (warning) and CPU > 95% for 2 min (critical). While the higher level fires for the same target, the lower one stays quiet; if the higher clears first, the lower one then notifies.
 - **Resolve**: the condition must be false for 10 s before the alert resolves. With `notify_resolved` and only if a firing message was sent, a "RESOLVED" message follows.
