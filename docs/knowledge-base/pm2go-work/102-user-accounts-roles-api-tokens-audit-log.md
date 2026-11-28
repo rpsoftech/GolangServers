@@ -1,8 +1,8 @@
 # #102: User accounts, roles, API tokens, audit log
 
-Status: in review
+Status: done
 Branch: feat/hub-accounts
-PR: 
+PR: https://github.com/rpsoftech/GolangServers/pull/116
 Issue: https://github.com/rpsoftech/GolangServers/issues/102
 Size: L | Lane: hub | Needs first: #89, #90
 Hot files: `hub/auth.go`, `hub/api.go` (every route), UI
