@@ -5,7 +5,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -18,15 +17,14 @@ const maxWatchFiles = 50000
 
 var defaultIgnore = []string{".git", "node_modules", ".pm2go"}
 
-func ignored(rel string, extra []string) bool {
-	parts := strings.Split(filepath.ToSlash(rel), "/")
+// ignored reports whether rel is excluded from watching. Patterns are
+// relative to the watched root: "*" stays inside a segment, "**" crosses
+// directories, a leading "/" anchors to the root, a trailing "/" matches
+// directories only, and a bare name matches at any depth.
+func ignored(rel string, isDir bool, extra []string) bool {
+	rel = filepath.ToSlash(rel)
 	for _, pat := range append(append([]string{}, defaultIgnore...), extra...) {
-		for _, part := range parts {
-			if ok, _ := filepath.Match(pat, part); ok {
-				return true
-			}
-		}
-		if ok, _ := filepath.Match(pat, rel); ok {
+		if p, ok := compileIgnore(pat); ok && p.matches(rel, isDir) {
 			return true
 		}
 	}
@@ -43,7 +41,7 @@ func scanDir(root string, extra []string) map[string]fileSig {
 		if rerr != nil || rel == "." {
 			return nil
 		}
-		if ignored(rel, extra) {
+		if ignored(rel, d.IsDir(), extra) {
 			if d.IsDir() {
 				return filepath.SkipDir
 			}

@@ -512,3 +512,58 @@ func mustGet(t *testing.T, cl *http.Client, url string) *http.Response {
 	}
 	return r
 }
+
+func TestReadyTimeoutCountsTowardRestartLoop(t *testing.T) {
+	e := setup(t)
+	now := time.Now().UnixMilli()
+	e.reg.OnEvent("s1", common.Event{TS: now, Name: "api", Type: "exit", Reason: "crash"})
+	e.reg.OnEvent("s1", common.Event{TS: now, Name: "api", Type: "exit", Reason: "ready_timeout"})
+	e.reg.OnEvent("s1", common.Event{TS: now, Name: "api", Type: "exit", Reason: "manual", Manual: true})
+	e.reg.OnEvent("s1", common.Event{TS: now, Name: "api", Type: "exit", Reason: "watch"})
+	if got := e.reg.CrashCount("s1", "api", time.Minute); got != 2 {
+		t.Fatalf("crash count = %d, want 2 (crash + ready_timeout only)", got)
+	}
+	// A replayed event keeps its original time and falls out of a short window.
+	e.reg.OnEvent("s1", common.Event{TS: now - 10*60*1000, Name: "old", Type: "exit", Reason: "crash"})
+	if got := e.reg.CrashCount("s1", "old", time.Minute); got != 0 {
+		t.Fatalf("old replayed event counted inside a 1 minute window: %d", got)
+	}
+}
+
+func TestOnLogsBatchReachesMatchingSubscribersOnly(t *testing.T) {
+	e := setup(t)
+	all := e.reg.Subscribe("s1", "")
+	api := e.reg.Subscribe("s1", "api")
+	other := e.reg.Subscribe("s2", "")
+	defer e.reg.Unsubscribe(all)
+	defer e.reg.Unsubscribe(api)
+	defer e.reg.Unsubscribe(other)
+	e.reg.OnLogs("s1", []common.LogLine{
+		{TS: 1, Name: "api", Stream: "out", Line: "a1"},
+		{TS: 2, Name: "web", Stream: "out", Line: "w1"},
+		{TS: 3, Name: "api", Stream: "err", Line: "a2"},
+	})
+	drain := func(s *LogSub) []string {
+		var out []string
+		for {
+			select {
+			case m := <-s.C:
+				out = append(out, m.Line)
+			default:
+				return out
+			}
+		}
+	}
+	if got := drain(all); len(got) != 3 {
+		t.Fatalf("all-process subscriber got %v", got)
+	}
+	if got := drain(api); len(got) != 2 || got[0] != "a1" || got[1] != "a2" {
+		t.Fatalf("api subscriber got %v", got)
+	}
+	if got := drain(other); len(got) != 0 {
+		t.Fatalf("other server's subscriber got %v", got)
+	}
+	if n := len(e.reg.RecentLogs("s1", "api", 10)); n != 2 {
+		t.Fatalf("ring holds %d api lines, want 2", n)
+	}
+}
