@@ -13,50 +13,6 @@ import (
 	"github.com/rpsoftech/golang-servers/servers/pm2go/common"
 )
 
-func TestRotatingFileRotatesAndCallsLines(t *testing.T) {
-	dir := t.TempDir()
-	var mu sync.Mutex
-	var lines []string
-	r, err := openRotating(filepath.Join(dir, "a.log"), 100, 3, func(l string) {
-		mu.Lock()
-		lines = append(lines, l)
-		mu.Unlock()
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	for i := 0; i < 20; i++ {
-		if _, err := r.Write([]byte(strings.Repeat("x", 30) + "\n")); err != nil {
-			t.Fatal(err)
-		}
-	}
-	r.Write([]byte("partial"))
-	r.Close()
-	mu.Lock()
-	defer mu.Unlock()
-	if len(lines) != 21 || lines[20] != "partial" {
-		t.Fatalf("lines = %d last=%q", len(lines), lines[len(lines)-1])
-	}
-	deadline := time.Now().Add(3 * time.Second)
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "a.log.1.gz")); err == nil {
-			break
-		}
-		if time.Now().After(deadline) {
-			t.Fatal("no rotated .1.gz file")
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
-	st, _ := os.Stat(filepath.Join(dir, "a.log"))
-	if st.Size() > 100 {
-		t.Fatalf("current file %d bytes, want <= 100", st.Size())
-	}
-	// at most retain rotated files, none beyond
-	if _, err := os.Stat(filepath.Join(dir, "a.log.4.gz")); err == nil {
-		t.Fatal("kept more than retain files")
-	}
-}
-
 func TestInstancesScaleAndNames(t *testing.T) {
 	m := testManager(t)
 	cfg := shell(t, "web", `echo id=$PMGO_INSTANCE_ID; sleep 30`)

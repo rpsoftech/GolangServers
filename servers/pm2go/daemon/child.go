@@ -22,11 +22,23 @@ type child struct {
 	waitCh  chan error // receives once when the process exits
 	started time.Time
 
+	start   string // process start time and command line, to recognise it after a daemon restart
+	cmdline string
+	adopted bool // found again after a daemon restart: no exec.Cmd, exit code unknown
+
 	waitReady bool
 	ready     chan struct{} // closed when the app signalled ready; nil without wait_ready
 	rdPipe    *os.File
 	isReady   bool // set by the supervise loop after ready fired
 	rdOnce    sync.Once
+}
+
+// exitCode is the exit status, or -1 when unknown (adopted process, killed by signal).
+func (c *child) exitCode() int {
+	if c.cmd != nil && c.cmd.ProcessState != nil {
+		return c.cmd.ProcessState.ExitCode()
+	}
+	return -1
 }
 
 func (c *child) closeReadPipe() {
@@ -77,6 +89,8 @@ func (p *Proc) spawn() (*child, error) {
 	}
 	c.pid = cmd.Process.Pid
 	c.started = time.Now()
+	c.start, _ = procStartTime(c.pid)
+	c.cmdline, _ = procCmdline(c.pid)
 	c.waitCh = make(chan error, 1)
 	go func() { c.waitCh <- cmd.Wait() }()
 	if c.waitReady {
@@ -214,12 +228,14 @@ func (p *Proc) overlap(old *child, stopCh chan struct{}) (*child, error) {
 	nc.closeReadPipe() // no more readiness reads once the replacement is live
 	p.mu.Lock()
 	p.pid = nc.pid
+	p.pidStart, p.pidCmd = nc.start, nc.cmdline
 	p.startedAt = time.Now()
 	p.status = common.StatusOnline
 	p.exitCode = nil
 	p.restarts++
 	p.use = usage{}
 	p.mu.Unlock()
+	p.m.persistNow()
 	p.emit("online", "reload")
 	p.terminate(old)
 	return nc, nil

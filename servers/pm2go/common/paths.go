@@ -22,6 +22,7 @@ func LogsDir() string       { return filepath.Join(Home(), "logs") }
 func SocketPath() string    { return filepath.Join(Home(), "rpc.sock") }
 func PidFile() string       { return filepath.Join(Home(), "pm2go.pid") }
 func DumpFile() string      { return filepath.Join(Home(), "dump.json") }
+func StateFile() string     { return filepath.Join(Home(), "state.json") }
 func DaemonLogFile() string { return filepath.Join(Home(), "pm2go.log") }
 
 func EnsureDirs() error {

@@ -111,3 +111,29 @@ func (l *listeners) closeAll() {
 		delete(l.m, n)
 	}
 }
+
+// adopt registers the shared socket of an app again, taking it from an adopted
+// child that inherited it as descriptor 3. Without it the daemon could not
+// hand the socket to later children. Failure is not fatal: the app keeps
+// running, a restart then has to bind the address itself.
+func (l *listeners) adopt(cfg common.AppConfig, pid int) {
+	network, addr := cfg.ListenSpec()
+	if addr == "" {
+		return
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.m[cfg.Name] != nil {
+		return
+	}
+	f, err := recoverListenerFD(pid, 3)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "pm2go: %q: cannot recover the shared socket from pid %d: %v\n", cfg.Name, pid, err)
+		return
+	}
+	if st, err := f.Stat(); err != nil || st.Mode()&os.ModeSocket == 0 {
+		f.Close()
+		return
+	}
+	l.m[cfg.Name] = &sharedListener{network: network, addr: addr, file: f}
+}

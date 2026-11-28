@@ -1,8 +1,8 @@
 # #99: Restart daemon without stopping children
 
-Status: open
-Branch: 
-PR: 
+Status: done
+Branch: feat/daemon-survive-restart
+PR: #117
 Issue: https://github.com/rpsoftech/GolangServers/issues/99
 Size: L | Lane: daemon | Needs first: #98 (order)
 Hot files: `daemon/proc.go`, `daemon/logfile.go`, `cli/startup.go`
@@ -19,6 +19,10 @@ Format: `- <date>: <decision>. Why: <reason>.`
 
 Progress, what was verified, what was not, gotchas. Newest at the bottom.
 
+- 2026-11-29: implemented logs-as-files, state file, adoption, unit change. Race tests, vet, gofmt and the linux build pass on macOS. Linux-only code (`procinfo_linux.go`, `exitwatch_linux.go`: `/proc` start time, `pidfd_open`, `pidfd_getfd`) was compiled with `CGO_ENABLED=0 GOOS=linux` and vetted but not run. Gotcha: on macOS `File.Sync` is slow, so a test must wait until the state file holds the pids before it kills the daemon.
+
+
+- 2026-11-29, review fixes: (1) `Proc.config()` and `Proc.name()` copy `cfg`/`env` under `p.mu`; `manager.go` (`remove`, `Reload`, `Scale`, `Save`, `resolve`, `byName`), `adopt.go` and the log hook use them, new `-race` test `TestConcurrentStartReloadScaleSaveList`. Rule: outside `proc.go` never read `p.cfg`/`p.env` directly. (2) Rotation: shift and compress run in one mutex-serialised goroutine (`logTail.gzMu`), rotation never reopens the file (copy then `Truncate`), and a failed rotation leaves the child's descriptor untouched; tests `TestFiftyRapidRotationsLoseNothing`, `TestRotationFailureKeepsLogging`.
 
 ## Handoff
 
@@ -26,4 +30,4 @@ Fill this only if you stop before the work is done: stopped at, done, next, gotc
 
 ## Status-doc ticks to apply (the coordinator ticks `pm2go-status.md` later)
 
-- (none yet)
+- [x] daemon restart without stopping children (#99)

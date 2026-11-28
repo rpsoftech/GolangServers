@@ -71,7 +71,14 @@ func renderUnit(kind, exe, username, home string, extra []string) string {
 	if kind == "hub" {
 		args = strings.TrimSpace("hub " + strings.Join(extra, " "))
 	}
-	// KillMode=control-group: stopping the unit also stops managed children.
+	// The daemon unit uses KillMode=process: systemd signals only the daemon, so
+	// managed applications survive a daemon restart and the next daemon adopts
+	// them. There is no ExecStop that kills them (it would also run on restart);
+	// `pm2go kill` stops them. The hub has no children and keeps control-group.
+	killMode := "process"
+	if kind == "hub" {
+		killMode = "control-group"
+	}
 	return fmt.Sprintf(`[Unit]
 Description=pm2go %s
 After=network-online.target
@@ -84,11 +91,11 @@ Environment=PMGO_HOME=%s
 ExecStart=%s %s
 Restart=always
 RestartSec=3
-KillMode=control-group
+KillMode=%s
 TimeoutStopSec=30
 LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target
-`, kind, username, home, exe, args)
+`, kind, username, home, exe, args, killMode)
 }
