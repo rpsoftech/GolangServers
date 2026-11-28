@@ -18,6 +18,7 @@ const (
 	MethodReload    = "reload"
 	MethodScale     = "scale"
 	MethodLink      = "link"
+	MethodSystem    = "system"
 )
 
 type Request struct {

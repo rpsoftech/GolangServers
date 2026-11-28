@@ -153,7 +153,7 @@ require (
 	golang.org/x/image v0.48.0 // indirect
 	golang.org/x/oauth2 v0.38.0 // indirect
 	golang.org/x/sync v0.25.0 // indirect
-	golang.org/x/term v0.48.0 // indirect
+	golang.org/x/term v0.48.0
 	golang.org/x/text v0.44.0 // indirect
 	golang.org/x/time v0.16.0 // indirect
 	google.golang.org/appengine/v2 v2.1.0 // indirect
