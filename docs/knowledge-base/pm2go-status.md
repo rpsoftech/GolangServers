@@ -33,7 +33,8 @@ Every open item below is tracked as a GitHub issue (#89 to #106). The issue boar
 ### Deployment files
 - [x] `Dockerfile`, `docker-compose.yml`, `Caddyfile.host`, `Caddyfile.container`, `.env.example`
 - [x] reverse proxy support (`PMGO_TRUST_PROXY`), `/healthz`
-- [ ] **not built or run**: Docker is not installed on the development machine, so the image and compose stack are untested
+- [x] GitHub workflow `pm2go.yml`: gofmt, vet, race tests, Linux build, image build with `/healthz` smoke test on PRs; Linux amd64/arm64 release binaries with `SHA256SUMS` and multi-arch GHCR image on tag `pm2go-v*` (#91)
+- [ ] image and compose stack not yet run by hand (Docker not installed on the development machine); first CI run is the first real build (#106)
 
 ## Installed / required on your platform (check each)
 
