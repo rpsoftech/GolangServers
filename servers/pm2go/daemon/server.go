@@ -132,6 +132,8 @@ func (s *server) handle(req common.Request) common.Response {
 	switch req.Method {
 	case common.MethodPing:
 		return ok(map[string]int{"pid": os.Getpid()})
+	case common.MethodSystem:
+		return ok(s.m.System())
 	case common.MethodList:
 		return ok(s.m.List())
 	case common.MethodStart:

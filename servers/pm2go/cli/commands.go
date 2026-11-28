@@ -32,6 +32,7 @@ Usage: pm2go <command> [args]
   list | ls | status      list processes
   jlist                   list processes as JSON
   describe <id|name>      show process details
+  monit                   live terminal dashboard (needs a TTY)
   logs [name] [--lines N] [--nostream] [--out|--err]
   flush [name|all]        truncate logs
   save                    write process list to dump file
@@ -111,6 +112,8 @@ func Main(args []string) int {
 		err = cmdList(true)
 	case "describe", "show":
 		err = cmdDescribe(rest)
+	case "monit":
+		err = cmdMonit(rest)
 	case "logs":
 		err = cmdLogs(rest)
 	case "flush":
