@@ -11,7 +11,7 @@ Before reading code, read `docs/knowledge-base/graph/GRAPH.md` (architecture, pa
 ```
 CLI ──unix socket JSON-RPC──> daemon (Manager, Procs) ──hooks──> agent ──WebSocket──> hub ──> browser
                                    │                                                   └──> Telegram
-                                   └── child processes (own process group, stdout/stderr piped through RotatingFile)
+                                   └── child processes (own process group, stdout/stderr are the log files; the daemon tails them)
 ```
 
 - One Go module (`github.com/rpsoftech/golang-servers`), one binary `servers/pm2go`, three roles chosen by subcommand: CLI, `daemon`, `hub`.
@@ -32,7 +32,8 @@ CLI ──unix socket JSON-RPC──> daemon (Manager, Procs) ──hooks──>
 | | `listener.go` | shared listening sockets, one per app name (`Manager.lns`) |
 | | `manager.go` | `Manager`: process table, `Start` (idempotent by name), `Stop`, `Restart`, `Reload`, `Scale`, `Delete`, `Save`, `Resurrect`, `Flush`, `RunMonitor` (sampling and memory limit), `SetHooks` |
 | | `server.go` | unix socket server, `Run(Options)`, RPC `handle` switch |
-| | `logfile.go` | `RotatingFile` (size rotation, gzip, per-line callback, `Truncate`) |
+| | `logfile.go` | `logTail` (follows a log file by offset, per-line callback, copy-truncate rotation with gzip, `Truncate`) |
+| | `state.go`, `adopt.go` | `$PMGO_HOME/state.json` (atomic writes) and `Manager.Adopt`; `procinfo_*.go`, `exitwatch*.go` read `/proc` start time and cmdline and watch an adopted pid (pidfd on Linux); see `pm2go-daemon-restart.md` |
 | | `watch.go` | polling file watcher used by `watch` |
 | | `sampler_linux.go` | `/proc` sampling: `Sampler.SampleProcs`, `SampleSystem` |
 | | `sys_unix.go`, `shell.go` | process group attrs, signal helpers, `detachAttr` |
@@ -57,7 +58,7 @@ CLI ──unix socket JSON-RPC──> daemon (Manager, Procs) ──hooks──>
 ## Key flows
 
 - **Start**: CLI `cmdStart` builds `AppConfig` (or loads ecosystem) -> RPC `start` -> `Manager.Start` creates or updates `Proc`s by name -> `Proc.Start` spawns `loop`.
-- **Supervise**: `loop` starts the child with stdout/stderr bound to two `RotatingFile`s, waits on exit, a stop request, or a soft restart request (`watch`, `cron`, `max_memory`). Exit handling decides restart, `errored` or `stopped`, and emits `common.Event`s through the manager hook.
+- **Supervise**: `loop` starts the child with stdout/stderr bound to the two log files (tailed by `logTail`), waits on exit, a stop request, or a soft restart request (`watch`, `cron`, `max_memory`). Exit handling decides restart, `errored` or `stopped`, and emits `common.Event`s through the manager hook.
 - **Telemetry**: `Manager.RunMonitor` samples every 2 s and caches usage in each `Proc`. The agent builds a `Snapshot` from `Manager.List()` plus `Manager.System()`.
 - **Hub ingest**: `API.agentWS` reads envelopes and calls `Registry.OnSnapshot / OnEvent / OnLogs`. Snapshots are persisted every 10 s. Events go to `events`. Log lines go to a per-process ring, the issue grouper and live subscribers.
 - **Alerts**: `Engine.Evaluate` runs every 2 s over `Registry.States()`, builds observations per rule, drives each (rule, server, process) state machine (pending, firing, resolved), applies level suppression, then calls `Notifier.Notify`.

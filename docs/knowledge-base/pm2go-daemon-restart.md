@@ -1,6 +1,6 @@
 # pm2go: daemon restart keeps managed processes running
 
-Status: design (issue #99). Update this file as the steps land.
+Status: implemented (issue #99).
 
 ## Problem
 
@@ -22,7 +22,7 @@ When the file is larger than `log_max_size` the tailer first reads to the end, c
 
 ### 3. State file
 
-`$PMGO_HOME/state.json` (mode 0600, it holds each app's environment) is written atomically (temp file, fsync, rename) after every change by a coalescing writer goroutine, and synchronously right after a child is spawned (so a crash cannot orphan a child). It holds, per process: id, instance, `AppConfig`, base environment, pid, process start time, command line, restarts, unstable count, created and started time, status, exit code, plus the next id.
+`$PMGO_HOME/state.json` (mode 0600; it holds each app's environment, which the dump file does not, because a respawn after adoption needs it) is written atomically (temp file, fsync, rename) after every change by a coalescing writer goroutine, and synchronously right after a child is spawned (so a crash cannot orphan a child). It holds, per process: id, instance, `AppConfig`, base environment, pid, process start time, command line, restarts, unstable count, created and started time, status, exit code, plus the next id.
 
 A missing file means a fresh start. A corrupt file is renamed to `state.json.corrupt` and logged, then the daemon starts fresh.
 
@@ -55,3 +55,15 @@ The shared listening socket (#98) lives in the children as fd 3. On Linux the da
 ## Platform notes
 
 Linux is the production target. `/proc` start time and cmdline, `pidfd_open` and `pidfd_getfd` are in `*_linux.go` files; other platforms use `ps` and polling so the tests run on a Mac. See the PR for what was compiled but not run on Linux.
+
+## Tests
+
+`daemon/restart_test.go`: tail rotation and truncation, 10k lines without loss or duplicate, state file atomicity and mode, corrupt state, adoption of a hand-made orphan (same pid, counters, uptime, log lines reach the hook, stop works), delete and kill of adopted processes, an app that died while the daemon was down (restart per policy, or `errored` without autorestart), PID reuse (wrong start time, wrong command line: never adopted, never signalled), and two tests that re-execute the test binary as a real daemon: `kill -9` and restart keeps the same pids and counters, `SIGTERM` leaves the applications running, `kill` stops them and removes the state file.
+
+## Known limits
+
+- A child that crashes in the few milliseconds between `fork` and the first state write is orphaned and never adopted.
+- Lines written while the daemon is down are in the files but not on the dashboard.
+- Adopted processes have no exit code (`-1`), so `stop_exit_codes` cannot apply to the exit that ends an adopted process.
+- A child that rewrites its own command line (`setproctitle`) fails the command line check and is not adopted.
+- Without Linux (`pidfd_getfd`) a restart or reload of an adopted app with a shared socket must bind the address again.

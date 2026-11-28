@@ -19,6 +19,8 @@ Format: `- <date>: <decision>. Why: <reason>.`
 
 Progress, what was verified, what was not, gotchas. Newest at the bottom.
 
+- 2026-11-29: implemented logs-as-files, state file, adoption, unit change. Race tests, vet, gofmt and the linux build pass on macOS. Linux-only code (`procinfo_linux.go`, `exitwatch_linux.go`: `/proc` start time, `pidfd_open`, `pidfd_getfd`) was compiled with `CGO_ENABLED=0 GOOS=linux` and vetted but not run. Gotcha: on macOS `File.Sync` is slow, so a test must wait until the state file holds the pids before it kills the daemon.
+
 
 ## Handoff
 
@@ -26,4 +28,4 @@ Fill this only if you stop before the work is done: stopped at, done, next, gotc
 
 ## Status-doc ticks to apply (the coordinator ticks `pm2go-status.md` later)
 
-- (none yet)
+- [x] daemon restart without stopping children (#99)

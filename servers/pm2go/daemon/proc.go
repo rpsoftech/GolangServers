@@ -40,7 +40,12 @@ type Proc struct {
 	reloadReq  chan chan error // overlapping reload requests, served by supervise
 	cancel     context.CancelFunc
 
-	outW, errW *RotatingFile
+	outF, errF *os.File // log files the child writes to; nil for an adopted child until it respawns
+	outT, errT *logTail // follow the files and feed the log hook
+
+	pidStart string // start time and command line of the current pid, for adoption
+	pidCmd   string
+	adopted  *child // set before Start to supervise an already running process
 }
 
 func newProc(m *Manager, id, instance int, cfg common.AppConfig, env []string) *Proc {
@@ -148,14 +153,32 @@ func (p *Proc) Stop() {
 
 func (p *Proc) closeLogs() {
 	p.mu.Lock()
-	o, e := p.outW, p.errW
-	p.outW, p.errW = nil, nil
+	ts := []*logTail{p.outT, p.errT}
+	fs := []*os.File{p.outF, p.errF}
+	p.outT, p.errT, p.outF, p.errF = nil, nil, nil, nil
 	p.mu.Unlock()
-	if o != nil {
-		o.Close()
+	for _, f := range fs {
+		if f != nil {
+			f.Close()
+		}
 	}
-	if e != nil {
-		e.Close()
+	for _, t := range ts {
+		if t != nil {
+			t.Close()
+		}
+	}
+}
+
+// drainLogs reports every line written so far; the supervisor calls it when a
+// child exits.
+func (p *Proc) drainLogs() {
+	p.mu.Lock()
+	ts := []*logTail{p.outT, p.errT}
+	p.mu.Unlock()
+	for _, t := range ts {
+		if t != nil {
+			t.sync()
+		}
 	}
 }
 
@@ -168,22 +191,31 @@ func (p *Proc) logLineHook(stream string) func(string) {
 	}
 }
 
-// ensureLogs opens the log writers once; they stay open across restarts.
-// Caller holds p.mu.
-func (p *Proc) ensureLogs() error {
-	if p.outW == nil {
-		w, err := openRotating(p.outPath(), p.cfg.LogMaxBytes(), p.cfg.LogRetainOrDefault(), p.logLineHook("out"))
-		if err != nil {
-			return err
+// ensureLogs starts the tailers once and, when writers is set, opens the files
+// the child writes to. They stay open across restarts. Caller holds p.mu.
+func (p *Proc) ensureLogs(writers bool) error {
+	for _, l := range []struct {
+		path, stream string
+		t            **logTail
+		f            **os.File
+	}{
+		{p.outPath(), "out", &p.outT, &p.outF},
+		{p.errPath(), "err", &p.errT, &p.errF},
+	} {
+		if *l.t == nil {
+			t, err := startTail(l.path, p.cfg.LogMaxBytes(), p.cfg.LogRetainOrDefault(), p.logLineHook(l.stream))
+			if err != nil {
+				return err
+			}
+			*l.t = t
 		}
-		p.outW = w
-	}
-	if p.errW == nil {
-		w, err := openRotating(p.errPath(), p.cfg.LogMaxBytes(), p.cfg.LogRetainOrDefault(), p.logLineHook("err"))
-		if err != nil {
-			return err
+		if writers && *l.f == nil {
+			f, err := os.OpenFile(l.path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+			if err != nil {
+				return err
+			}
+			*l.f = f
 		}
-		p.errW = w
 	}
 	return nil
 }
@@ -218,13 +250,22 @@ func (p *Proc) buildCmd() (*exec.Cmd, error) {
 	}
 	cmd.Env = env
 	setProcAttr(cmd)
-	if err := p.ensureLogs(); err != nil {
+	if err := p.ensureLogs(true); err != nil {
 		return nil, err
 	}
-	cmd.Stdout, cmd.Stderr = p.outW, p.errW
-	// Bound the wait for output pipes held open by orphaned grandchildren.
-	cmd.WaitDelay = 3 * time.Second
+	// The child writes straight to the files (no pipe), so it survives the daemon.
+	cmd.Stdout, cmd.Stderr = p.outF, p.errF
 	return cmd, nil
+}
+
+// nextChild returns the adopted process on the first round, a fresh spawn
+// afterwards. Caller holds p.mu.
+func (p *Proc) nextChild() (*child, error) {
+	if a := p.adopted; a != nil {
+		p.adopted = nil
+		return a, p.ensureLogs(false)
+	}
+	return p.spawn()
 }
 
 func (p *Proc) loop(stopCh, done chan struct{}) {
@@ -232,6 +273,7 @@ func (p *Proc) loop(stopCh, done chan struct{}) {
 		p.mu.Lock()
 		p.done = nil
 		p.pid = 0
+		p.pidStart, p.pidCmd = "", ""
 		p.use = usage{}
 		cancel := p.cancel
 		p.mu.Unlock()
@@ -250,7 +292,7 @@ func (p *Proc) loop(stopCh, done chan struct{}) {
 			p.setStatus(common.StatusStopped, "manual")
 			return
 		}
-		c, err := p.spawn()
+		c, err := p.nextChild()
 		if err != nil {
 			p.unstable++
 			p.mu.Unlock()
@@ -267,6 +309,7 @@ func (p *Proc) loop(stopCh, done chan struct{}) {
 			continue
 		}
 		p.pid = c.pid
+		p.pidStart, p.pidCmd = c.start, c.cmdline
 		p.startedAt = c.started
 		p.status = common.StatusOnline
 		if c.waitReady {
@@ -274,22 +317,24 @@ func (p *Proc) loop(stopCh, done chan struct{}) {
 		}
 		p.exitCode = nil
 		p.mu.Unlock()
+		if c.adopted {
+			reason = "adopt"
+		}
+		p.m.persistNow() // a crash right after the spawn must not orphan the child
 		if !c.waitReady {
 			p.emit("online", reason)
 		}
 
 		res := p.supervise(c, stopCh)
 		soft, c := res.soft, res.c
-		cmd := c.cmd
 		started := c.started
 		ran := time.Since(started)
-		code := -1
-		if cmd.ProcessState != nil {
-			code = cmd.ProcessState.ExitCode()
-		}
+		code := c.exitCode()
+		p.drainLogs() // report the last lines before the exit event
 
 		p.mu.Lock()
 		p.pid = 0
+		p.pidStart, p.pidCmd = "", ""
 		p.use = usage{}
 		p.exitCode = &code
 		stopping := p.stopping
@@ -355,6 +400,7 @@ func (p *Proc) loop(stopCh, done chan struct{}) {
 
 // emit reports a state change to the manager's event hook.
 func (p *Proc) emit(typ, reason string) {
+	p.m.markDirty()
 	p.mu.Lock()
 	ev := common.Event{
 		TS: time.Now().UnixMilli(), ID: p.id, Instance: p.instance, Name: p.cfg.Name,

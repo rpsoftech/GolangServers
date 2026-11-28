@@ -45,6 +45,13 @@ func sharedApp(t *testing.T) string {
 }
 
 func TestMain(m *testing.M) {
+	if os.Getenv("PMGO_TEST_DAEMON") != "" { // re-executed as a real daemon process
+		if err := Run(Options{Resurrect: os.Getenv("PMGO_TEST_RESURRECT") != ""}); err != nil {
+			fmt.Fprintln(os.Stderr, "daemon:", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
 	code := m.Run()
 	if appPath != "" {
 		_ = os.RemoveAll(filepath.Dir(appPath))

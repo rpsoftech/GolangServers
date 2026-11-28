@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -50,18 +51,29 @@ func Run(opts Options) error {
 	}
 	monCtx, monCancel := context.WithCancel(context.Background())
 	go m.RunMonitor(monCtx, 2*time.Second)
+	// Take over the processes of a previous daemon before anything else
+	// starts, so resurrect only adds what is really missing.
+	if n := m.Adopt(); n > 0 {
+		fmt.Fprintf(os.Stderr, "pm2go: adopted %d running process(es)\n", n)
+	}
+	m.EnableState(monCtx)
 	if opts.Resurrect {
 		if _, err := m.Resurrect(); err != nil {
 			fmt.Fprintln(os.Stderr, "pm2go: resurrect:", err)
 		}
 	}
 
+	// SIGINT and SIGTERM mean the daemon goes away (upgrade, restart): the
+	// applications keep running and the next daemon adopts them. Only the
+	// kill method stops them.
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	var killed atomic.Bool
 	go func() {
 		select {
 		case <-sigs:
 		case <-quit:
+			killed.Store(true)
 		}
 		ln.Close()
 	}()
@@ -77,7 +89,12 @@ func Run(opts Options) error {
 	if onStop != nil {
 		onStop()
 	}
-	m.StopAll()
+	if killed.Load() {
+		m.DisableState() // stop writing first: the next daemon must start empty
+		m.StopAll()
+	} else {
+		m.persistNow() // leave the applications running for the next daemon
+	}
 	_ = os.Remove(sock)
 	_ = os.Remove(common.PidFile())
 	return nil

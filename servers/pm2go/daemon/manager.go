@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/robfig/cron/v3"
@@ -23,6 +24,10 @@ type Manager struct {
 	nextID int
 	lns    *listeners
 
+	stateOn   atomic.Bool   // state file persistence enabled (EnableState)
+	persistMu sync.Mutex    // one state write at a time
+	dirty     chan struct{} // coalesces change notifications for the writer
+
 	hookMu sync.RWMutex
 	onEv   func(common.Event)
 	onLog  func(common.LogLine)
@@ -32,7 +37,9 @@ type Manager struct {
 	sys     SystemSample
 }
 
-func NewManager() *Manager { return &Manager{sampler: NewSampler(), lns: newListeners()} }
+func NewManager() *Manager {
+	return &Manager{sampler: NewSampler(), lns: newListeners(), dirty: make(chan struct{}, 1)}
+}
 
 // SetHooks registers receivers for process events and log lines. They run on
 // supervisor goroutines and must not block.
@@ -118,6 +125,7 @@ func (m *Manager) addProc(cfg common.AppConfig, instance int, env []string) *Pro
 	p := newProc(m, m.nextID, instance, cfg, env)
 	m.nextID++
 	m.procs = append(m.procs, p)
+	m.markDirty()
 	return p
 }
 
@@ -202,6 +210,7 @@ func (m *Manager) remove(p *Proc) {
 		}
 	}
 	m.procs = kept
+	m.markDirty()
 	last := len(m.byName(p.cfg.Name)) == 0
 	m.mu.Unlock()
 	if last {
@@ -229,6 +238,7 @@ func (m *Manager) Restart(target string) ([]common.ProcessInfo, error) {
 		p.restarts++
 		p.mu.Unlock()
 		p.Start()
+		m.markDirty()
 	})
 	return m.infos(ps), nil
 }
@@ -458,7 +468,7 @@ func (m *Manager) Flush(target string) error {
 	}
 	for _, p := range ps {
 		p.mu.Lock()
-		ws := []*RotatingFile{p.outW, p.errW}
+		ws := []*logTail{p.outT, p.errT}
 		paths := []string{p.outPath(), p.errPath()}
 		p.mu.Unlock()
 		for i, w := range ws {
