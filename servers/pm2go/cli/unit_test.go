@@ -210,8 +210,12 @@ func TestResolveStartTargetsCommand(t *testing.T) {
 func TestRenderUnit(t *testing.T) {
 	d := renderUnit("daemon", "/usr/bin/pm2go", "alice", "/home/alice/.pm2go", nil)
 	contains(t, d, "Description=pm2go daemon", "User=alice", "Environment=PMGO_HOME=/home/alice/.pm2go",
-		"ExecStart=/usr/bin/pm2go daemon --resurrect\n", "KillMode=control-group", "WantedBy=multi-user.target")
+		"ExecStart=/usr/bin/pm2go daemon --resurrect\n", "Type=simple", "KillMode=process", "WantedBy=multi-user.target")
+	if strings.Contains(d, "ExecStop") {
+		t.Error("ExecStop would also run on restart and stop the applications")
+	}
 	h := renderUnit("hub", "/usr/bin/pm2go", "bob", "/var/hub", []string{"--listen", ":9000"})
+	contains(t, h, "KillMode=control-group")
 	contains(t, h, "Description=pm2go hub", "User=bob", "ExecStart=/usr/bin/pm2go hub --listen :9000\n")
 	if strings.Contains(h, "--resurrect") {
 		t.Error("hub unit must not resurrect")

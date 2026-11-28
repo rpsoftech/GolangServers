@@ -44,7 +44,7 @@ Agents dial out to the hub (no inbound port on hosts). The hub never connects to
 - **Stop**: SIGTERM to the process group, SIGKILL after `kill_timeout` (default 1600 ms). Each child has its own process group.
 - **Soft restarts** (`watch`, `cron_restart`, `max_memory_restart`) kill and restart at once, count in `restarts`, never count as unstable, and are reported with their own reason.
 - **Instances**: `instances: N` runs N processes under one name (`PMGO_INSTANCE_ID` 0..N-1). `scale` changes the count live. `reload` restarts one instance at a time and waits for each to stay up for `min_uptime` (or to signal ready with `wait_ready`). To share one port between instances see **Shared socket and `wait_ready`**.
-- **Logs**: the daemon pipes child stdout and stderr through a rotating writer (default 10 MB, keep 5 gzip files, `log_max_size` -1 turns rotation off). Every line also goes to the agent hook. **Consequence**: children are tied to the daemon. If the daemon dies, children get SIGPIPE on their next write. The systemd unit uses `KillMode=control-group` and `--resurrect` so a daemon restart brings everything back.
+- **Logs**: children write straight to their log files (`O_APPEND`, no pipe). The daemon follows the files (200 ms polling, by offset) and sends every new line to the agent hook, and rotates by copy-truncate (default 10 MB, keep 5 gzip files, `log_max_size` -1 turns rotation off; lines written during the copy can be lost). **Consequence**: children do not depend on the daemon; see `pm2go-daemon-restart.md` for adoption, the state file and the systemd unit (`KillMode=process`).
 - **Metrics**: every 2 s the monitor reads `/proc` and sums CPU and RSS over each child's process group, plus host CPU, memory, load, disk (`/`), network (non-loopback) and uptime.
 - **Start with an existing name** updates its config and restarts, so re-applying an ecosystem file is idempotent. Ecosystem files are JSON (`{"apps":[...]}`, `env_<profile>`, `--env-profile`, `--only`).
 - **Environment**: the caller's environment is sent with each start request and never saved in the dump file. Children also get `PMGO_NAME`, `PMGO_ID`, `PMGO_INSTANCE_ID`, `PMGO_NAMESPACE`.
@@ -110,4 +110,4 @@ The full checklist is in `pm2go-status.md`. Summary:
 - Transaction tracing, CPU and heap profiling from the dashboard, deployment tracking (git revision per process), custom app metrics and actions SDK.
 - Multi-user accounts, SSO, other alert channels (email, Slack, webhook).
 - Log search across history (only the live ring is searchable by eye).
-- Daemon restart without stopping children (children are tied to the daemon by the log pipes).
+- (done, #99) Daemon restart without stopping children: see `pm2go-daemon-restart.md`.
