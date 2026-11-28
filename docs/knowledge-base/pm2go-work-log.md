@@ -23,7 +23,7 @@ Size: S small (hours), M medium (1 day), L large (several days). Lane: which are
 
 | Issue | Title | Size | Lane | Needs first | Hot files touched | Status | Branch / PR |
 |-------|-------|------|------|-------------|-------------------|--------|-------------|
-| [#89](https://github.com/rpsoftech/GolangServers/issues/89) | Hub schema versioning and migrations | S | hub | none | `hub/store.go`, new `hub/migrations.go` | open | |
+| [#89](https://github.com/rpsoftech/GolangServers/issues/89) | Hub schema versioning and migrations | S | hub | none | `hub/store.go`, new `hub/migrations.go` | in progress | `feat/hub-schema-migrations` |
 | [#90](https://github.com/rpsoftech/GolangServers/issues/90) | Hub UI: split `app.js` into modules | S-M | hub UI | none | `hub/ui/*` | open | |
 | [#91](https://github.com/rpsoftech/GolangServers/issues/91) | GitHub Actions: tests, binaries, Docker image | S-M | tooling | none | `.github/`, `deploy/Dockerfile` | open | |
 | [#92](https://github.com/rpsoftech/GolangServers/issues/92) | YAML ecosystem files, `ignore_watch` globs | S | cli/common | none | `common/ecosystem.go`, `daemon/watch.go` | open | |
