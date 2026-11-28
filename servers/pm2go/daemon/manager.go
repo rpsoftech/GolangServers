@@ -289,6 +289,12 @@ func reloadProc(p *Proc) error {
 	p.mu.Unlock()
 	p.Start()
 	waitStable(p, min, limit)
+	p.mu.Lock()
+	status := p.status
+	p.mu.Unlock()
+	if status != common.StatusOnline {
+		return fmt.Errorf("did not come back online after reload (status %q)", status)
+	}
 	return nil
 }
 

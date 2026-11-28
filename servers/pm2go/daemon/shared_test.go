@@ -329,3 +329,33 @@ func TestNoFDLeakOnDeleteAndScale(t *testing.T) {
 		t.Fatalf("fd count %d after delete, want at most %d", n, base)
 	}
 }
+
+func TestReadReadyAcceptsCRLFAndSpaces(t *testing.T) {
+	for _, in := range []string{"ready\n", "ready\r\n", "  ready  \n", "ready"} {
+		r, w, err := os.Pipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		ready := make(chan struct{})
+		go readReady(r, ready)
+		w.WriteString(in)
+		w.Close()
+		select {
+		case <-ready:
+		case <-time.After(2 * time.Second):
+			t.Fatalf("input %q was not accepted as ready", in)
+		}
+		r.Close()
+	}
+	r, w, _ := os.Pipe()
+	ready := make(chan struct{})
+	go readReady(r, ready)
+	w.WriteString("not ready\n")
+	w.Close()
+	select {
+	case <-ready:
+		t.Fatal(`"not ready" must not count as ready`)
+	case <-time.After(200 * time.Millisecond):
+	}
+	r.Close()
+}

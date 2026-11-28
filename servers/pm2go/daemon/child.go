@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -88,7 +89,7 @@ func (p *Proc) spawn() (*child, error) {
 // readReady closes ready when the pipe delivers a "ready" line.
 func readReady(r *os.File, ready chan struct{}) {
 	line, _ := bufio.NewReader(r).ReadString('\n')
-	if line == "ready\n" {
+	if strings.TrimSpace(line) == "ready" { // tolerate \r\n and trailing blanks from non-Go apps
 		close(ready)
 	}
 }
@@ -145,6 +146,7 @@ func (p *Proc) supervise(c *child, stopCh chan struct{}) superviseResult {
 			return superviseResult{c: c}
 		case <-readyCh:
 			p.markReady(c)
+			c.closeReadPipe() // the readiness line was read; free the descriptor now
 			readyCh, timeout = nil, nil
 		case <-timeout:
 			fmt.Fprintf(os.Stderr, "pm2go: %q not ready after %dms, killing\n", p.cfg.Name, p.cfg.ListenTimeoutOrDefault())
@@ -209,6 +211,7 @@ func (p *Proc) overlap(old *child, stopCh chan struct{}) (*child, error) {
 		}
 	}
 	nc.isReady = true
+	nc.closeReadPipe() // no more readiness reads once the replacement is live
 	p.mu.Lock()
 	p.pid = nc.pid
 	p.startedAt = time.Now()

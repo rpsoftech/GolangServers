@@ -337,11 +337,11 @@ func newAPI(t *testing.T) (*httptest.Server, *API, Config) {
 
 func TestAPIAuthAndAgentFlow(t *testing.T) {
 	srv, _, _ := newAPI(t)
-	if r, _ := http.Get(srv.URL + "/api/servers"); r.StatusCode != 401 {
-		t.Fatalf("unauthenticated status = %d", r.StatusCode)
+	if r, err := http.Get(srv.URL + "/api/servers"); err != nil || r.StatusCode != 401 {
+		t.Fatalf("unauthenticated request: err=%v response=%v", err, r)
 	}
-	if r, _ := http.Get(srv.URL + "/"); r.StatusCode != 200 {
-		t.Fatalf("ui status = %d", r.StatusCode)
+	if r, err := http.Get(srv.URL + "/"); err != nil || r.StatusCode != 200 {
+		t.Fatalf("ui request: err=%v response=%v", err, r)
 	}
 	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/agent/ws"
 	if _, resp, err := websocket.DefaultDialer.Dial(wsURL, http.Header{"Authorization": {"Bearer wrong"}}); err == nil || resp.StatusCode != 401 {
@@ -396,7 +396,7 @@ func TestAPIAuthAndAgentFlow(t *testing.T) {
 	deadline := time.Now().Add(3 * time.Second)
 	var list []serverSummary
 	for time.Now().Before(deadline) {
-		r, _ := cl.Get(srv.URL + "/api/servers")
+		r := mustGet(t, cl, srv.URL + "/api/servers")
 		list = nil
 		_ = json.NewDecoder(r.Body).Decode(&list)
 		if len(list) == 1 && list[0].Total == 1 {
@@ -407,13 +407,13 @@ func TestAPIAuthAndAgentFlow(t *testing.T) {
 	if len(list) != 1 || list[0].Name != "box1" || !list[0].Online || list[0].Running != 1 {
 		t.Fatalf("servers = %+v", list)
 	}
-	r, _ := cl.Get(srv.URL + "/api/issues")
+	r := mustGet(t, cl, srv.URL + "/api/issues")
 	var issues []Issue
 	_ = json.NewDecoder(r.Body).Decode(&issues)
 	if len(issues) != 1 || issues[0].Name != "api" {
 		t.Fatalf("issues = %+v", issues)
 	}
-	r, _ = cl.Get(srv.URL + "/api/servers/box1/logs?proc=api")
+	r = mustGet(t, cl, srv.URL + "/api/servers/box1/logs?proc=api")
 	var logs []logEntry
 	_ = json.NewDecoder(r.Body).Decode(&logs)
 	if len(logs) != 1 {
@@ -433,13 +433,13 @@ func TestAPIAuthAndAgentFlow(t *testing.T) {
 		t.Fatalf("offline server = %d", r.StatusCode)
 	}
 	// telegram settings never leak the token
-	r, _ = cl.Get(srv.URL + "/api/settings/telegram")
+	r = mustGet(t, cl, srv.URL + "/api/settings/telegram")
 	b, _ := io.ReadAll(r.Body)
 	if strings.Contains(string(b), "TOKEN") || !strings.Contains(string(b), `"token_set":true`) {
 		t.Fatalf("telegram view leaks token or hides state: %s", b)
 	}
 	// metrics endpoint answers with series arrays
-	r, _ = cl.Get(srv.URL + "/api/servers/box1/metrics?range=1h")
+	r = mustGet(t, cl, srv.URL + "/api/servers/box1/metrics?range=1h")
 	if r.StatusCode != 200 {
 		t.Fatalf("metrics = %d", r.StatusCode)
 	}
@@ -490,4 +490,15 @@ func TestHealthzIsPublic(t *testing.T) {
 	if err != nil || r.StatusCode != 200 {
 		t.Fatalf("healthz = %v, %v", r, err)
 	}
+}
+
+// mustGet fails the test on a transport error instead of letting a nil
+// response panic later.
+func mustGet(t *testing.T, cl *http.Client, url string) *http.Response {
+	t.Helper()
+	r, err := cl.Get(url)
+	if err != nil {
+		t.Fatalf("GET %s: %v", url, err)
+	}
+	return r
 }

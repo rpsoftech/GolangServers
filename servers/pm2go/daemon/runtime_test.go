@@ -192,3 +192,50 @@ func TestInvalidCronRejected(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestReloadAbortsWhenInstanceDoesNotComeBack(t *testing.T) {
+	m := testManager(t)
+	// First run creates a per-instance marker and stays up. A second run (the
+	// reload) finds the marker and exits at once, so the instance ends errored.
+	script := `m="marker-$PMGO_INSTANCE_ID"; if [ -f "$m" ]; then exit 1; fi; touch "$m"; sleep 30`
+	cfg := shell(t, "flaky", script)
+	cfg.Instances = 2
+	off := false
+	cfg.Autorestart = &off
+	cfg.MinUptimeMs = 100
+	if _, err := m.Start(common.StartParams{Config: cfg}); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, m, "flaky", func(i common.ProcessInfo) bool { return i.Status == common.StatusOnline })
+	for _, f := range []string{"marker-0", "marker-1"} { // the shell must have run `touch` before we reload
+		deadline := time.Now().Add(3 * time.Second)
+		for {
+			if _, err := os.Stat(filepath.Join(cfg.Cwd, f)); err == nil {
+				break
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("%s was never created", f)
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
+	before := map[int]int{}
+	for _, i := range m.List() {
+		before[i.Instance] = i.PID
+	}
+	if _, err := m.Reload("flaky"); err == nil {
+		t.Fatal("reload reported success though instance 0 did not come back")
+	}
+	for _, i := range m.List() {
+		switch i.Instance {
+		case 0:
+			if i.Status == common.StatusOnline {
+				t.Fatalf("instance 0 should be down, got %+v", i)
+			}
+		case 1:
+			if i.PID != before[1] || i.Status != common.StatusOnline {
+				t.Fatalf("instance 1 must stay on the old process after instance 0 failed: %+v (before pid %d)", i, before[1])
+			}
+		}
+	}
+}
