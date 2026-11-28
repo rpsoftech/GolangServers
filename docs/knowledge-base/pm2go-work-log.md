@@ -32,7 +32,7 @@ Size: S small (hours), M medium (1 day), L large (several days). Lane: which are
 | [#95](https://github.com/rpsoftech/GolangServers/issues/95) | Hub built-in TLS and secure defaults | S-M | hub | none | `hub/server.go`, `agent/agent.go` | open | |
 | [#96](https://github.com/rpsoftech/GolangServers/issues/96) | Deployment tracking (git revision, deploy markers) | M | daemon+hub | #89, #90 | `common/types.go`, `hub/registry.go`, UI charts | open | |
 | [#97](https://github.com/rpsoftech/GolangServers/issues/97) | `deploy` command (git + ssh) | M-L | cli | none (YAML #92 soft) | new `cli/deploy.go`, `common/deploy.go` | open | |
-| [#98](https://github.com/rpsoftech/GolangServers/issues/98) | Shared listening socket and `wait_ready` | L | daemon | none | `daemon/proc.go`, `daemon/manager.go` | open | |
+| [#98](https://github.com/rpsoftech/GolangServers/issues/98) | Shared listening socket and `wait_ready` | L | daemon | none | `daemon/proc.go`, `daemon/manager.go` | in progress | `feat/daemon-shared-socket` |
 | [#99](https://github.com/rpsoftech/GolangServers/issues/99) | Restart daemon without stopping children | L | daemon | #98 (order) | `daemon/proc.go`, `daemon/logfile.go`, `cli/startup.go` | open | |
 | [#100](https://github.com/rpsoftech/GolangServers/issues/100) | More alert channels, silences, quiet hours | L | hub | #89, #90 | `hub/alerts.go`, `hub/telegram.go`, `hub/api.go` | open | |
 | [#101](https://github.com/rpsoftech/GolangServers/issues/101) | Persistent log storage and search | L | hub | #89, #90 | `hub/registry.go`, `hub/api.go`, UI | open | |
@@ -89,6 +89,10 @@ Append new entries at the bottom: date, issue, decision, reason.
 - 2026-11-28, base: alert model is rule per (type, level); several rules of one type give escalation; higher level covers lower for the same target; sustained thresholds via `duration_s`; reminders via `repeat_s`; resolve after 10 s of false.
 - 2026-11-28, base: secrets (Telegram token) are write-only in the API (`token_set` flag). New secrets follow the same rule.
 - 2026-11-28, base: no cluster-style port sharing yet; apps use `SO_REUSEPORT` themselves until #98.
+- 2026-11-28, #98: `daemon/proc.go` now spawns through `Proc.spawn()` (`daemon/child.go`) and waits through `Proc.supervise()`; `loop` only does restart policy. One `child` = one OS process (cmd, waitCh, readiness). #99 should keep this split and adopt or re-attach children as `child` values.
+- 2026-11-28, #98: shared sockets live in `Manager.lns` (`daemon/listener.go`), one per app name, held as a single dup'd `*os.File` (the `net.Listener` is closed right after `File()`). Children get it as fd 3 (`LISTEN_FDS=1`), readiness pipe is the next fd (`PMGO_READY_FD`). #99 must keep both open across a daemon restart (or hand them over) or reload and restart lose the port.
+- 2026-11-28, #98: `Proc.Reload()` sends a request over `reloadReq` to the supervise loop (overlapping reload, only for apps with `listen`); `Manager.Reload` falls back to stop, start, wait when the loop is not running. `Manager.Reload` now returns an error (with infos) when an instance never becomes ready; the old instance stays up.
+- 2026-11-28, #98: `LISTEN_PID` is not set (unknown before fork); readiness is a pipe only (no datagram socket variant).
 
 ## Journal
 
@@ -96,6 +100,7 @@ Append only. Newest at the bottom.
 
 - 2026-11-28: PR #88 opened with the base implementation (daemon, CLI, agent, hub, dashboard, alerts, Telegram, Docker and Caddy files, docs). Race tests pass, Linux cross-build passes. Manual end-to-end run on macOS verified hub, agent, dashboard, live logs, issues, alert firing, remote restart. Not run on Linux, Docker or real Telegram.
 - 2026-11-28: issues #89 to #106 created from the open items in `pm2go-status.md`, each with context, design, files, acceptance criteria and tests so sessions do not need to re-read the code.
+- 2026-11-28: #98 shared listening socket (fd 3, `LISTEN_FDS`), `wait_ready` pipe protocol, overlapping zero-downtime `reload`, `sdk/runtime` helper, flags `--listen`, `--wait-ready`, `--listen-timeout`. Tests compile `daemon/testdata/sharedapp` and cover pid spread, zero-drop reload, never-ready kill, slow-ready wait, failed reload keeps old, fd leaks. Race tests, vet, gofmt and linux build pass. Tested on macOS only, not on Linux hardware.
 
 ## Handoff template (copy into your Journal entry when you stop mid-way)
 

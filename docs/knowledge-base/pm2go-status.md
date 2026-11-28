@@ -63,7 +63,7 @@ Every open item below is tracked as a GitHub issue (#89 to #106). The issue boar
 - [ ] deployment tracking (git revision per process, deploy markers on charts) (#96)
 - [ ] `pm2go deploy` over ssh (#97)
 - [ ] daemon restart without stopping children (today children are tied to the daemon by log pipes) (#99)
-- [ ] cluster-style port sharing and `wait_ready` readiness (#98)
+- [x] cluster-style port sharing and `wait_ready` readiness (#98)
 - [ ] YAML ecosystem files, richer `ignore_watch` globs (#92)
 - [ ] more alert channels (email, Slack, webhook), quiet hours, alert silencing (#100)
 - [ ] multi-user accounts, roles, SSO, audit log (#102)

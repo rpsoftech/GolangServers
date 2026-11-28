@@ -37,6 +37,7 @@ type Proc struct {
 	stopCh     chan struct{}
 	done       chan struct{} // non-nil while loop runs
 	restartReq chan string
+	reloadReq  chan chan error // overlapping reload requests, served by supervise
 	cancel     context.CancelFunc
 
 	outW, errW *RotatingFile
@@ -44,7 +45,7 @@ type Proc struct {
 
 func newProc(m *Manager, id, instance int, cfg common.AppConfig, env []string) *Proc {
 	return &Proc{m: m, id: id, instance: instance, cfg: cfg, env: env,
-		status: common.StatusStopped, createdAt: time.Now(), restartReq: make(chan string, 1)}
+		status: common.StatusStopped, createdAt: time.Now(), restartReq: make(chan string, 1), reloadReq: make(chan chan error)}
 }
 
 func (p *Proc) logBase() string {
@@ -249,10 +250,7 @@ func (p *Proc) loop(stopCh, done chan struct{}) {
 			p.setStatus(common.StatusStopped, "manual")
 			return
 		}
-		cmd, err := p.buildCmd()
-		if err == nil {
-			err = cmd.Start()
-		}
+		c, err := p.spawn()
 		if err != nil {
 			p.unstable++
 			p.mu.Unlock()
@@ -268,33 +266,22 @@ func (p *Proc) loop(stopCh, done chan struct{}) {
 			}
 			continue
 		}
-		p.pid = cmd.Process.Pid
-		p.startedAt = time.Now()
+		p.pid = c.pid
+		p.startedAt = c.started
 		p.status = common.StatusOnline
-		p.exitCode = nil
-		started := p.startedAt
-		p.mu.Unlock()
-		p.emit("online", reason)
-
-		waitCh := make(chan error, 1)
-		go func() { waitCh <- cmd.Wait() }()
-		soft := ""
-		select {
-		case <-waitCh:
-		case soft = <-p.restartReq:
-			p.mu.Lock()
-			timeout := time.Duration(p.cfg.KillTimeoutOrDefault()) * time.Millisecond
-			p.mu.Unlock()
-			signalGroup(cmd.Process.Pid, false)
-			select {
-			case <-waitCh:
-			case <-time.After(timeout):
-				signalGroup(cmd.Process.Pid, true)
-				<-waitCh
-			}
-		case <-stopCh:
-			<-waitCh // Stop escalates to SIGKILL itself
+		if c.waitReady {
+			p.status = common.StatusLaunching // online once the app signals ready
 		}
+		p.exitCode = nil
+		p.mu.Unlock()
+		if !c.waitReady {
+			p.emit("online", reason)
+		}
+
+		res := p.supervise(c, stopCh)
+		soft, c := res.soft, res.c
+		cmd := c.cmd
+		started := c.started
 		ran := time.Since(started)
 		code := -1
 		if cmd.ProcessState != nil {
@@ -322,14 +309,20 @@ func (p *Proc) loop(stopCh, done chan struct{}) {
 			reason = soft
 			continue
 		}
-		p.emit("exit", "crash")
+		exitReason := "crash"
+		if res.timedOut {
+			exitReason = "ready_timeout"
+		}
+		p.emit("exit", exitReason)
 		for _, c := range p.cfg.StopExitCodes {
 			if c == code {
 				p.setStatus(common.StatusStopped, "stop_exit_code")
 				return
 			}
 		}
-		if ran < time.Duration(p.cfg.MinUptimeOrDefault())*time.Millisecond {
+		// A run that never signalled ready counts as unstable however long it lived.
+		neverReady := c.waitReady && !c.isReady
+		if neverReady || ran < time.Duration(p.cfg.MinUptimeOrDefault())*time.Millisecond {
 			consecutive++
 			p.mu.Lock()
 			p.unstable++

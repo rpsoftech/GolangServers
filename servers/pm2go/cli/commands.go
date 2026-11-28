@@ -46,7 +46,8 @@ start flags:
   --exp-backoff-restart-delay MS, --kill-timeout MS, --only a,b (ecosystem),
   --env-profile NAME (ecosystem env_<NAME>), --instances N, --watch,
   --ignore-watch a,b, --cron-restart "0 4 * * *", --max-memory-restart MB,
-  --log-max-size MB (-1 off), --log-retain N, --stop-exit-codes 0,2
+  --log-max-size MB (-1 off), --log-retain N, --stop-exit-codes 0,2,
+  --listen ":8080"|unix:/path (shared socket), --wait-ready, --listen-timeout MS
 `
 
 type multi []string
@@ -169,6 +170,9 @@ func cmdStart(args []string) error {
 	logMax := fs.Int("log-max-size", 0, "rotate logs at this many MB (-1 off)")
 	logRetain := fs.Int("log-retain", 0, "rotated log files to keep")
 	stopCodes := fs.String("stop-exit-codes", "", "exit codes that do not restart")
+	listen := fs.String("listen", "", "shared listening socket passed to every instance")
+	waitReady := fs.Bool("wait-ready", false, "wait for the app to signal ready")
+	listenTimeout := fs.Int("listen-timeout", 0, "ms to wait for ready (default 8000)")
 	var envs multi
 	fs.Var(&envs, "env", "KEY=VAL (repeatable)")
 	pos, scriptArgs, err := parseInterspersed(fs, args)
@@ -220,6 +224,7 @@ func cmdStart(args []string) error {
 		}
 		c.Instances, c.Watch, c.CronRestart = *instances, *watch, *cronR
 		c.MaxMemoryRestartMB, c.LogMaxSizeMB, c.LogRetain = *maxMem, *logMax, *logRetain
+		c.Listen, c.WaitReady, c.ListenTimeoutMs = *listen, *waitReady, *listenTimeout
 		for _, x := range strings.Split(*ignoreWatch, ",") {
 			if x = strings.TrimSpace(x); x != "" {
 				c.IgnoreWatch = append(c.IgnoreWatch, x)
